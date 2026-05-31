@@ -9,6 +9,13 @@ import { useAuth } from "../context/AuthProvider";
 import axios from "axios";
 import { IoIosArrowRoundForward } from "react-icons/io";
 import { HiOutlinePencilAlt } from "react-icons/hi";
+import { motion } from "framer-motion";
+import {
+  StaggerItem,
+  fadeInLeft,
+  fadeInRight,
+  fadeInUp,
+} from "@/lib/animations";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -98,7 +105,6 @@ export function DepartmentSections({
             start: "top bottom",
             end: "bottom top",
             scrub: 1.5,
-            // markers: true,
           },
         });
       });
@@ -181,7 +187,11 @@ export function DepartmentSections({
                 </div>
               </div>
 
-              <div
+              <motion.div
+                initial={{ opacity: 0, x: isEven ? 50 : -50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
                 className={`floating-number absolute top-8 md:top-16 flex gap-4 justify-between items-center z-11 ${
                   isEven
                     ? "right-8 md:right-20 lg:right-32"
@@ -191,7 +201,7 @@ export function DepartmentSections({
                 <span className="font-mono text-8xl md:text-xl lg:text-6xl text-accent/10 leading-none">
                   {department.number}
                 </span>
-                {auth && window.innerWidth > 1024 && (
+                {auth && typeof window !== "undefined" && window.innerWidth > 1024 && (
                   <button
                     onClick={() => openEdit(department)}
                     aria-label={`Edit ${department.name}`}
@@ -202,7 +212,7 @@ export function DepartmentSections({
                     <span className="hidden sm:inline">Edit</span>
                   </button>
                 )}
-              </div>
+              </motion.div>
 
               <div className="relative z-10 h-full w-full max-w-8xl mx-auto px-6 md:px-12 lg:px-20">
                 <div
@@ -210,7 +220,13 @@ export function DepartmentSections({
                     isEven ? "lg:flex-row" : "lg:flex-row-reverse"
                   } items-center gap-12 lg:gap-20`}
                 >
-                  <div className="dept-image-wrapper relative w-full lg:w-1/2">
+                  <motion.div
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true }}
+                    variants={isEven ? fadeInLeft : fadeInRight}
+                    className="dept-image-wrapper relative w-full lg:w-1/2"
+                  >
                     <div className="relative">
                       <div className="relative overflow-hidden bg-secondary">
                         <Image
@@ -221,7 +237,7 @@ export function DepartmentSections({
                           className="object-cover"
                         />
                       </div>
-                      {auth && window.innerWidth < 1024 && (
+                      {auth && typeof window !== "undefined" && window.innerWidth < 1024 && (
                         <button
                           onClick={() => openEdit(department)}
                           aria-label={`Edit ${department.name}`}
@@ -233,77 +249,29 @@ export function DepartmentSections({
                         </button>
                       )}
                     </div>
-                  </div>
+                  </motion.div>
 
-                  <div
+                  <motion.div
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true }}
+                    variants={isEven ? fadeInRight : fadeInLeft}
                     className={`dept-content w-full lg:w-3/4 ${isEven ? "lg:pl-8" : "lg:pr-8"}`}
                   >
                     <div className="flex items-center gap-4 mb-6">
                       <span className="w-12 h-px bg-accent" />
-                      {/* <span className="text-accent font-mono text-xs tracking-[0.3em] uppercase">
-                    Department {department.number}
-                    </span> */}
                     </div>
 
                     <div className="flex flex-row items-start justify-between">
                       <h2 className="font-bebasNeue text-5xl md:text-7xl lg:text-8xl text-text-secondary tracking-tight mb-2 md:mb-8 leading-[0.9]">
-                        {/* {department.name.split(" ").map((word, i) => (
-                            <span key={i} className="block">
-                                {word}
-                            </span>
-                        ))} */}
                         {department.name}
                       </h2>
-                      {/* {window.innerWidth < 1024 && (
-                        <div
-                          className="group flex items-center gap-4 cursor-pointer"
-                          onClick={() =>
-                            alert(
-                              "Apatoto kichu nai pore chaile page add kore dewa jay",
-                            )
-                          }
-                        >
-                          <div className="relative w-8 h-8 md:w-12 md:h-12 border border-text-muted/20 flex items-center justify-center group-hover:border-accent transition-colors duration-300">
-                            <div
-                              className={`text-xl md:text-3xl text-text-muted group-hover:text-accent transition-all duration-300 group-hover:translate-x-1`}
-                            >
-                              <IoIosArrowRoundForward />
-                            </div>
-                          </div>
-                          <span className="text-text-muted text-xs md:text-sm font-medium tracking-wide uppercase group-hover:text-accent transition-colors duration-300 whitespace-nowrap">
-                            Meet the Team
-                          </span>
-                        </div>
-                      )} */}
                     </div>
 
                     <p className="text-text-muted text-sm md:text-xl leading-tight md:leading-relaxed text-justify w-full mb-10">
                       {department.description}
                     </p>
-
-                    {/* Meet the Team Button (might delete later) */}
-                    {/* {window.innerWidth >= 1024 && (
-                      <div
-                        className="group flex items-center gap-4 cursor-pointer"
-                        onClick={() =>
-                          alert(
-                            "Apatoto kichu nai pore chaile page add kore dewa jay",
-                          )
-                        }
-                      >
-                        <div className="relative w-14 h-14 border border-text-muted/20 flex items-center justify-center group-hover:border-accent transition-colors duration-300">
-                          <div
-                            className={`text-3xl text-text-muted group-hover:text-accent transition-all duration-300 group-hover:translate-x-1`}
-                          >
-                            <IoIosArrowRoundForward />
-                          </div>
-                        </div>
-                        <span className="text-text-muted text-sm font-medium tracking-wide uppercase group-hover:text-accent transition-colors duration-300">
-                          Meet the Team
-                        </span>
-                      </div>
-                    )} */}
-                  </div>
+                  </motion.div>
                 </div>
               </div>
             </section>
@@ -311,9 +279,18 @@ export function DepartmentSections({
         })}
       </div>
 
+      {/* Edit Modal */}
       {editing && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm text-text-secondary flex items-center justify-center z-50 p-4">
-          <form
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm text-text-secondary flex items-center justify-center z-50 p-4"
+        >
+          <motion.form
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
             onSubmit={handleSubmit}
             className="bg-linear-to-br from-white to-gray-50 p-8 rounded-2xl max-w-lg w-full mx-4 shadow-2xl border-2 border-accent/20 transform transition-all"
           >
@@ -382,8 +359,8 @@ export function DepartmentSections({
                 Save Changes
               </button>
             </div>
-          </form>
-        </div>
+          </motion.form>
+        </motion.div>
       )}
     </>
   );

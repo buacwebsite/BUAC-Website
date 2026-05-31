@@ -9,6 +9,7 @@ import {
   FaGraduationCap,
   FaShieldAlt,
 } from "react-icons/fa";
+import { motion } from "framer-motion";
 
 type RoleType = "member" | "alumni" | "admin";
 
@@ -78,22 +79,36 @@ const Login = () => {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+        className="w-full max-w-md"
+      >
         {/* Header */}
-        <div className="text-center mb-8">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.4 }}
+          className="text-center mb-8"
+        >
           <h1 className="text-5xl font-bebasNeue text-text-secondary tracking-wider mb-2">
             Welcome Back
           </h1>
-          <p className="text-text-muted">
-            Sign in to your BUAC account
-          </p>
-        </div>
+          <p className="text-text-muted">Sign in to your BUAC account</p>
+        </motion.div>
 
         {/* Role Selector */}
-        <div className="flex gap-2 mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="flex gap-2 mb-6"
+        >
           {roles.map((r) => (
-            <button
+            <motion.button
               key={r.id}
+              whileTap={{ scale: 0.95 }}
               onClick={() => {
                 setRole(r.id);
                 setError("");
@@ -106,24 +121,36 @@ const Login = () => {
             >
               {r.icon}
               <span className="text-xs font-semibold">{r.label}</span>
-            </button>
+            </motion.button>
           ))}
-        </div>
+        </motion.div>
 
         {/* Login Form */}
-        <div
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
           className={`bg-linear-to-br ${activeRole.color} p-[2px] rounded-2xl shadow-2xl`}
         >
           <div className="bg-background p-8 rounded-2xl">
-            <div className="flex items-center gap-2 mb-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.3 }}
+              className="flex items-center gap-2 mb-6"
+            >
               <FaUserTie className="text-accent text-xl" />
               <h2 className="text-lg font-semibold text-text-secondary">
                 {activeRole.label} Login
               </h2>
-            </div>
+            </motion.div>
 
             <form className="space-y-5" onSubmit={handleSubmit}>
-              <div>
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4, duration: 0.3 }}
+              >
                 <label className="block text-sm font-medium text-text-muted mb-2">
                   Email
                 </label>
@@ -136,9 +163,13 @@ const Login = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
                 />
-              </div>
+              </motion.div>
 
-              <div>
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5, duration: 0.3 }}
+              >
                 <label className="block text-sm font-medium text-text-muted mb-2">
                   Password
                 </label>
@@ -151,26 +182,37 @@ const Login = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
                 />
-              </div>
+              </motion.div>
 
               {error && (
-                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  transition={{ duration: 0.2 }}
+                  className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm"
+                >
                   {error}
-                </div>
+                </motion.div>
               )}
 
-              <button
+              <motion.button
                 type="submit"
                 disabled={loading}
+                whileTap={{ scale: 0.97 }}
                 className="w-full px-4 py-3 bg-accent text-white font-semibold rounded-xl hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer"
               >
                 {loading ? "Signing in..." : "Sign In"}
-              </button>
+              </motion.button>
             </form>
 
             {/* Register Link */}
             {role !== "admin" && (
-              <div className="mt-6 text-center">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6, duration: 0.3 }}
+                className="mt-6 text-center"
+              >
                 <p className="text-text-muted text-sm">
                   Don&apos;t have an account?{" "}
                   <Link
@@ -180,21 +222,26 @@ const Login = () => {
                     Create Account
                   </Link>
                 </p>
-              </div>
+              </motion.div>
             )}
           </div>
-        </div>
+        </motion.div>
 
         {/* Back to Home */}
-        <div className="mt-6 text-center">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7, duration: 0.3 }}
+          className="mt-6 text-center"
+        >
           <Link
             href="/"
             className="text-text-muted hover:text-accent text-sm transition-colors"
           >
             ← Back to Home
           </Link>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 };

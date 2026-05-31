@@ -13,6 +13,7 @@ import {
 import { IoCalendar } from "react-icons/io5";
 import { useAuth } from "@/app/context/AuthProvider";
 import { useEditor } from "@/app/context/EditorContext";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Activity {
   id: number;
@@ -94,26 +95,34 @@ export default function ActivityPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-text-secondary text-2xl font-bebasNeue">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-text-secondary text-2xl font-bebasNeue"
+        >
           Loading...
-        </div>
+        </motion.div>
       </div>
     );
   }
 
   if (!activity) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="min-h-screen bg-background flex flex-col items-center justify-center"
+      >
         <div className="text-text-secondary text-4xl font-bebasNeue mb-4">
           Activity Not Found
         </div>
         <button
           onClick={() => router.push("/activities")}
-          className="text-accent hover:underline flex items-center gap-2"
+          className="text-accent hover:underline flex items-center gap-2 cursor-pointer"
         >
           <HiArrowLeft /> Back to Activities
         </button>
-      </div>
+      </motion.div>
     );
   }
 
@@ -127,17 +136,25 @@ export default function ActivityPage() {
   return (
     <div className="min-h-screen bg-background">
       {auth && (
-        <button
+        <motion.button
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5, type: "spring" }}
           onClick={handleEdit}
-          className="fixed bottom-8 right-8 z-50 bg-accent text-white p-4 rounded-full shadow-lg hover:bg-accent/90 transition-colors flex items-center gap-2"
+          className="fixed bottom-8 right-8 z-50 bg-accent text-white p-4 rounded-full shadow-lg hover:bg-accent/90 transition-colors flex items-center gap-2 cursor-pointer"
           title="Edit Activities"
         >
           <HiOutlinePencilAlt size={24} />
-        </button>
+        </motion.button>
       )}
 
       {/* Back Button */}
-      <div className="px-6 lg:px-12 pt-8">
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.3 }}
+        className="px-6 lg:px-12 pt-8"
+      >
         <button
           onClick={() => router.push("/activities")}
           className="flex items-center gap-2 text-text-muted hover:text-accent transition-colors cursor-pointer"
@@ -145,12 +162,29 @@ export default function ActivityPage() {
           <HiArrowLeft size={20} />
           <span>Back to Activities</span>
         </button>
-      </div>
+      </motion.div>
 
-      <div className="py-12 px-6 lg:px-12">
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: { opacity: 0 },
+          visible: {
+            opacity: 1,
+            transition: { staggerChildren: 0.15, delayChildren: 0.1 },
+          },
+        }}
+        className="py-12 px-6 lg:px-12"
+      >
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="mb-8">
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, y: 30 },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+            }}
+            className="mb-8"
+          >
             <div className="flex items-center gap-3 mb-4">
               <span className="bg-accent/90 text-white px-4 py-1 rounded-full text-sm font-medium">
                 {activity.category}
@@ -166,37 +200,54 @@ export default function ActivityPage() {
             <p className="text-xl text-text-muted max-w-3xl">
               {activity.description}
             </p>
-          </div>
+          </motion.div>
 
           {/* Image Slider */}
           {displayImages.length > 0 && (
-            <div className="relative w-full h-[60vh] mb-12 rounded-2xl overflow-hidden group">
-              <Image
-                src={displayImages[currentImageIndex]}
-                alt={`${activity.name} - Image ${currentImageIndex + 1}`}
-                fill
-                className="object-cover"
-                priority
-              />
+            <motion.div
+              variants={{
+                hidden: { opacity: 0, scale: 0.95 },
+                visible: { opacity: 1, scale: 1, transition: { duration: 0.6 } },
+              }}
+              className="relative w-full h-[60vh] mb-12 rounded-2xl overflow-hidden group"
+            >
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentImageIndex}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="absolute inset-0"
+                >
+                  <Image
+                    src={displayImages[currentImageIndex]}
+                    alt={`${activity.name} - Image ${currentImageIndex + 1}`}
+                    fill
+                    className="object-cover"
+                    priority
+                  />
+                </motion.div>
+              </AnimatePresence>
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
 
               {displayImages.length > 1 && (
                 <>
-                  {/* Navigation Buttons */}
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
                     onClick={prevImage}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
                   >
                     <HiChevronLeft size={24} />
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
                     onClick={nextImage}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
                   >
                     <HiChevronRight size={24} />
-                  </button>
+                  </motion.button>
 
-                  {/* Dots Indicator */}
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
                     {displayImages.map((_, index) => (
                       <button
@@ -213,17 +264,22 @@ export default function ActivityPage() {
                 </>
               )}
 
-              {/* Image Counter */}
               {displayImages.length > 1 && (
                 <div className="absolute top-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm backdrop-blur-sm">
                   {currentImageIndex + 1} / {displayImages.length}
                 </div>
               )}
-            </div>
+            </motion.div>
           )}
 
           {/* Content */}
-          <div className="max-w-4xl mx-auto">
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, y: 20 },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.5, delay: 0.3 } },
+            }}
+            className="max-w-4xl mx-auto"
+          >
             <div className="prose prose-lg prose-invert max-w-none">
               <div
                 className="text-text-muted leading-relaxed whitespace-pre-wrap"
@@ -232,9 +288,9 @@ export default function ActivityPage() {
                 {activity.content || "No detailed content available yet."}
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

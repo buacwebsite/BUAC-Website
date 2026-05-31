@@ -5,6 +5,7 @@ import Link from "next/link";
 import axios, { AxiosError } from "axios";
 import { FaMountain, FaGraduationCap } from "react-icons/fa";
 import { FaPaperPlane } from "react-icons/fa6";
+import { motion } from "framer-motion";
 
 type RoleType = "member" | "alumni";
 
@@ -61,20 +62,36 @@ const Register = () => {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+        className="w-full max-w-md"
+      >
         {/* Header */}
-        <div className="text-center mb-8">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.4 }}
+          className="text-center mb-8"
+        >
           <h1 className="text-5xl font-bebasNeue text-accent tracking-wider mb-2">
             Be an Adventurer
           </h1>
           <p className="text-text-muted">
             Create your BUAC account and start exploring
           </p>
-        </div>
+        </motion.div>
 
         {/* Role Selector */}
-        <div className="flex gap-3 mb-6">
-          <button
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="flex gap-3 mb-6"
+        >
+          <motion.button
+            whileTap={{ scale: 0.95 }}
             onClick={() => setRole("member")}
             className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-xl border-2 transition-all duration-300 cursor-pointer ${
               role === "member"
@@ -87,9 +104,10 @@ const Register = () => {
               <div className="font-semibold text-sm">Member</div>
               <div className="text-xs opacity-70">Active adventurer</div>
             </div>
-          </button>
+          </motion.button>
 
-          <button
+          <motion.button
+            whileTap={{ scale: 0.95 }}
             onClick={() => setRole("alumni")}
             className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-xl border-2 transition-all duration-300 cursor-pointer ${
               role === "alumni"
@@ -102,13 +120,22 @@ const Register = () => {
               <div className="font-semibold text-sm">Alumni</div>
               <div className="text-xs opacity-70">Former member</div>
             </div>
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
 
         {/* Registration Form */}
-        <div className="bg-background border-2 border-accent/20 p-8 rounded-2xl shadow-2xl">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+          className="bg-background border-2 border-accent/20 p-8 rounded-2xl shadow-2xl"
+        >
           <form className="space-y-5" onSubmit={handleSubmit}>
-            <div>
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.35, duration: 0.3 }}
+            >
               <label className="block text-sm font-medium text-text-muted mb-2">
                 Full Name
               </label>
@@ -121,9 +148,13 @@ const Register = () => {
                 onChange={(e) => setName(e.target.value)}
                 disabled={loading}
               />
-            </div>
+            </motion.div>
 
-            <div>
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4, duration: 0.3 }}
+            >
               <label className="block text-sm font-medium text-text-muted mb-2">
                 Email Address
               </label>
@@ -140,9 +171,13 @@ const Register = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
               />
-            </div>
+            </motion.div>
 
-            <div>
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.45, duration: 0.3 }}
+            >
               <label className="block text-sm font-medium text-text-muted mb-2">
                 Password
               </label>
@@ -155,9 +190,13 @@ const Register = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
               />
-            </div>
+            </motion.div>
 
-            <div>
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.5, duration: 0.3 }}
+            >
               <label className="block text-sm font-medium text-text-muted mb-2">
                 Confirm Password
               </label>
@@ -170,17 +209,23 @@ const Register = () => {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 disabled={loading}
               />
-            </div>
+            </motion.div>
 
             {error && (
-              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                transition={{ duration: 0.2 }}
+                className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm"
+              >
                 {error}
-              </div>
+              </motion.div>
             )}
 
-            <button
+            <motion.button
               type="submit"
               disabled={loading}
+              whileTap={{ scale: 0.97 }}
               className="w-full px-4 py-3 bg-accent text-white font-semibold rounded-xl hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
             >
               {loading ? (
@@ -190,10 +235,15 @@ const Register = () => {
                   Create Account <FaPaperPlane />
                 </>
               )}
-            </button>
+            </motion.button>
           </form>
 
-          <div className="mt-6 text-center">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6, duration: 0.3 }}
+            className="mt-6 text-center"
+          >
             <p className="text-text-muted text-sm">
               Already have an account?{" "}
               <Link
@@ -203,19 +253,24 @@ const Register = () => {
                 Sign In
               </Link>
             </p>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Back to Home */}
-        <div className="mt-6 text-center">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7, duration: 0.3 }}
+          className="mt-6 text-center"
+        >
           <Link
             href="/"
             className="text-text-muted hover:text-accent text-sm transition-colors"
           >
             ← Back to Home
           </Link>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 };

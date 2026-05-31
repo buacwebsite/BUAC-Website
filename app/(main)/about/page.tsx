@@ -21,6 +21,14 @@ import {
   FaEnvelopeOpen,
   FaBullhorn,
 } from "react-icons/fa6";
+import { motion } from "framer-motion";
+import {
+  MotionSection,
+  StaggerGrid,
+  StaggerItem,
+  RevealHeading,
+  fadeInUp,
+} from "@/lib/animations";
 
 gsap.registerPlugin(ScrollToPlugin, ScrollTrigger);
 
@@ -124,7 +132,6 @@ const About = () => {
       timeline
         .from(deptContainerRef.current, {
           y: -800,
-          // opacity: 0,
           backgroundColor: `#ff622b`,
           scale: 1.05,
           gap: "0",
@@ -138,7 +145,6 @@ const About = () => {
           ease: "power2.out",
         })
         .to(deptContainerRef.current, {
-          // opacity: 1,
           backgroundColor: `#ff622b`,
           scale: 0.98,
           gap: "0",
@@ -264,7 +270,6 @@ const About = () => {
         duration: 1,
         ease: "power2.inOut",
       });
-      // section.scrollIntoView({ behavior: 'smooth' });
     }
   }, []);
 
@@ -276,7 +281,6 @@ const About = () => {
       >
         <ul
           className="flex flex-col md:flex-row text-lg h-[60vh] md:h-2/3 w-full max-w-screen px-4 md:px-8 justify-center items-center"
-          // onMouseLeave={handleMouseLeave}
           ref={deptContainerRef}
         >
           <div
@@ -298,8 +302,6 @@ const About = () => {
               onMouseLeave={(event) => handleMouseLeave(event)}
               onClick={() => scrollToSection(dept.id)}
             >
-              {/* <FaPeopleGroup className="absolute bottom-0 -right-5 text-[10rem] text-red-500 z-10" /> */}
-
               <span
                 ref={(el) => {
                   deptNameRef.current[index] = el;
@@ -353,7 +355,7 @@ const About = () => {
       </div>
       <DepartmentSections departments={departments ?? []} />
 
-      <section
+      <MotionSection
         ref={panelSectionRef}
         className="relative min-h-screen w-full overflow-hidden bg-linear-to-b from-stone-900 via-stone-800 to-stone-900 flex items-center justify-center py-8 md:py-0"
       >
@@ -366,29 +368,29 @@ const About = () => {
 
         <div className="relative z-10 w-full h-full px-4 md:px-8 py-8 md:py-16 flex flex-col items-center justify-center">
           <div className="mb-6 md:mb-12 text-center flex flex-col items-center relative">
-            <h2 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bebasNeue text-accent tracking-wider mb-2 drop-shadow-lg">
+            <RevealHeading className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bebasNeue text-accent tracking-wider mb-2 drop-shadow-lg">
               Meet the Panel
-            </h2>
+            </RevealHeading>
             {auth && panelMembers && (
-              <button
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
                 onClick={() => openEditor("panelmembers", panelMembers)}
-                className=" bg-accent text-white py-2 px-2 md:py-2 md:px-4 mb-2 flex items-center justify-center gap-2 text-sm md:text-base font-medium rounded-full border-2 border-accent hover:bg-transparent hover:text-accent transition-all duration-300 cursor-pointer z-20"
+                className="bg-accent text-white py-2 px-2 md:py-2 md:px-4 mb-2 flex items-center justify-center gap-2 text-sm md:text-base font-medium rounded-full border-2 border-accent hover:bg-transparent hover:text-accent transition-all duration-300 cursor-pointer z-20"
                 title="Edit Panel Members"
               >
                 <HiOutlinePencilAlt className="text-lg md:text-xl" />
                 Edit
-              </button>
+              </motion.button>
             )}
             <div className="w-20 md:w-32 h-1 bg-accent mx-auto"></div>
           </div>
 
-          <div className="flex flex-col md:flex-row gap-4 md:gap-6 w-full max-w-8xl min-h-[60vh] md:h-[70vh] justify-center items-stretch">
+          <StaggerGrid className="flex flex-col md:flex-row gap-4 md:gap-6 w-full max-w-8xl min-h-[60vh] md:h-[70vh] justify-center items-stretch">
             {panelMembers?.map((member, index) => (
-              <div
+              <StaggerItem
                 key={index}
-                ref={(el) => {
-                  panelCardRefs.current[index] = el;
-                }}
                 className="group relative flex-1 min-w-0 min-h-125 md:min-h-0 rounded-lg overflow-hidden bg-stone-700 border-2 border-stone-600 shadow-2xl transition-all duration-500 hover:scale-105 hover:border-accent hover:shadow-accent/20 cursor-pointer"
                 style={{
                   background:
@@ -397,8 +399,6 @@ const About = () => {
                     "inset 0 2px 4px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.4)",
                 }}
               >
-                {/* <div className="absolute inset-0 bg-linear-to-br from-transparent via-transparent to-black/20 opacity-60 group-hover:opacity-40 transition-opacity duration-500"></div> */}
-
                 <div className="relative h-full overflow-hidden bg-stone-800">
                   <div className="absolute inset-0 bg-linear-to-t from-stone-900 via-transparent to-transparent z-10"></div>
                   <Image
@@ -453,23 +453,12 @@ const About = () => {
                   </div>
                 </div>
 
-                {/* <div className="relative h-1/4 p-4 flex flex-col justify-center items-center bg-linear-to-b from-stone-800 to-stone-900 border-t-2 border-stone-600 group-hover:border-accent transition-colors duration-500">
-                  <h3 className="text-xl md:text-2xl font-bebasNeue text-accent tracking-wide mb-1 text-center group-hover:scale-110 transition-transform duration-300">
-                    {member.name}
-                  </h3>
-                  <p className="text-xs md:text-sm text-stone-300 font-semibold uppercase tracking-widest text-center opacity-80 group-hover:opacity-100 transition-opacity duration-300">
-                    {member.position}
-                  </p>
-
-                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-accent group-hover:w-3/4 transition-all duration-500"></div>
-                </div> */}
-
                 <div className="absolute inset-0 bg-linear-to-tr from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
-              </div>
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerGrid>
         </div>
-      </section>
+      </MotionSection>
       <section className="h-screen flex justify-center items-center text-6xl font-poppins text-text-secondary">
         End Section
       </section>

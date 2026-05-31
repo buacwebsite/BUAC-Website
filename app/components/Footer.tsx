@@ -3,12 +3,19 @@
 import Link from "next/link";
 import Image from "next/image";
 import { FaFacebook, FaInstagram, FaLinkedin } from "react-icons/fa6";
+import { motion } from "framer-motion";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="absolute h-[50vh] w-full bg-background text-zinc-100 font-poppins">
+    <motion.footer
+      initial={{ opacity: 0 }}
+      whileInView={{ opacity: 1 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6 }}
+      className="absolute h-[50vh] w-full bg-background text-zinc-100 font-poppins"
+    >
       <Image
         src="/assets/footerbg.webp"
         alt="Footer Background"
@@ -19,7 +26,20 @@ const Footer = () => {
 
       <div className="absolute bottom-0 left-0 w-full z-10">
         <div className="container mx-auto px-6 py-4">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-2 md:gap-8 mb-2">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={{
+              hidden: { opacity: 0, y: 30 },
+              visible: {
+                opacity: 1,
+                y: 0,
+                transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] },
+              },
+            }}
+            className="flex flex-col md:flex-row justify-between items-center gap-2 md:gap-8 mb-2"
+          >
             <div className="flex flex-col items-center md:items-start gap-4">
               <Link href="/" className="flex gap-3 items-end justify-center">
                 <Image
@@ -40,36 +60,42 @@ const Footer = () => {
                 Connect With Us
               </h3>
               <div className="flex gap-6">
-                <Link
-                  href="https://facebook.com/buacofficial"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-blue-400 transition-colors duration-300"
-                  aria-label="Facebook"
-                >
-                  <FaFacebook size={28} />
-                </Link>
-                <Link
-                  href="https://instagram.com/brac_university_adventure_club"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-pink-400 transition-colors duration-300"
-                  aria-label="Instagram"
-                >
-                  <FaInstagram size={28} />
-                </Link>
-                <Link
-                  href="https://linkedin.com/company/buac"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-blue-500 transition-colors duration-300"
-                  aria-label="LinkedIn"
-                >
-                  <FaLinkedin size={28} />
-                </Link>
+                <motion.div whileHover={{ scale: 1.2 }} transition={{ duration: 0.2 }}>
+                  <Link
+                    href="https://facebook.com/buacofficial"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-blue-400 transition-colors duration-300"
+                    aria-label="Facebook"
+                  >
+                    <FaFacebook size={28} />
+                  </Link>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.2 }} transition={{ duration: 0.2 }}>
+                  <Link
+                    href="https://instagram.com/brac_university_adventure_club"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-pink-400 transition-colors duration-300"
+                    aria-label="Instagram"
+                  >
+                    <FaInstagram size={28} />
+                  </Link>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.2 }} transition={{ duration: 0.2 }}>
+                  <Link
+                    href="https://linkedin.com/company/buac"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-blue-500 transition-colors duration-300"
+                    aria-label="LinkedIn"
+                  >
+                    <FaLinkedin size={28} />
+                  </Link>
+                </motion.div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           <div className="border-t border-zinc-500/50 mb-2 md:mb-4" />
 
@@ -79,13 +105,19 @@ const Footer = () => {
               <br />
               <span className="text-[0.7rem]">All rights reserved</span>
             </p>
-            <p className="text-xs text-zinc-300 italic">
+            <motion.p
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              className="text-xs text-zinc-300 italic"
+            >
               A gift with love from Batch 21 🖤
-            </p>
+            </motion.p>
           </div>
         </div>
       </div>
-    </footer>
+    </motion.footer>
   );
 };
 

@@ -3,6 +3,8 @@
 import { useState } from "react";
 import axios from "axios";
 import { FaPaperPlane } from "react-icons/fa";
+import { motion } from "framer-motion";
+import { StaggerGrid, StaggerItem } from "@/lib/animations";
 
 const RecruitmentForm = () => {
   const [formData, setFormData] = useState({
@@ -40,94 +42,58 @@ const RecruitmentForm = () => {
     }
   };
 
+  const fields = [
+    { id: "Name", label: "Full Name", placeholder: "John Doe", type: "text", colSpan: "md:col-span-1" },
+    { id: "Email", label: "Email Address", placeholder: "john.doe@g.bracu.ac.bd", type: "email", colSpan: "md:col-span-1" },
+    { id: "Department", label: "Department", placeholder: "Computer Science & Engineering", type: "text", colSpan: "md:col-span-1" },
+    { id: "Year", label: "Year of Study", placeholder: "2nd Year", type: "text", colSpan: "md:col-span-1" },
+  ];
+
   return (
-    <div className="bg-background/50 backdrop-blur-sm border border-text-secondary/10 rounded-2xl p-8 shadow-xl">
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+      className="bg-background/50 backdrop-blur-sm border border-text-secondary/10 rounded-2xl p-8 shadow-xl"
+    >
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid md:grid-cols-2 gap-6">
-          <div>
-            <label
-              htmlFor="name"
-              className="block text-text-muted mb-2 font-medium"
+          {fields.map((field, i) => (
+            <motion.div
+              key={field.id}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.05, duration: 0.3 }}
             >
-              Full Name
-            </label>
-            <input
-              id="name"
-              value={formData.Name}
-              type="text"
-              placeholder="John Doe"
-              required
-              onChange={(e) =>
-                setFormData({ ...formData, Name: e.target.value })
-              }
-              className="w-full bg-background/80 border border-text-secondary/20 rounded-xl px-4 py-3 text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all duration-300"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-text-muted mb-2 font-medium"
-            >
-              Email Address
-            </label>
-            <input
-              id="email"
-              value={formData.Email}
-              type="email"
-              placeholder="john.doe@g.bracu.ac.bd"
-              required
-              onChange={(e) =>
-                setFormData({ ...formData, Email: e.target.value })
-              }
-              className="w-full bg-background/80 border border-text-secondary/20 rounded-xl px-4 py-3 text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all duration-300"
-            />
-          </div>
+              <label
+                htmlFor={field.id.toLowerCase()}
+                className="block text-text-muted mb-2 font-medium"
+              >
+                {field.label}
+              </label>
+              <input
+                id={field.id.toLowerCase()}
+                value={formData[field.id as keyof typeof formData]}
+                type={field.type}
+                placeholder={field.placeholder}
+                required
+                onChange={(e) =>
+                  setFormData({ ...formData, [field.id]: e.target.value })
+                }
+                className="w-full bg-background/80 border border-text-secondary/20 rounded-xl px-4 py-3 text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all duration-300"
+              />
+            </motion.div>
+          ))}
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          <div>
-            <label
-              htmlFor="department"
-              className="block text-text-muted mb-2 font-medium"
-            >
-              Department
-            </label>
-            <input
-              id="department"
-              value={formData.Department}
-              type="text"
-              placeholder="Computer Science & Engineering"
-              required
-              onChange={(e) =>
-                setFormData({ ...formData, Department: e.target.value })
-              }
-              className="w-full bg-background/80 border border-text-secondary/20 rounded-xl px-4 py-3 text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all duration-300"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="year"
-              className="block text-text-muted mb-2 font-medium"
-            >
-              Year of Study
-            </label>
-            <input
-              id="year"
-              value={formData.Year}
-              type="text"
-              placeholder="2nd Year"
-              required
-              onChange={(e) =>
-                setFormData({ ...formData, Year: e.target.value })
-              }
-              className="w-full bg-background/80 border border-text-secondary/20 rounded-xl px-4 py-3 text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all duration-300"
-            />
-          </div>
-        </div>
-
-        <div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.2, duration: 0.3 }}
+        >
           <label
             htmlFor="skills"
             className="block text-text-muted mb-2 font-medium"
@@ -145,9 +111,14 @@ const RecruitmentForm = () => {
             }
             className="w-full bg-background/80 border border-text-secondary/20 rounded-xl px-4 py-3 text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all duration-300"
           />
-        </div>
+        </motion.div>
 
-        <div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.3, duration: 0.3 }}
+        >
           <label
             htmlFor="motivation"
             className="block text-text-muted mb-2 font-medium"
@@ -165,23 +136,32 @@ const RecruitmentForm = () => {
             }
             className="w-full bg-background/80 border border-text-secondary/20 rounded-xl px-4 py-3 text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all duration-300 resize-none"
           />
-        </div>
+        </motion.div>
 
         {submitStatus === "success" && (
-          <div className="bg-green-500/10 border border-green-500/30 text-green-600 px-4 py-3 rounded-xl">
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="bg-green-500/10 border border-green-500/30 text-green-600 px-4 py-3 rounded-xl"
+          >
             Application submitted successfully! We&apos;ll get back to you soon.
-          </div>
+          </motion.div>
         )}
 
         {submitStatus === "error" && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-600 px-4 py-3 rounded-xl">
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="bg-red-500/10 border border-red-500/30 text-red-600 px-4 py-3 rounded-xl"
+          >
             Failed to submit application. Please try again.
-          </div>
+          </motion.div>
         )}
 
-        <button
+        <motion.button
           type="submit"
           disabled={isSubmitting}
+          whileTap={{ scale: 0.97 }}
           className="w-full bg-accent hover:bg-accent/90 text-white font-bebasNeue text-xl tracking-wider py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           {isSubmitting ? (
@@ -191,9 +171,9 @@ const RecruitmentForm = () => {
               Submit Application <FaPaperPlane className="text-lg" />
             </>
           )}
-        </button>
+        </motion.button>
       </form>
-    </div>
+    </motion.div>
   );
 };
 
