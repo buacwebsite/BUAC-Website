@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@/app/context/AuthProvider";
 import { useEditor } from "@/app/context/EditorContext";
 import Image from "next/image";
+import UniqueLoading from "@/app/components/ui/UniqueLoading";
 
 interface GalleryImage {
   id: number;
@@ -96,9 +97,7 @@ const Gallery = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-text-secondary text-2xl font-bebasNeue">
-          Loading gallery...
-        </div>
+        <UniqueLoading variant="morph" size="lg" />
       </div>
     );
   }

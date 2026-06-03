@@ -19,10 +19,9 @@ import { HiOutlinePencilAlt } from "react-icons/hi";
 import { useEditor } from "@/app/context/EditorContext";
 import { useAuth } from "@/app/context/AuthProvider";
 import { motion } from "framer-motion";
+import ClassicLoader from "@/app/components/ui/ClassicLoader";
 import {
   MotionSection,
-  StaggerGrid,
-  StaggerItem,
   RevealHeading,
   fadeInUp,
   fadeInLeft,
@@ -121,8 +120,8 @@ const Contact = () => {
 
   if (!content) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-text-muted">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <ClassicLoader size="lg" />
       </div>
     );
   }
@@ -245,16 +244,20 @@ const Contact = () => {
                 Follow Our Journey
               </h3>
               <div className="flex gap-4">
-                {[{
-                  href: content.socialLinks.facebook,
-                  icon: <FaFacebook className="text-3xl" />,
-                }, {
-                  href: content.socialLinks.instagram,
-                  icon: <FaInstagram className="text-3xl" />,
-                }, {
-                  href: content.socialLinks.linkedin,
-                  icon: <FaLinkedin className="text-3xl" />,
-                }].map((social, i) => (
+                {[
+                  {
+                    href: content.socialLinks.facebook,
+                    icon: <FaFacebook className="text-3xl" />,
+                  },
+                  {
+                    href: content.socialLinks.instagram,
+                    icon: <FaInstagram className="text-3xl" />,
+                  },
+                  {
+                    href: content.socialLinks.linkedin,
+                    icon: <FaLinkedin className="text-3xl" />,
+                  },
+                ].map((social, i) => (
                   <motion.div
                     key={i}
                     whileHover={{ scale: 1.15, rotate: 5 }}
@@ -314,7 +317,11 @@ const Contact = () => {
                     htmlFor={field}
                     className="block text-text-muted mb-2 font-medium capitalize"
                   >
-                    {field === "name" ? "Your Name" : field === "email" ? "Email Address" : "Subject"}
+                    {field === "name"
+                      ? "Your Name"
+                      : field === "email"
+                        ? "Email Address"
+                        : "Subject"}
                   </label>
                   <input
                     type={field === "email" ? "email" : "text"}
@@ -378,7 +385,10 @@ const Contact = () => {
                 className="w-full bg-accent hover:bg-accent/90 text-white font-bebasNeue text-xl tracking-wider py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isSubmitting ? (
-                  "Sending..."
+                  <>
+                    <ClassicLoader size="sm" className="border-white" />
+                    Sending...
+                  </>
                 ) : (
                   <>
                     Send Message <FaPaperPlane className="text-lg" />

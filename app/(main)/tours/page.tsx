@@ -1,5 +1,4 @@
 "use client";
-
 import { useRef, useState, useEffect } from "react";
 import axios from "axios";
 import Image from "next/image";
@@ -22,6 +21,7 @@ import {
   fadeInLeft,
   fadeInRight,
 } from "@/lib/animations";
+import UniqueLoading from "@/app/components/ui/UniqueLoading";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -53,14 +53,11 @@ const Tours = () => {
   const maskPathRef = useRef<SVGPathElement>(null);
   const [tours, setTours] = useState<Tour[]>([]);
   const [loading, setLoading] = useState(true);
-
   const lenis = useLenis();
   const { auth } = useAuth();
   const { openEditor } = useEditor();
 
-  const handleEdit = () => {
-    openEditor("tours", tours);
-  };
+  const handleEdit = () => openEditor("tours", tours);
 
   useEffect(() => {
     const fetchTours = async () => {
@@ -74,7 +71,6 @@ const Tours = () => {
         setLoading(false);
       }
     };
-
     fetchTours();
   }, []);
 
@@ -88,7 +84,6 @@ const Tours = () => {
     if (!strokePath || !maskPath || !containerRef.current) return;
 
     const maskLength = maskPath.getTotalLength();
-
     maskPath.style.strokeDasharray = maskLength.toString();
     maskPath.style.strokeDashoffset = maskLength.toString();
 
@@ -147,33 +142,22 @@ const Tours = () => {
 
     checkpoints.forEach((cp) => {
       const point = strokePath.getPointAtLength(cp.pathProgress * pathLength);
-
-      const markerGroup = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "g",
-      );
+      const markerGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
       markerGroup.classList.add("checkpoint-marker");
 
-      const marker = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "path",
-      );
+      const marker = document.createElementNS("http://www.w3.org/2000/svg", "path");
       marker.setAttribute(
         "d",
-        "M32,0C18.745,0,8,10.745,8,24c0,5.678,2.502,10.671,5.271,15l17.097,24.156C30.743,63.686,31.352,64,32,64 s1.257-0.314,1.632-0.844L50.729,39C53.375,35.438,56,29.678,56,24C56,10.745,45.255,0,32,0z M32,38c-7.732,0-14-6.268-14-14 s6.268-14,14-14s14,6.268,14,14S39.732,38,32,38z",
+        "M32,0C18.745,0,8,10.745,8,24c0,5.678,2.502,10.671,5.271,15l17.097,24.156C30.743,63.686,31.352,64,32,64s1.257-0.314,1.632-0.844L50.729,39C53.375,35.438,56,29.678,56,24C56,10.745,45.255,0,32,0z M32,38c-7.732,0-14-6.268-14-14s6.268-14,14-14s14,6.268,14,14S39.732,38,32,38z",
       );
       marker.setAttribute("fill", "#ff5533");
       marker.setAttribute("stroke", "#ffffff");
       marker.setAttribute("stroke-width", "2");
       markerGroup.appendChild(marker);
-      markerGroup.setAttribute(
-        "transform",
-        `translate(${point.x - 32}, ${point.y - 64})`,
-      );
+      markerGroup.setAttribute("transform", `translate(${point.x - 32}, ${point.y - 64})`);
       svg?.appendChild(markerGroup);
 
       gsap.set(markerGroup, { scale: 0.01, transformOrigin: "32px 64px" });
-
       gsap.to(markerGroup, {
         scale: 1,
         transformOrigin: "32px 64px",
@@ -189,9 +173,7 @@ const Tours = () => {
       });
     });
 
-    setTimeout(() => {
-      ScrollTrigger.refresh();
-    }, 500);
+    setTimeout(() => ScrollTrigger.refresh(), 500);
 
     return () => {
       ScrollTrigger.getAll().forEach((st) => st.kill());
@@ -226,7 +208,6 @@ const Tours = () => {
   const renderStandardLayout = (tour: Tour) => (
     <section key={tour.id} className="w-full min-h-screen flex z-10">
       <div className="w-[8%] lg:w-[12%] flex-shrink-0" />
-
       <motion.div
         initial="hidden"
         whileInView="visible"
@@ -264,8 +245,7 @@ const Tours = () => {
             </span>
           )}
           <span className="flex items-center gap-2 bg-text-secondary/10 px-4 py-2 rounded-full">
-            <IoCalendarSharp className="text-accent" /> Visited{" "}
-            {tour.visitCount} times
+            <IoCalendarSharp className="text-accent" /> Visited {tour.visitCount} times
           </span>
         </motion.div>
 
@@ -286,7 +266,7 @@ const Tours = () => {
                 className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
               />
             ) : (
-              <div className="w-full h-full bg-text-secondary/20 flex items-center justify-center text-text-muted transition-transform duration-700 ease-out group-hover:scale-110">
+              <div className="w-full h-full bg-text-secondary/20 flex items-center justify-center text-text-muted">
                 <span className="text-sm">{tour.images[0]?.alt}</span>
               </div>
             )}
@@ -297,7 +277,7 @@ const Tours = () => {
             </span>
           </motion.div>
           {tour.images.slice(1, 3).map((img, idx) =>
-            renderTourImage(img, idx, "")
+            renderTourImage(img, idx, ""),
           )}
         </div>
       </motion.div>
@@ -343,14 +323,13 @@ const Tours = () => {
             </span>
           )}
           <span className="flex items-center gap-2 bg-text-secondary/10 px-4 py-2 rounded-full">
-            <IoCalendarSharp className="text-accent" /> Visited{" "}
-            {tour.visitCount} times
+            <IoCalendarSharp className="text-accent" /> Visited {tour.visitCount} times
           </span>
         </motion.div>
 
         <div className="grid grid-cols-3 grid-rows-2 gap-3 lg:gap-4 h-[50vh] lg:h-[60vh]">
           {tour.images.slice(0, 2).map((img, idx) =>
-            renderTourImage(img, idx, "")
+            renderTourImage(img, idx, ""),
           )}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -368,7 +347,7 @@ const Tours = () => {
                 className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
               />
             ) : (
-              <div className="w-full h-full bg-text-secondary/20 flex items-center justify-center text-text-muted transition-transform duration-700 ease-out group-hover:scale-110">
+              <div className="w-full h-full bg-text-secondary/20 flex items-center justify-center text-text-muted">
                 <span className="text-sm">{tour.images[2]?.alt}</span>
               </div>
             )}
@@ -380,7 +359,6 @@ const Tours = () => {
           </motion.div>
         </div>
       </motion.div>
-
       <div className="w-[8%] lg:w-[12%] flex-shrink-0" />
     </section>
   );
@@ -397,14 +375,11 @@ const Tours = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-text-secondary text-2xl font-bebasNeue"
-        >
-          Loading tours...
-        </motion.div>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-6">
+        <UniqueLoading variant="morph" size="lg" />
+        <p className="text-text-muted font-poppins text-sm tracking-widest uppercase animate-pulse">
+          Loading Tours...
+        </p>
       </div>
     );
   }
@@ -468,6 +443,7 @@ const Tours = () => {
           {tours.map((tour) => renderTourSection(tour))}
         </div>
       </div>
+
       <motion.div
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}

@@ -1,20 +1,24 @@
 import { NextResponse } from "next/server";
-import {kv} from "../../../../lib/kv";
+import { kv } from "../../../../lib/kv";
 import { authenticateAdmin } from "@/lib/auth";
 
 export async function GET() {
   try {
     const aboutText = await kv.get<string>("about:text");
-    const stats = await kv.get<Array<{ value: string; label: string }>>("about:stats");
+    const stats = await kv.get<Array<{ value: string; label: string }>>(
+      "about:stats"
+    );
     const quotes = await kv.get("quotes");
 
     return NextResponse.json({
-      aboutText: aboutText || "Founded in 2015 by passionate adventurers at BRACU, we started with 12 members exploring Bangladesh's hidden gems. Today, we're a family of 200+ explorers who've completed 100+ expeditions across 50+ locations, building a community united by our love for adventure and the great outdoors.",
+      aboutText:
+        aboutText ||
+        "Founded in 2010 by passionate adventurers at BRACU, we started with 12 members exploring Bangladesh's hidden gems. Today, we're a community of 500+ explorers who've completed 100+ expeditions across 50+ locations, building a community united by our love for adventure and the great outdoor thrills.",
       stats: stats || [
-        { value: "200+", label: "Active Members" },
+        { value: "500+", label: "Active Members" },
         { value: "100+", label: "Expeditions" },
         { value: "50+", label: "Locations" },
-        { value: "9+", label: "Years Strong" },
+        { value: "15+", label: "Years Strong" },
       ],
       quotes: quotes || [],
     });

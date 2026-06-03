@@ -1,47 +1,117 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import axios, { AxiosError } from "axios";
-import {
-  FaMountain,
-  FaUserTie,
-  FaGraduationCap,
-  FaShieldAlt,
-} from "react-icons/fa";
 import { motion } from "framer-motion";
+import { FaFacebook, FaInstagram, FaLinkedin } from "react-icons/fa6";
+import {
+  HiArrowRight,
+  HiEye,
+  HiEyeOff,
+  HiMail,
+  HiShieldCheck,
+} from "react-icons/hi";
+import { FaMountain } from "react-icons/fa";
+import { HiAcademicCap } from "react-icons/hi2";
 
 type RoleType = "member" | "alumni" | "admin";
 
+interface AppInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+  icon?: React.ReactNode;
+}
+
+const AppInput = ({ label, icon, className = "", ...rest }: AppInputProps) => {
+  const [mousePosition, setMousePosition] = useState({ x: 0 });
+  const [isHovering, setIsHovering] = useState(false);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLInputElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMousePosition({ x: e.clientX - rect.left });
+  };
+
+  return (
+    <div className="relative w-full min-w-[200px]">
+      {label && <label className="mb-2 block text-sm text-white/75">{label}</label>}
+
+      <div className="relative w-full">
+        <input
+          className={`peer relative z-10 h-13 w-full rounded-md border-2 border-white/12 bg-black/35 px-4 pr-11 font-light text-white outline-none drop-shadow-sm transition-all duration-200 ease-in-out placeholder:text-white/35 focus:border-accent/55 focus:bg-black/45 ${className}`}
+          onMouseMove={handleMouseMove}
+          onMouseEnter={() => setIsHovering(true)}
+          onMouseLeave={() => setIsHovering(false)}
+          {...rest}
+        />
+
+        {isHovering && (
+          <>
+            <div
+              className="pointer-events-none absolute top-0 left-0 right-0 z-20 h-[2px] overflow-hidden rounded-t-md"
+              style={{
+                background: `radial-gradient(34px circle at ${mousePosition.x}px 0px, var(--color-accent) 0%, transparent 70%)`,
+              }}
+            />
+            <div
+              className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-[2px] overflow-hidden rounded-b-md"
+              style={{
+                background: `radial-gradient(34px circle at ${mousePosition.x}px 2px, var(--color-accent) 0%, transparent 70%)`,
+              }}
+            />
+          </>
+        )}
+
+        {icon && (
+          <div className="absolute right-3 top-1/2 z-20 -translate-y-1/2 text-white/50">
+            {icon}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const Login = () => {
+  const [role, setRole] = useState<RoleType>("member");
+  const [showPassword, setShowPassword] = useState(false);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<RoleType>("member");
+
+  const [isCardHovering, setIsCardHovering] = useState(false);
+  const [cardMousePosition, setCardMousePosition] = useState({ x: 0, y: 0 });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const section = e.currentTarget.getBoundingClientRect();
+    setCardMousePosition({
+      x: e.clientX - section.left,
+      y: e.clientY - section.top,
+    });
+  };
+
+  const socialIcons = [
+    {
+      icon: <FaInstagram />,
+      href: "https://instagram.com/brac_university_adventure_club",
+    },
+    {
+      icon: <FaLinkedin />,
+      href: "https://linkedin.com/company/buac",
+    },
+    {
+      icon: <FaFacebook />,
+      href: "https://facebook.com/buacofficial",
+    },
+  ];
+
   const roles = [
-    {
-      id: "member" as RoleType,
-      label: "Member",
-      icon: <FaMountain className="text-xl" />,
-      description: "Active club member",
-      color: "from-accent to-orange-600",
-    },
-    {
-      id: "alumni" as RoleType,
-      label: "Alumni",
-      icon: <FaGraduationCap className="text-xl" />,
-      description: "Former member",
-      color: "from-blue-500 to-blue-700",
-    },
-    {
-      id: "admin" as RoleType,
-      label: "Admin",
-      icon: <FaShieldAlt className="text-xl" />,
-      description: "Administrator",
-      color: "from-red-500 to-red-700",
-    },
+    { id: "member" as RoleType, label: "Member", icon: <FaMountain /> },
+    { id: "alumni" as RoleType, label: "Alumni", icon: <HiAcademicCap /> },
+    { id: "admin" as RoleType, label: "Admin", icon: <HiShieldCheck /> },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -54,9 +124,10 @@ const Login = () => {
     }
 
     setLoading(true);
+
     try {
       const res = await axios.post("/api/auth/login", {
-        email,
+        email: email.trim().toLowerCase(),
         password,
         role,
       });
@@ -75,172 +146,219 @@ const Login = () => {
     }
   };
 
-  const activeRole = roles.find((r) => r.id === role)!;
-
   return (
-    <div className="min-h-screen w-full flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen w-full bg-background flex items-center justify-center p-4 pt-28 pb-12 relative overflow-hidden -mt-16">
+      <div className="absolute inset-0 bg-gradient-to-b from-accent/20 via-background to-black" />
+      <div className="absolute top-0 left-1/2 h-[50vh] w-[90vw] -translate-x-1/2 rounded-b-full bg-accent/20 blur-[90px]" />
+      <div className="absolute bottom-0 right-0 h-[40vh] w-[40vw] rounded-tl-full bg-accent/10 blur-[80px]" />
+
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
+        initial={{ opacity: 0, y: 35 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-        className="w-full max-w-md"
+        transition={{ duration: 0.65, ease: [0.4, 0, 0.2, 1] }}
+        className="relative z-10 w-[95%] md:w-[70%] lg:w-[64%] max-w-5xl flex justify-between min-h-[600px] rounded-3xl border border-white/10 bg-black/35 shadow-2xl backdrop-blur-2xl overflow-hidden"
       >
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.4 }}
-          className="text-center mb-8"
+        <div
+          className="relative h-full w-full lg:w-1/2 overflow-hidden px-5 md:px-10 lg:px-14"
+          onMouseMove={handleCardMouseMove}
+          onMouseEnter={() => setIsCardHovering(true)}
+          onMouseLeave={() => setIsCardHovering(false)}
         >
-          <h1 className="text-5xl font-bebasNeue text-text-secondary tracking-wider mb-2">
-            Welcome Back
-          </h1>
-          <p className="text-text-muted">Sign in to your BUAC account</p>
-        </motion.div>
+          <div
+            className={`pointer-events-none absolute h-[500px] w-[500px] rounded-full bg-gradient-to-r from-accent/30 via-orange-300/20 to-white/10 blur-3xl transition-opacity duration-200 ${
+              isCardHovering ? "opacity-100" : "opacity-0"
+            }`}
+            style={{
+              transform: `translate(${cardMousePosition.x - 250}px, ${
+                cardMousePosition.y - 250
+              }px)`,
+              transition: "transform 0.1s ease-out",
+            }}
+          />
 
-        {/* Role Selector */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.4 }}
-          className="flex gap-2 mb-6"
-        >
-          {roles.map((r) => (
-            <motion.button
-              key={r.id}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                setRole(r.id);
-                setError("");
-              }}
-              className={`flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-xl border-2 transition-all duration-300 cursor-pointer ${
-                role === r.id
-                  ? "border-accent bg-accent/10 text-accent scale-105"
-                  : "border-text-muted/20 text-text-muted hover:border-text-muted/40"
-              }`}
-            >
-              {r.icon}
-              <span className="text-xs font-semibold">{r.label}</span>
-            </motion.button>
-          ))}
-        </motion.div>
-
-        {/* Login Form */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-          className={`bg-linear-to-br ${activeRole.color} p-[2px] rounded-2xl shadow-2xl`}
-        >
-          <div className="bg-background p-8 rounded-2xl">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4, duration: 0.3 }}
-              className="flex items-center gap-2 mb-6"
-            >
-              <FaUserTie className="text-accent text-xl" />
-              <h2 className="text-lg font-semibold text-text-secondary">
-                {activeRole.label} Login
-              </h2>
-            </motion.div>
-
-            <form className="space-y-5" onSubmit={handleSubmit}>
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4, duration: 0.3 }}
-              >
-                <label className="block text-sm font-medium text-text-muted mb-2">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  placeholder="your@email.com"
-                  autoComplete="email"
-                  className="w-full px-4 py-3 rounded-xl bg-text-secondary/5 border border-text-muted/20 text-text-secondary placeholder:text-text-muted/40 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={loading}
+          <form
+            className="relative z-10 grid h-full gap-4 py-10 md:py-16 text-center"
+            onSubmit={handleSubmit}
+          >
+            <div className="grid gap-5">
+              <Link href="/" className="mx-auto block">
+                <Image
+                  src="/assets/logos/buac.webp"
+                  alt="BUAC Logo"
+                  width={58}
+                  height={58}
+                  className="mx-auto object-contain"
                 />
-              </motion.div>
+              </Link>
 
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5, duration: 0.3 }}
-              >
-                <label className="block text-sm font-medium text-text-muted mb-2">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  className="w-full px-4 py-3 rounded-xl bg-text-secondary/5 border border-text-muted/20 text-text-secondary placeholder:text-text-muted/40 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                />
-              </motion.div>
-
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  transition={{ duration: 0.2 }}
-                  className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm"
-                >
-                  {error}
-                </motion.div>
-              )}
-
-              <motion.button
-                type="submit"
-                disabled={loading}
-                whileTap={{ scale: 0.97 }}
-                className="w-full px-4 py-3 bg-accent text-white font-semibold rounded-xl hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 cursor-pointer"
-              >
-                {loading ? "Signing in..." : "Sign In"}
-              </motion.button>
-            </form>
-
-            {/* Register Link */}
-            {role !== "admin" && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6, duration: 0.3 }}
-                className="mt-6 text-center"
-              >
-                <p className="text-text-muted text-sm">
-                  Don&apos;t have an account?{" "}
-                  <Link
-                    href="/register"
-                    className="text-accent hover:underline font-semibold"
-                  >
-                    Create Account
-                  </Link>
+              <div>
+                <h1 className="font-bebasNeue text-5xl tracking-wider text-white">
+                  Sign In
+                </h1>
+                <p className="mt-1 text-xs text-white/55">
+                  Welcome back to BRAC University Adventure Club
                 </p>
+              </div>
+
+              <div className="flex items-center justify-center">
+                <ul className="flex gap-3 md:gap-4">
+                  {socialIcons.map((social, index) => (
+                    <li key={index} className="list-none">
+                      <a
+                        href={social.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group relative z-[1] flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-accent/50 bg-white/5"
+                      >
+                        <div className="absolute inset-0 h-full w-full origin-bottom scale-y-0 bg-accent transition-transform duration-500 ease-in-out group-hover:scale-y-100" />
+                        <span className="z-[2] text-xl text-white/80 transition-all duration-500 ease-in-out group-hover:text-white">
+                          {social.icon}
+                        </span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <span className="text-sm text-white/50">or use your account</span>
+            </div>
+
+            <div className="grid gap-4 items-center">
+              <div className="grid grid-cols-3 gap-2">
+                {roles.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setRole(item.id);
+                      setError("");
+                    }}
+                    className={`flex items-center justify-center gap-1 rounded-md border px-2 py-2 text-xs transition-all cursor-pointer ${
+                      role === item.id
+                        ? "border-accent bg-accent text-white"
+                        : "border-white/10 bg-white/5 text-white/60 hover:border-accent/50 hover:text-white"
+                    }`}
+                  >
+                    <span>{item.icon}</span>
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              <AppInput
+                placeholder={
+                  role === "member"
+                    ? "G Suite Email"
+                    : role === "alumni"
+                      ? "Gmail Address"
+                      : "Admin Email"
+                }
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+                icon={<HiMail className="h-5 w-5" />}
+              />
+
+              <AppInput
+                placeholder="Password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                icon={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="cursor-pointer transition-colors hover:text-accent"
+                  >
+                    {showPassword ? (
+                      <HiEye className="h-5 w-5" />
+                    ) : (
+                      <HiEyeOff className="h-5 w-5" />
+                    )}
+                  </button>
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Link
+                href="/contact"
+                className="font-light text-sm text-white/55 hover:text-accent transition-colors"
+              >
+                Need help?
+              </Link>
+
+              {role !== "admin" && (
+                <Link
+                  href="/register"
+                  className="font-light text-sm text-white/55 hover:text-accent transition-colors"
+                >
+                  Create account
+                </Link>
+              )}
+            </div>
+
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300"
+              >
+                {error}
               </motion.div>
             )}
-          </div>
-        </motion.div>
 
-        {/* Back to Home */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.7, duration: 0.3 }}
-          className="mt-6 text-center"
-        >
-          <Link
-            href="/"
-            className="text-text-muted hover:text-accent text-sm transition-colors"
-          >
-            ← Back to Home
-          </Link>
-        </motion.div>
+            <div className="flex justify-center items-center">
+              <button
+                type="submit"
+                disabled={loading}
+                className="group/button relative inline-flex cursor-pointer items-center justify-center overflow-hidden rounded-md bg-accent px-6 py-2 text-sm font-medium text-white transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-lg hover:shadow-accent/40 disabled:opacity-60"
+              >
+                <span className="flex items-center gap-2 px-2 py-1">
+                  {loading ? (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />
+                  ) : (
+                    <>
+                      Sign In <HiArrowRight className="h-4 w-4" />
+                    </>
+                  )}
+                </span>
+                <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-13deg)_translateX(-100%)] group-hover/button:duration-1000 group-hover/button:[transform:skew(-13deg)_translateX(100%)]">
+                  <div className="relative h-full w-8 bg-white/20" />
+                </div>
+              </button>
+            </div>
+
+            <Link
+              href="/"
+              className="text-xs text-white/40 hover:text-accent transition-colors"
+            >
+              ← Back to Home
+            </Link>
+          </form>
+        </div>
+
+        <div className="hidden lg:block w-1/2 h-full overflow-hidden relative">
+          <Image
+            src="/assets/footerbg.webp"
+            width={1000}
+            height={1000}
+            priority
+            alt="BUAC Adventure"
+            className="h-full w-full object-cover opacity-35 transition-transform duration-500 hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-l from-transparent via-black/20 to-black/55" />
+          <div className="absolute bottom-10 left-10 right-10">
+            <h2 className="font-bebasNeue text-5xl text-white tracking-wider">
+              Explore More
+            </h2>
+            <p className="mt-2 text-sm text-white/60">
+              Every trail tells a story. Sign in and continue your BUAC journey.
+            </p>
+          </div>
+        </div>
       </motion.div>
     </div>
   );

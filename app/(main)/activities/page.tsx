@@ -9,6 +9,7 @@ import { useEditor } from "@/app/context/EditorContext";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import UniqueLoading from "@/app/components/ui/UniqueLoading";
 import {
   MotionSection,
   StaggerGrid,
@@ -71,13 +72,7 @@ const Activities = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-text-secondary text-2xl font-bebasNeue"
-        >
-          Loading activities...
-        </motion.div>
+        <UniqueLoading variant="morph" size="lg" />
       </div>
     );
   }
@@ -116,8 +111,8 @@ const Activities = () => {
             }}
             className="text-lg text-text-muted max-w-2xl"
           >
-            Explore our exciting events, programs, and initiatives that bring
-            the outdoor adventure community together.
+            Explore our exciting events, programs, and initiatives that bring the
+            outdoor adventure community together.
           </motion.p>
         </div>
 
@@ -185,7 +180,7 @@ const Activities = () => {
             animate={{ opacity: 1 }}
             className="max-w-7xl mx-auto text-center py-20"
           >
-            <div className="text-6xl mb-4 opacity-30">📅</div>
+            <div className="text-6xl mb-4 opacity-30">■</div>
             <p className="text-text-muted text-lg">
               No activities available at the moment.
             </p>

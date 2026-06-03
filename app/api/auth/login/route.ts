@@ -7,7 +7,8 @@ interface StoredUser {
   name: string;
   email: string;
   passwordHash: string;
-  role: string;
+  role: "member" | "alumni" | "admin";
+  profile?: Record<string, unknown>;
   createdAt: string;
 }
 
@@ -18,19 +19,21 @@ export async function POST(request: NextRequest) {
     if (!email || !password) {
       return NextResponse.json(
         { message: "Email and password are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
 
     // Admin login
     if (role === "admin") {
       const adminMail = process.env.adminMail;
       const adminPasswordHash = process.env.adminPassword;
 
-      if (email !== adminMail) {
+      if (normalizedEmail !== adminMail) {
         return NextResponse.json(
           { message: "Invalid email or password" },
-          { status: 401 }
+          { status: 401 },
         );
       }
 
@@ -40,19 +43,22 @@ export async function POST(request: NextRequest) {
       if (!isValid) {
         return NextResponse.json(
           { message: "Invalid email or password" },
-          { status: 401 }
+          { status: 401 },
         );
       }
 
       const token = jwt.sign(
-        { sub: email, role: "admin", name: "Admin" },
+        { sub: normalizedEmail, role: "admin", name: "Admin" },
         process.env.adminJwtSecret || "",
-        { expiresIn: "1d" }
+        { expiresIn: "1d" },
       );
 
       const res = NextResponse.json(
-        { message: "Login successful", user: { name: "Admin", email, role: "admin" } },
-        { status: 200 }
+        {
+          message: "Login successful",
+          user: { name: "Admin", email: normalizedEmail, role: "admin" },
+        },
+        { status: 200 },
       );
 
       res.cookies.set({
@@ -77,20 +83,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Member / Alumni login
-    const user = await kv.get<StoredUser>(`user:${email}`);
+    const user = await kv.get<StoredUser>(`user:${normalizedEmail}`);
 
     if (!user) {
       return NextResponse.json(
         { message: "Invalid email or password" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
-    // Check role matches
     if (role && user.role !== role) {
       return NextResponse.json(
         { message: `This account is registered as ${user.role}, not ${role}` },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -99,22 +104,30 @@ export async function POST(request: NextRequest) {
     if (!isPasswordValid) {
       return NextResponse.json(
         { message: "Invalid email or password" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const token = jwt.sign(
-      { sub: email, role: user.role, name: user.name },
+      {
+        sub: normalizedEmail,
+        role: user.role,
+        name: user.name,
+      },
       process.env.adminJwtSecret || "",
-      { expiresIn: "7d" }
+      { expiresIn: "7d" },
     );
 
     const res = NextResponse.json(
       {
         message: "Login successful",
-        user: { name: user.name, email: user.email, role: user.role },
+        user: {
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        },
       },
-      { status: 200 }
+      { status: 200 },
     );
 
     res.cookies.set({
@@ -131,7 +144,7 @@ export async function POST(request: NextRequest) {
     console.error("Login error:", error);
     return NextResponse.json(
       { message: "Something went wrong" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

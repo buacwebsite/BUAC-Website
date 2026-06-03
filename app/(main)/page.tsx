@@ -13,6 +13,7 @@ import { HiOutlinePencilAlt } from "react-icons/hi";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import BangladeshWeatherCard from "../components/BangladeshWeatherCard";
 import {
   MotionSection,
   StaggerGrid,
@@ -20,8 +21,6 @@ import {
   RevealHeading,
   AnimatedCounter,
   fadeInUp,
-  fadeInLeft,
-  fadeInRight,
   scaleIn,
   staggerContainer,
 } from "@/lib/animations";
@@ -48,6 +47,7 @@ interface Objective {
 export default function Home() {
   const { auth, logout, isLoggedIn, user } = useAuth();
   const { openEditor } = useEditor();
+
   const [images, setImages] = useState<{ place: string; image: string }[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [aboutText, setAboutText] = useState<string>("");
@@ -68,7 +68,6 @@ export default function Home() {
         console.error("Error fetching hero images:", error);
       }
     };
-
     fetchHeroImages();
   }, []);
 
@@ -87,7 +86,6 @@ export default function Home() {
         console.error("Error fetching about content:", error);
       }
     };
-
     fetchAboutContent();
   }, []);
 
@@ -105,7 +103,6 @@ export default function Home() {
         console.error("Error fetching vision content:", error);
       }
     };
-
     fetchVisionContent();
   }, []);
 
@@ -125,26 +122,13 @@ export default function Home() {
         },
       });
     });
-
-    gsap.to("#box", {
-      scrollTrigger: {
-        trigger: "#header",
-        start: "center center",
-        end: "bottom center",
-        scrub: true,
-      },
-      y: 500,
-      rotation: 360,
-      duration: 3,
-      ease: "power1.inOut",
-    });
   }, []);
 
   return (
     <>
       <HeroComp images={images} />
 
-      {/* ===== ABOUT SECTION ===== */}
+      {/* ABOUT */}
       <MotionSection className="snap-section relative min-h-screen bg-linear-to-b from-background via-background via-85% md:via-65% to-black py-12 px-6 lg:px-12 font-poppins overflow-hidden">
         {auth && (
           <motion.button
@@ -163,8 +147,8 @@ export default function Home() {
         )}
 
         <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent rounded-full blur-3xl"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-text-secondary rounded-full blur-3xl"></div>
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-text-secondary rounded-full blur-3xl" />
         </div>
 
         <div className="relative max-w-6xl mx-auto">
@@ -199,7 +183,6 @@ export default function Home() {
                   <div className="absolute top-6 left-6 text-accent text-6xl font-serif opacity-30">
                     &ldquo;
                   </div>
-
                   <div className="flex flex-col items-center text-center mt-4">
                     <div className="relative w-36 h-36 mb-6 rounded-full overflow-hidden border-4 border-accent/30 group-hover:border-accent transition-colors duration-500">
                       {quote.image ? (
@@ -211,17 +194,13 @@ export default function Home() {
                         />
                       ) : (
                         <div className="w-full h-full bg-text-secondary/20 flex items-center justify-center">
-                          <span className="text-text-muted text-xs">
-                            No Image
-                          </span>
+                          <span className="text-text-muted text-xs">No Image</span>
                         </div>
                       )}
                     </div>
-
                     <p className="text-text-secondary text-sm leading-tight mb-6 italic text-balance">
                       {quote.quote || "No quote provided yet."}
                     </p>
-
                     <div className="mt-auto">
                       <h3 className="text-xl font-bold text-text-secondary mb-1">
                         {quote.name || "Name"}
@@ -231,7 +210,6 @@ export default function Home() {
                       </p>
                     </div>
                   </div>
-
                   <div className="absolute bottom-0 right-6 text-accent text-6xl font-serif opacity-30">
                     &rdquo;
                   </div>
@@ -240,21 +218,16 @@ export default function Home() {
             ))}
           </StaggerGrid>
 
-          {quotes.length === 0 && !auth && (
+          {quotes.length === 0 && (
             <div className="text-center text-text-muted py-12 mb-20">
-              <p className="text-lg">No quotes available at the moment.</p>
-            </div>
-          )}
-
-          {quotes.length === 0 && auth && (
-            <div className="text-center text-text-muted py-12 mb-20">
-              <p className="text-lg mb-4">
-                No quotes added yet. Click the edit button to add some!
+              <p className="text-lg">
+                {auth
+                  ? "No quotes added yet. Click the edit button to add some!"
+                  : "No quotes available at the moment."}
               </p>
             </div>
           )}
 
-          {/* Stats */}
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -264,11 +237,7 @@ export default function Home() {
           >
             {stats.length > 0 ? (
               stats.map((stat, index) => (
-                <motion.div
-                  key={index}
-                  variants={scaleIn}
-                  className="text-center"
-                >
+                <motion.div key={index} variants={scaleIn} className="text-center">
                   <AnimatedCounter
                     value={stat.value}
                     className="text-5xl lg:text-6xl font-bebasNeue text-accent mb-2"
@@ -279,20 +248,40 @@ export default function Home() {
                 </motion.div>
               ))
             ) : (
-              <>
-                <h1 className="col-span-full text-xl text-center text-zinc-100 font-poppins">
-                  Stats Loading...
-                </h1>
-              </>
+              <h1 className="col-span-full text-xl text-center text-zinc-100 font-poppins">
+                Stats Loading...
+              </h1>
             )}
           </motion.div>
         </div>
       </MotionSection>
 
-      {/* ===== CAMPFIRE SECTION ===== */}
+      {/* WEATHER */}
+      <MotionSection className="snap-section relative min-h-[70vh] bg-black py-16 px-6 lg:px-12 font-poppins overflow-hidden flex items-center">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-400 rounded-full blur-3xl" />
+        </div>
+
+        <div className="relative max-w-6xl mx-auto w-full">
+          <div className="text-center mb-10">
+            <RevealHeading className="text-5xl md:text-6xl lg:text-7xl font-bebasNeue text-accent leading-none mb-4">
+              Weather & Trip Suggestion
+            </RevealHeading>
+            <p className="text-text-muted max-w-2xl mx-auto">
+              Before planning any trek or outdoor activity, check the current
+              weather outlook for Bangladesh and see BUAC&apos;s trip suggestion.
+            </p>
+          </div>
+
+          <BangladeshWeatherCard />
+        </div>
+      </MotionSection>
+
+      {/* CAMPFIRE */}
       <CampfireComp />
 
-      {/* ===== VISION SECTION ===== */}
+      {/* VISION */}
       <MotionSection className="snap-section relative min-h-screen bg-background py-16 px-6 lg:px-12 font-poppins overflow-hidden">
         {auth && (
           <motion.button
@@ -309,8 +298,8 @@ export default function Home() {
         )}
 
         <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-1/3 left-1/3 w-96 h-96 bg-accent rounded-full blur-3xl"></div>
-          <div className="absolute bottom-1/3 right-1/3 w-96 h-96 bg-text-secondary rounded-full blur-3xl"></div>
+          <div className="absolute top-1/3 left-1/3 w-96 h-96 bg-accent rounded-full blur-3xl" />
+          <div className="absolute bottom-1/3 right-1/3 w-96 h-96 bg-text-secondary rounded-full blur-3xl" />
         </div>
 
         <div className="relative max-w-6xl mx-auto">
@@ -318,6 +307,7 @@ export default function Home() {
             <RevealHeading className="text-6xl md:text-7xl lg:text-8xl font-bebasNeue text-accent leading-none mb-6">
               Our Vision
             </RevealHeading>
+
             <motion.div
               initial="hidden"
               whileInView="visible"
@@ -348,7 +338,6 @@ export default function Home() {
                       <div className="absolute top-4 left-4 text-accent/20 text-5xl font-bebasNeue">
                         {String(index + 1).padStart(2, "0")}
                       </div>
-
                       <div className="mt-8">
                         <h4 className="text-2xl font-bold text-text-secondary mb-4 group-hover:text-accent transition-colors duration-300">
                           {objective.title}
@@ -374,12 +363,12 @@ export default function Home() {
         </div>
       </MotionSection>
 
-      {/* ===== AUTH CTA SECTION ===== */}
+      {/* AUTH CTA */}
       {!isLoggedIn && (
-        <MotionSection className="snap-section relative min-h-[70vh] bg-linear-to-b from-background to-black py-16 px-6 lg:px-12 font-poppins overflow-hidden flex items-center justify-center">
+        <MotionSection className="snap-section relative min-h-[55vh] bg-linear-to-b from-background to-black py-16 px-6 lg:px-12 font-poppins overflow-hidden flex items-center justify-center">
           <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-accent rounded-full blur-3xl"></div>
-            <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-orange-500 rounded-full blur-3xl"></div>
+            <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-accent rounded-full blur-3xl" />
+            <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-orange-500 rounded-full blur-3xl" />
           </div>
 
           <div className="relative max-w-4xl mx-auto text-center">
@@ -395,21 +384,10 @@ export default function Home() {
                   transition: { duration: 0.6, ease: [0.4, 0, 0.2, 1] },
                 },
               }}
-              className="text-6xl md:text-7xl lg:text-8xl font-bebasNeue text-accent leading-none mb-6"
+              className="text-6xl md:text-7xl lg:text-8xl font-bebasNeue text-accent leading-none mb-10"
             >
               Be an Adventurer
             </motion.h2>
-            <motion.p
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              variants={fadeInUp}
-              className="text-text-muted text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed"
-            >
-              Join the BRAC University Adventure Club community. Whether
-              you&apos;re a current student ready to explore, or an alumni
-              wanting to stay connected — there&apos;s a place for you here.
-            </motion.p>
 
             <motion.div
               initial="hidden"
@@ -424,45 +402,18 @@ export default function Home() {
                   className="group relative px-12 py-5 bg-gradient-to-r from-accent via-orange-500 to-accent bg-[length:200%_100%] hover:bg-[100%_0] text-white font-bebasNeue text-2xl tracking-wider rounded-full transition-all duration-500 shadow-lg hover:shadow-xl hover:shadow-accent/40 hover:scale-105 overflow-hidden inline-flex"
                 >
                   <span className="relative z-10 flex items-center gap-2">
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                      />
-                    </svg>
                     Create Account
                   </span>
                   <div className="absolute inset-0 bg-white/20 group-hover:bg-white/0 transition-colors duration-500" />
                 </Link>
               </motion.div>
+
               <motion.div variants={fadeInUp}>
                 <Link
                   href="/login"
                   className="group relative px-12 py-5 border-2 border-accent/60 text-accent hover:bg-accent hover:text-white font-bebasNeue text-2xl tracking-wider rounded-full transition-all duration-300 hover:border-accent hover:shadow-[0_0_30px_rgba(255,102,51,0.4)] hover:scale-105 inline-flex"
                 >
-                  <span className="flex items-center gap-2">
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
-                      />
-                    </svg>
-                    Sign In
-                  </span>
+                  <span className="flex items-center gap-2">Sign In</span>
                 </Link>
               </motion.div>
             </motion.div>
@@ -470,11 +421,11 @@ export default function Home() {
         </MotionSection>
       )}
 
-      {/* ===== LOGGED IN WELCOME ===== */}
+      {/* LOGGED IN CTA */}
       {isLoggedIn && user && (
         <MotionSection className="snap-section relative min-h-[50vh] bg-linear-to-b from-background to-black py-16 px-6 lg:px-12 font-poppins overflow-hidden flex items-center justify-center">
           <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-accent rounded-full blur-3xl"></div>
+            <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-accent rounded-full blur-3xl" />
           </div>
 
           <div className="relative max-w-4xl mx-auto text-center">
@@ -487,6 +438,7 @@ export default function Home() {
             >
               Welcome Back, {user.name}!
             </motion.h2>
+
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -506,6 +458,7 @@ export default function Home() {
                 {user.role.toUpperCase()}
               </span>
             </motion.div>
+
             <motion.p
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
@@ -533,68 +486,27 @@ export default function Home() {
                   className="group relative px-10 py-4 bg-gradient-to-r from-accent via-orange-500 to-accent bg-[length:200%_100%] hover:bg-[100%_0] text-white font-bebasNeue text-xl tracking-wider rounded-full transition-all duration-500 shadow-lg hover:shadow-xl hover:shadow-accent/40 hover:scale-105 overflow-hidden inline-flex"
                 >
                   <span className="relative z-10 flex items-center gap-2">
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
-                      />
-                    </svg>
                     Explore Tours
                   </span>
                 </Link>
               </motion.div>
+
               <motion.div variants={fadeInUp}>
                 <Link
                   href="/activities"
                   className="group relative px-10 py-4 border-2 border-accent/60 text-accent hover:bg-accent hover:text-white font-bebasNeue text-xl tracking-wider rounded-full transition-all duration-300 hover:border-accent hover:shadow-[0_0_25px_rgba(255,102,51,0.35)] hover:scale-105 inline-flex"
                 >
-                  <span className="flex items-center gap-2">
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                      />
-                    </svg>
-                    View Activities
-                  </span>
+                  <span className="flex items-center gap-2">View Activities</span>
                 </Link>
               </motion.div>
+
               <motion.button
                 variants={fadeInUp}
                 whileTap={{ scale: 0.96 }}
                 onClick={logout}
                 className="group relative px-10 py-4 border-2 border-red-500/40 text-red-400 hover:bg-red-500 hover:text-white font-bebasNeue text-xl tracking-wider rounded-full transition-all duration-300 hover:border-red-500 hover:shadow-[0_0_25px_rgba(239,68,68,0.35)] hover:scale-105 cursor-pointer"
               >
-                <span className="flex items-center gap-2">
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                    />
-                  </svg>
-                  Sign Out
-                </span>
+                <span className="flex items-center gap-2">Sign Out</span>
               </motion.button>
             </motion.div>
           </div>

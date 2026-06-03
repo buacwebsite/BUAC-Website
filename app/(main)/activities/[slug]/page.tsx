@@ -14,6 +14,7 @@ import { IoCalendar } from "react-icons/io5";
 import { useAuth } from "@/app/context/AuthProvider";
 import { useEditor } from "@/app/context/EditorContext";
 import { motion, AnimatePresence } from "framer-motion";
+import UniqueLoading from "@/app/components/ui/UniqueLoading";
 
 interface Activity {
   id: number;
@@ -95,13 +96,7 @@ export default function ActivityPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-text-secondary text-2xl font-bebasNeue"
-        >
-          Loading...
-        </motion.div>
+        <UniqueLoading variant="morph" size="lg" />
       </div>
     );
   }
@@ -207,7 +202,11 @@ export default function ActivityPage() {
             <motion.div
               variants={{
                 hidden: { opacity: 0, scale: 0.95 },
-                visible: { opacity: 1, scale: 1, transition: { duration: 0.6 } },
+                visible: {
+                  opacity: 1,
+                  scale: 1,
+                  transition: { duration: 0.6 },
+                },
               }}
               className="relative w-full h-[60vh] mb-12 rounded-2xl overflow-hidden group"
             >
@@ -276,7 +275,11 @@ export default function ActivityPage() {
           <motion.div
             variants={{
               hidden: { opacity: 0, y: 20 },
-              visible: { opacity: 1, y: 0, transition: { duration: 0.5, delay: 0.3 } },
+              visible: {
+                opacity: 1,
+                y: 0,
+                transition: { duration: 0.5, delay: 0.3 },
+              },
             }}
             className="max-w-4xl mx-auto"
           >

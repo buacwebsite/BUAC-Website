@@ -16,6 +16,7 @@ import { HiOutlinePencilAlt } from "react-icons/hi";
 import { useEditor } from "@/app/context/EditorContext";
 import { useAuth } from "@/app/context/AuthProvider";
 import axios from "axios";
+import ClassicLoader from "@/app/components/ui/ClassicLoader";
 
 interface JoinUsContent {
   heading: string;
@@ -80,8 +81,8 @@ const Recruitment = () => {
 
   if (!content) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-text-muted">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <ClassicLoader size="lg" />
       </div>
     );
   }
@@ -93,7 +94,7 @@ const Recruitment = () => {
           {auth && (
             <button
               onClick={() => openEditor("joinus", content)}
-              className="absolute top-0 right-4 py-1 px-2 md:py-2 md:px-4 bg-accent flex items-center justify-center gap-2 text-smmd:text-base font-medium rounded-full border-2 border-accent hover:bg-transparent hover:text-accent transition-all duration-300 cursor-pointer"
+              className="absolute top-0 right-4 py-1 px-2 md:py-2 md:px-4 bg-accent flex items-center justify-center gap-2 text-sm md:text-base font-medium rounded-full border-2 border-accent hover:bg-transparent hover:text-accent transition-all duration-300 cursor-pointer"
               title="Edit Join Us Content"
             >
               <HiOutlinePencilAlt className="text-xl" />
@@ -146,7 +147,7 @@ const Recruitment = () => {
                   (quality, index) =>
                     quality && (
                       <li key={index} className="flex items-center gap-2">
-                        <span className="text-accent">▸</span>
+                        <span className="text-accent">■</span>
                         <span>{quality}</span>
                       </li>
                     ),
@@ -162,7 +163,7 @@ const Recruitment = () => {
                   (point, index) =>
                     point && (
                       <li key={index} className="flex items-center gap-2">
-                        <span className="text-accent">▸</span>
+                        <span className="text-accent">■</span>
                         <span>{point}</span>
                       </li>
                     ),
@@ -175,8 +176,8 @@ const Recruitment = () => {
         <div className="mb-16">
           <div className="max-w-3xl mx-auto">
             {loadingSettings ? (
-              <div className="text-center py-12">
-                <div className="text-text-muted">Loading...</div>
+              <div className="flex items-center justify-center py-12">
+                <ClassicLoader size="md" />
               </div>
             ) : recruitmentActive ? (
               <>
@@ -197,9 +198,9 @@ const Recruitment = () => {
                   Recruitment is Currently Closed
                 </h3>
                 <p className="text-text-muted text-lg max-w-xl mx-auto">
-                  We&apos;re not accepting new applications at the moment.
-                  Please check back later or follow our social media for updates
-                  on when recruitment reopens!
+                  We&apos;re not accepting new applications at the moment. Please
+                  check back later or follow our social media for updates on when
+                  recruitment reopens!
                 </p>
               </div>
             )}
