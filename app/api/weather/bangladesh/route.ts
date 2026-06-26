@@ -1,112 +1,359 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { env } from "@/env";
 
-type OpenMeteoResponse = {
-  current?: {
-    temperature_2m: number;
-    weather_code: number;
-    wind_speed_10m: number;
-    is_day?: number;
+type WeatherApiForecastResponse = {
+  location: {
+    name: string;
+    region: string;
+    country: string;
+    lat: number;
+    lon: number;
+    tz_id: string;
+    localtime_epoch: number;
+    localtime: string;
+  };
+  current: {
+    last_updated_epoch: number;
+    last_updated: string;
+    temp_c: number;
+    temp_f: number;
+    is_day: number;
+    condition: {
+      text: string;
+      icon: string;
+      code: number;
+    };
+    wind_mph: number;
+    wind_kph: number;
+    wind_degree: number;
+    wind_dir: string;
+    pressure_mb: number;
+    pressure_in: number;
+    precip_mm: number;
+    precip_in: number;
+    humidity: number;
+    cloud: number;
+    feelslike_c: number;
+    feelslike_f: number;
+    vis_km: number;
+    vis_miles: number;
+    uv: number;
+    gust_mph: number;
+    gust_kph: number;
+    air_quality?: {
+      co?: number;
+      no2?: number;
+      o3?: number;
+      so2?: number;
+      pm2_5?: number;
+      pm10?: number;
+      "us-epa-index"?: number;
+      "gb-defra-index"?: number;
+    };
+  };
+  forecast: {
+    forecastday: Array<{
+      date: string;
+      date_epoch: number;
+      day: {
+        maxtemp_c: number;
+        mintemp_c: number;
+        avgtemp_c: number;
+        maxwind_kph: number;
+        totalprecip_mm: number;
+        avgvis_km: number;
+        avghumidity: number;
+        daily_chance_of_rain: number;
+        condition: {
+          text: string;
+          icon: string;
+          code: number;
+        };
+        uv: number;
+      };
+      astro: {
+        sunrise: string;
+        sunset: string;
+        moonrise: string;
+        moonset: string;
+        moon_phase: string;
+      };
+      hour: Array<{
+        time_epoch: number;
+        time: string;
+        temp_c: number;
+        feelslike_c: number;
+        condition: {
+          text: string;
+          icon: string;
+          code: number;
+        };
+        wind_kph: number;
+        humidity: number;
+        cloud: number;
+        chance_of_rain: number;
+        precip_mm: number;
+        uv: number;
+      }>;
+    }>;
   };
 };
 
-function getWeatherText(code: number) {
-  if (code === 0) return "Clear";
-  if ([1, 2, 3].includes(code)) return "Partly Cloudy";
-  if ([45, 48].includes(code)) return "Foggy";
-  if ([51, 53, 55, 56, 57].includes(code)) return "Drizzle";
-  if ([61, 63, 65, 66, 67].includes(code)) return "Rainy";
-  if ([71, 73, 75, 77].includes(code)) return "Snow";
-  if ([80, 81, 82].includes(code)) return "Rain Showers";
-  if ([85, 86].includes(code)) return "Snow Showers";
-  if ([95, 96, 99].includes(code)) return "Thunderstorm";
-  return "Unknown";
+function getClientIp(request: NextRequest) {
+  const cloudflareIp = request.headers.get("cf-connecting-ip");
+  const trueClientIp = request.headers.get("true-client-ip");
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  const realIp = request.headers.get("x-real-ip");
+  const vercelIp = request.headers.get("x-vercel-forwarded-for");
+
+  const ip =
+    cloudflareIp ||
+    trueClientIp ||
+    forwardedFor?.split(",")[0]?.trim() ||
+    vercelIp?.split(",")[0]?.trim() ||
+    realIp ||
+    "";
+
+  if (
+    !ip ||
+    ip === "::1" ||
+    ip === "127.0.0.1" ||
+    ip.startsWith("192.168.") ||
+    ip.startsWith("10.") ||
+    ip.startsWith("172.")
+  ) {
+    return null;
+  }
+
+  return ip;
 }
 
-function getTripSuggestion(temp: number, code: number, wind: number) {
-  const weather = getWeatherText(code);
+function getAirQualityText(index?: number) {
+  switch (index) {
+    case 1:
+      return "Good";
+    case 2:
+      return "Moderate";
+    case 3:
+      return "Sensitive";
+    case 4:
+      return "Unhealthy";
+    case 5:
+      return "Very Unhealthy";
+    case 6:
+      return "Hazardous";
+    default:
+      return "N/A";
+  }
+}
 
-  if ([95, 96, 99].includes(code)) {
+function getTripSuggestion({
+  temp,
+  condition,
+  wind,
+  precip,
+  uv,
+  visibility,
+}: {
+  temp: number;
+  condition: string;
+  wind: number;
+  precip: number;
+  uv: number;
+  visibility: number;
+}) {
+  const text = condition.toLowerCase();
+
+  if (
+    text.includes("thunder") ||
+    text.includes("storm") ||
+    text.includes("heavy rain") ||
+    text.includes("torrential")
+  ) {
     return {
-      status: "Not Recommended",
+      status: "Avoid Trip",
       color: "red",
-      advice:
-        "Thunderstorm conditions are risky for trekking or long outdoor tours. Avoid trips today.",
+      advice: "Bad weather for outdoor tours. Better stay safe today.",
     };
   }
 
-  if ([61, 63, 65, 80, 81, 82].includes(code) || wind > 28) {
+  if (
+    text.includes("rain") ||
+    text.includes("drizzle") ||
+    precip > 3 ||
+    wind > 30 ||
+    visibility < 4
+  ) {
     return {
-      status: "Use Caution",
+      status: "Be Careful",
       color: "yellow",
-      advice:
-        "Rain or strong wind may affect trail safety. A short local trip may be okay with proper gear.",
+      advice: "Possible trip, but carry rain gear and keep a backup plan.",
     };
   }
 
-  if (temp >= 18 && temp <= 31 && code <= 3 && wind <= 20) {
+  if (temp > 33 || uv >= 8) {
     return {
-      status: "Great For Trip",
-      color: "green",
-      advice:
-        "The weather looks comfortable for travel and outdoor activities in Bangladesh today.",
-    };
-  }
-
-  if (temp > 31) {
-    return {
-      status: "Hot Weather",
+      status: "Too Hot",
       color: "orange",
-      advice:
-        "Travel is possible, but plan hydration, shade, and avoid heavy trekking during midday.",
+      advice: "Avoid noon. Carry water, cap, saline, and sunscreen.",
+    };
+  }
+
+  if (temp >= 18 && temp <= 31 && wind <= 22) {
+    return {
+      status: "Good for Trip",
+      color: "green",
+      advice: "Nice weather for a short tour or outdoor activity.",
     };
   }
 
   return {
-    status: "Moderate",
+    status: "Okay",
     color: "blue",
-    advice:
-      "Conditions are manageable, but check route-specific forecasts before leaving.",
+    advice: "Weather is manageable. Check again before leaving.",
   };
 }
 
-export async function GET() {
+function buildWeatherUrl(query: string, days: number) {
+  return `https://api.weatherapi.com/v1/forecast.json?key=${
+    env.WEATHERAPI_KEY
+  }&q=${encodeURIComponent(query)}&days=${days}&aqi=yes&alerts=no`;
+}
+
+export async function GET(request: NextRequest) {
   try {
-    // Dhaka coordinates
-    const lat = 23.8103;
-    const lon = 90.4125;
+    const { searchParams } = new URL(request.url);
 
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,wind_speed_10m,is_day`;
+    const explicitQuery = searchParams.get("q");
+    const clientIp = getClientIp(request);
+    const query = explicitQuery || clientIp || "Dhaka";
 
-    const res = await fetch(url, {
-      next: { revalidate: 1800 },
+    let res = await fetch(buildWeatherUrl(query, 7), {
+      next: { revalidate: 900 },
     });
+
+    // WeatherAPI free plan may not allow 7 days. Retry with 3 days.
+    if (!res.ok) {
+      res = await fetch(buildWeatherUrl(query, 3), {
+        next: { revalidate: 900 },
+      });
+    }
 
     if (!res.ok) {
       return NextResponse.json(
-        { error: "Failed to fetch weather data" },
+        { error: "Failed to fetch WeatherAPI data" },
         { status: 500 },
       );
     }
 
-    const data = (await res.json()) as OpenMeteoResponse;
+    const data = (await res.json()) as WeatherApiForecastResponse;
 
-    const temp = data.current?.temperature_2m ?? 0;
-    const code = data.current?.weather_code ?? -1;
-    const wind = data.current?.wind_speed_10m ?? 0;
+    const suggestion = getTripSuggestion({
+      temp: data.current.temp_c,
+      condition: data.current.condition.text,
+      wind: data.current.wind_kph,
+      precip: data.current.precip_mm,
+      uv: data.current.uv,
+      visibility: data.current.vis_km,
+    });
 
-    const condition = getWeatherText(code);
-    const suggestion = getTripSuggestion(temp, code, wind);
+    const epaIndex = data.current.air_quality?.["us-epa-index"];
+
+    const allHours = data.forecast.forecastday.flatMap((day) => day.hour);
+    const upcomingHours = allHours
+      .filter((hour) => hour.time_epoch >= data.current.last_updated_epoch)
+      .slice(0, 8)
+      .map((hour) => ({
+        time: hour.time,
+        temperatureC: hour.temp_c,
+        feelsLikeC: hour.feelslike_c,
+        condition: hour.condition.text,
+        icon: hour.condition.icon,
+        windKph: hour.wind_kph,
+        humidity: hour.humidity,
+        cloud: hour.cloud,
+        chanceOfRain: hour.chance_of_rain,
+        precipMm: hour.precip_mm,
+        uv: hour.uv,
+      }));
+
+    const forecastDays = data.forecast.forecastday.map((day) => ({
+      date: day.date,
+      maxTempC: day.day.maxtemp_c,
+      minTempC: day.day.mintemp_c,
+      avgTempC: day.day.avgtemp_c,
+      condition: day.day.condition.text,
+      icon: day.day.condition.icon,
+      chanceOfRain: day.day.daily_chance_of_rain,
+      maxWindKph: day.day.maxwind_kph,
+      totalPrecipMm: day.day.totalprecip_mm,
+      avgHumidity: day.day.avghumidity,
+      avgVisibilityKm: day.day.avgvis_km,
+      uv: day.day.uv,
+      sunrise: day.astro.sunrise,
+      sunset: day.astro.sunset,
+      moonPhase: day.astro.moon_phase,
+    }));
 
     return NextResponse.json({
-      city: "Dhaka, Bangladesh",
-      temperature: temp,
-      condition,
-      windSpeed: wind,
+      source: explicitQuery
+        ? "manual"
+        : clientIp
+          ? "ip"
+          : "fallback",
+      detectedIp: clientIp,
+      location: {
+        city: data.location.name,
+        region: data.location.region,
+        country: data.location.country,
+        latitude: data.location.lat,
+        longitude: data.location.lon,
+        timezone: data.location.tz_id,
+        localtime: data.location.localtime,
+      },
+      current: {
+        lastUpdated: data.current.last_updated,
+        temperatureC: data.current.temp_c,
+        temperatureF: data.current.temp_f,
+        feelsLikeC: data.current.feelslike_c,
+        feelsLikeF: data.current.feelslike_f,
+        isDay: data.current.is_day === 1,
+        condition: data.current.condition.text,
+        icon: data.current.condition.icon,
+        windKph: data.current.wind_kph,
+        windMph: data.current.wind_mph,
+        windDegree: data.current.wind_degree,
+        windDirection: data.current.wind_dir,
+        gustKph: data.current.gust_kph,
+        pressureMb: data.current.pressure_mb,
+        precipitationMm: data.current.precip_mm,
+        humidity: data.current.humidity,
+        cloud: data.current.cloud,
+        visibilityKm: data.current.vis_km,
+        uv: data.current.uv,
+      },
+      airQuality: {
+        pm25: data.current.air_quality?.pm2_5 ?? null,
+        pm10: data.current.air_quality?.pm10 ?? null,
+        co: data.current.air_quality?.co ?? null,
+        no2: data.current.air_quality?.no2 ?? null,
+        o3: data.current.air_quality?.o3 ?? null,
+        so2: data.current.air_quality?.so2 ?? null,
+        usEpaIndex: epaIndex ?? null,
+        text: getAirQualityText(epaIndex),
+      },
+      astro: {
+        sunrise: forecastDays[0]?.sunrise || "N/A",
+        sunset: forecastDays[0]?.sunset || "N/A",
+      },
+      hourly: upcomingHours,
+      forecast: forecastDays,
       suggestion,
       updatedAt: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("Weather API error:", error);
+    console.error("WeatherAPI error:", error);
+
     return NextResponse.json(
       { error: "Failed to fetch weather data" },
       { status: 500 },

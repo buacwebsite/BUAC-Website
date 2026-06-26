@@ -13,7 +13,6 @@ import { HiOutlinePencilAlt } from "react-icons/hi";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import BangladeshWeatherCard from "../components/BangladeshWeatherCard";
 import {
   MotionSection,
   StaggerGrid,
@@ -59,8 +58,9 @@ export default function Home() {
     const fetchHeroImages = async () => {
       try {
         const response = await axios.get("/api/content/landinghero");
+
         if (response.status === 200) {
-          setImages(response.data.images);
+          setImages(response.data.images || []);
         } else {
           console.error("Failed to fetch hero images");
         }
@@ -68,6 +68,7 @@ export default function Home() {
         console.error("Error fetching hero images:", error);
       }
     };
+
     fetchHeroImages();
   }, []);
 
@@ -75,6 +76,7 @@ export default function Home() {
     const fetchAboutContent = async () => {
       try {
         const response = await axios.get("/api/content/about");
+
         if (response.status === 200) {
           setAboutText(response.data.aboutText || "");
           setStats(response.data.stats || []);
@@ -86,6 +88,7 @@ export default function Home() {
         console.error("Error fetching about content:", error);
       }
     };
+
     fetchAboutContent();
   }, []);
 
@@ -93,6 +96,7 @@ export default function Home() {
     const fetchVisionContent = async () => {
       try {
         const response = await axios.get("/api/content/vision");
+
         if (response.status === 200) {
           setVisionText(response.data.visionText || "");
           setObjectives(response.data.objectives || []);
@@ -103,6 +107,7 @@ export default function Home() {
         console.error("Error fetching vision content:", error);
       }
     };
+
     fetchVisionContent();
   }, []);
 
@@ -178,11 +183,12 @@ export default function Home() {
                 <motion.div
                   whileHover={{ scale: 1.05 }}
                   transition={{ duration: 0.25 }}
-                  className="group relative bg-linear-to-br from-accent/10 to-white/30 backdrop-blur-sm border border-text-muted/20 rounded-3xl py-8 px-4 hover:border-accent/70 transition-all duration-500 hover:shadow-2xl hover:shadow-accent/20"
+                  className="group relative bg-linear-to-br from-accent/10 to-white/30 backdrop-blur-sm border border-text-muted/20 rounded-3xl py-8 px-4 hover:border-accent/70 transition-all duration-500 shadow-xl overflow-hidden h-full"
                 >
                   <div className="absolute top-6 left-6 text-accent text-6xl font-serif opacity-30">
                     &ldquo;
                   </div>
+
                   <div className="flex flex-col items-center text-center mt-4">
                     <div className="relative w-36 h-36 mb-6 rounded-full overflow-hidden border-4 border-accent/30 group-hover:border-accent transition-colors duration-500">
                       {quote.image ? (
@@ -194,22 +200,28 @@ export default function Home() {
                         />
                       ) : (
                         <div className="w-full h-full bg-text-secondary/20 flex items-center justify-center">
-                          <span className="text-text-muted text-xs">No Image</span>
+                          <span className="text-text-muted text-xs">
+                            No Image
+                          </span>
                         </div>
                       )}
                     </div>
+
                     <p className="text-text-secondary text-sm leading-tight mb-6 italic text-balance">
                       {quote.quote || "No quote provided yet."}
                     </p>
+
                     <div className="mt-auto">
                       <h3 className="text-xl font-bold text-text-secondary mb-1">
                         {quote.name || "Name"}
                       </h3>
+
                       <p className="text-sm text-accent">
                         {quote.designation || "Designation"}
                       </p>
                     </div>
                   </div>
+
                   <div className="absolute bottom-0 right-6 text-accent text-6xl font-serif opacity-30">
                     &rdquo;
                   </div>
@@ -242,6 +254,7 @@ export default function Home() {
                     value={stat.value}
                     className="text-5xl lg:text-6xl font-bebasNeue text-accent mb-2"
                   />
+
                   <div className="text-zinc-100 uppercase text-sm tracking-wider">
                     {stat.label}
                   </div>
@@ -253,28 +266,6 @@ export default function Home() {
               </h1>
             )}
           </motion.div>
-        </div>
-      </MotionSection>
-
-      {/* WEATHER */}
-      <MotionSection className="snap-section relative min-h-[70vh] bg-black py-16 px-6 lg:px-12 font-poppins overflow-hidden flex items-center">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-400 rounded-full blur-3xl" />
-        </div>
-
-        <div className="relative max-w-6xl mx-auto w-full">
-          <div className="text-center mb-10">
-            <RevealHeading className="text-5xl md:text-6xl lg:text-7xl font-bebasNeue text-accent leading-none mb-4">
-              Weather & Trip Suggestion
-            </RevealHeading>
-            <p className="text-text-muted max-w-2xl mx-auto">
-              Before planning any trek or outdoor activity, check the current
-              weather outlook for Bangladesh and see BUAC&apos;s trip suggestion.
-            </p>
-          </div>
-
-          <BangladeshWeatherCard />
         </div>
       </MotionSection>
 
@@ -333,15 +324,17 @@ export default function Home() {
                     <motion.div
                       whileHover={{ scale: 1.05 }}
                       transition={{ duration: 0.25 }}
-                      className="group relative bg-linear-to-br from-accent/10 to-text-secondary/5 backdrop-blur-sm border border-accent/30 rounded-2xl p-8 hover:border-accent transition-all duration-500 hover:shadow-2xl hover:shadow-accent/20"
+                      className="group relative bg-linear-to-br from-accent/10 to-text-secondary/5 backdrop-blur-sm border border-accent/30 rounded-2xl p-8 hover:border-accent transition-all duration-500 shadow-xl overflow-hidden h-full"
                     >
                       <div className="absolute top-4 left-4 text-accent/20 text-5xl font-bebasNeue">
                         {String(index + 1).padStart(2, "0")}
                       </div>
+
                       <div className="mt-8">
                         <h4 className="text-2xl font-bold text-text-secondary mb-4 group-hover:text-accent transition-colors duration-300">
                           {objective.title}
                         </h4>
+
                         <p className="text-text-muted leading-relaxed">
                           {objective.description}
                         </p>
@@ -371,51 +364,37 @@ export default function Home() {
             <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-orange-500 rounded-full blur-3xl" />
           </div>
 
-          <div className="relative max-w-4xl mx-auto text-center">
+          <div className="relative z-10 max-w-4xl mx-auto text-center">
             <motion.h2
-              initial="hidden"
-              whileInView="visible"
+              initial={{ opacity: 0, y: -30 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              variants={{
-                hidden: { opacity: 0, y: -30 },
-                visible: {
-                  opacity: 1,
-                  y: 0,
-                  transition: { duration: 0.6, ease: [0.4, 0, 0.2, 1] },
-                },
-              }}
+              transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
               className="text-6xl md:text-7xl lg:text-8xl font-bebasNeue text-accent leading-none mb-10"
             >
               Be an Adventurer
             </motion.h2>
 
             <motion.div
-              initial="hidden"
-              whileInView="visible"
+              initial={{ opacity: 0, y: 25 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              variants={staggerContainer}
-              className="flex flex-col sm:flex-row gap-6 justify-center items-center"
+              transition={{ delay: 0.15, duration: 0.4 }}
+              className="flex flex-col sm:flex-row gap-5 justify-center items-center"
             >
-              <motion.div variants={fadeInUp}>
-                <Link
-                  href="/register"
-                  className="group relative px-12 py-5 bg-gradient-to-r from-accent via-orange-500 to-accent bg-[length:200%_100%] hover:bg-[100%_0] text-white font-bebasNeue text-2xl tracking-wider rounded-full transition-all duration-500 shadow-lg hover:shadow-xl hover:shadow-accent/40 hover:scale-105 overflow-hidden inline-flex"
-                >
-                  <span className="relative z-10 flex items-center gap-2">
-                    Create Account
-                  </span>
-                  <div className="absolute inset-0 bg-white/20 group-hover:bg-white/0 transition-colors duration-500" />
-                </Link>
-              </motion.div>
+              <Link
+                href="/register"
+                className="inline-flex min-w-[210px] items-center justify-center rounded-full bg-accent px-10 py-4 font-bebasNeue text-2xl tracking-wider text-white shadow-xl shadow-accent/25 transition-all duration-300 hover:-translate-y-1 hover:bg-accent/90 hover:shadow-accent/40"
+              >
+                Create Account
+              </Link>
 
-              <motion.div variants={fadeInUp}>
-                <Link
-                  href="/login"
-                  className="group relative px-12 py-5 border-2 border-accent/60 text-accent hover:bg-accent hover:text-white font-bebasNeue text-2xl tracking-wider rounded-full transition-all duration-300 hover:border-accent hover:shadow-[0_0_30px_rgba(255,102,51,0.4)] hover:scale-105 inline-flex"
-                >
-                  <span className="flex items-center gap-2">Sign In</span>
-                </Link>
-              </motion.div>
+              <Link
+                href="/login"
+                className="inline-flex min-w-[170px] items-center justify-center rounded-full border-2 border-accent px-10 py-4 font-bebasNeue text-2xl tracking-wider text-accent transition-all duration-300 hover:-translate-y-1 hover:bg-accent hover:text-white"
+              >
+                Sign In
+              </Link>
             </motion.div>
           </div>
         </MotionSection>
@@ -428,7 +407,7 @@ export default function Home() {
             <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-accent rounded-full blur-3xl" />
           </div>
 
-          <div className="relative max-w-4xl mx-auto text-center">
+          <div className="relative z-10 max-w-4xl mx-auto text-center">
             <motion.h2
               initial={{ opacity: 0, scale: 0.8 }}
               whileInView={{ opacity: 1, scale: 1 }}
@@ -444,7 +423,7 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.2, duration: 0.4 }}
-              className="inline-block mb-6"
+              className="inline-block mb-8"
             >
               <span
                 className={`px-4 py-2 text-sm font-bold rounded-full border ${
@@ -459,55 +438,48 @@ export default function Home() {
               </span>
             </motion.div>
 
-            <motion.p
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3, duration: 0.4 }}
-              className="text-text-muted text-lg max-w-2xl mx-auto mb-8"
-            >
-              {user.role === "admin"
-                ? "You have full access to manage content. Look for Edit buttons throughout the site."
-                : user.role === "alumni"
+            {user.role !== "admin" && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3, duration: 0.4 }}
+                className="text-text-muted text-lg max-w-2xl mx-auto mb-8"
+              >
+                {user.role === "alumni"
                   ? "Great to see you back! Stay connected with the adventure family."
                   : "Ready for your next adventure? Check out our upcoming tours and activities."}
-            </motion.p>
+              </motion.p>
+            )}
 
             <motion.div
-              initial="hidden"
-              whileInView="visible"
+              initial={{ opacity: 0, y: 25 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              variants={staggerContainer}
+              transition={{ delay: 0.2, duration: 0.4 }}
               className="flex flex-col sm:flex-row gap-4 justify-center items-center"
             >
-              <motion.div variants={fadeInUp}>
-                <Link
-                  href="/tours"
-                  className="group relative px-10 py-4 bg-gradient-to-r from-accent via-orange-500 to-accent bg-[length:200%_100%] hover:bg-[100%_0] text-white font-bebasNeue text-xl tracking-wider rounded-full transition-all duration-500 shadow-lg hover:shadow-xl hover:shadow-accent/40 hover:scale-105 overflow-hidden inline-flex"
-                >
-                  <span className="relative z-10 flex items-center gap-2">
-                    Explore Tours
-                  </span>
-                </Link>
-              </motion.div>
-
-              <motion.div variants={fadeInUp}>
-                <Link
-                  href="/activities"
-                  className="group relative px-10 py-4 border-2 border-accent/60 text-accent hover:bg-accent hover:text-white font-bebasNeue text-xl tracking-wider rounded-full transition-all duration-300 hover:border-accent hover:shadow-[0_0_25px_rgba(255,102,51,0.35)] hover:scale-105 inline-flex"
-                >
-                  <span className="flex items-center gap-2">View Activities</span>
-                </Link>
-              </motion.div>
-
-              <motion.button
-                variants={fadeInUp}
-                whileTap={{ scale: 0.96 }}
-                onClick={logout}
-                className="group relative px-10 py-4 border-2 border-red-500/40 text-red-400 hover:bg-red-500 hover:text-white font-bebasNeue text-xl tracking-wider rounded-full transition-all duration-300 hover:border-red-500 hover:shadow-[0_0_25px_rgba(239,68,68,0.35)] hover:scale-105 cursor-pointer"
+              <Link
+                href="/tours"
+                className="inline-flex min-w-[170px] items-center justify-center rounded-full bg-accent px-8 py-4 font-bebasNeue text-xl tracking-wider text-white shadow-xl shadow-accent/25 transition-all duration-300 hover:-translate-y-1 hover:bg-accent/90"
               >
-                <span className="flex items-center gap-2">Sign Out</span>
-              </motion.button>
+                Explore Tours
+              </Link>
+
+              <Link
+                href="/activities"
+                className="inline-flex min-w-[180px] items-center justify-center rounded-full border-2 border-accent px-8 py-4 font-bebasNeue text-xl tracking-wider text-accent transition-all duration-300 hover:-translate-y-1 hover:bg-accent hover:text-white"
+              >
+                View Activities
+              </Link>
+
+              <button
+                type="button"
+                onClick={logout}
+                className="inline-flex min-w-[150px] items-center justify-center rounded-full border-2 border-red-500 px-8 py-4 font-bebasNeue text-xl tracking-wider text-red-400 transition-all duration-300 hover:-translate-y-1 hover:bg-red-500 hover:text-white"
+              >
+                Sign Out
+              </button>
             </motion.div>
           </div>
         </MotionSection>

@@ -7,6 +7,9 @@ export const env = createEnv({
     adminPassword: z.string().min(1),
     adminJwtSecret: z.string().min(1),
 
+    // WeatherAPI.com
+    WEATHERAPI_KEY: z.string().min(1),
+
     // Email OAuth2 configuration
     EMAIL_SERVICE: z.string().default("gmail"),
     EMAIL_USER: z.string().email(),

@@ -21,16 +21,15 @@ import {
 } from "react-icons/hi";
 import { FaMountain } from "react-icons/fa";
 import { HiAcademicCap as HiAlumni } from "react-icons/hi2";
+import GoogleAuthButton from "@/app/components/GoogleAuthButton";
 
 type RoleType = "member" | "alumni";
 
 interface AppInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  label?: string;
   icon?: React.ReactNode;
 }
 
 interface AppSelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
-  label?: string;
   icon?: React.ReactNode;
   children: React.ReactNode;
 }
@@ -72,9 +71,19 @@ const alumniPanelPositions = [
   "Chief of Risk Management",
 ];
 
-const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"];
+const bloodGroups = [
+  "A+",
+  "A-",
+  "B+",
+  "B-",
+  "AB+",
+  "AB-",
+  "O+",
+  "O-",
+  "Unknown",
+];
 
-const AppInput = ({ label, icon, className = "", ...rest }: AppInputProps) => {
+const AppInput = ({ icon, className = "", ...rest }: AppInputProps) => {
   const [mousePosition, setMousePosition] = useState({ x: 0 });
   const [isHovering, setIsHovering] = useState(false);
 
@@ -84,47 +93,42 @@ const AppInput = ({ label, icon, className = "", ...rest }: AppInputProps) => {
   };
 
   return (
-    <div className="relative w-full min-w-[200px]">
-      {label && <label className="mb-2 block text-sm text-white/75">{label}</label>}
+    <div className="relative w-full">
+      <input
+        className={`peer relative z-10 h-13 w-full rounded-xl border-2 border-white/12 bg-black/35 px-4 pr-11 font-light text-white outline-none transition-all duration-200 placeholder:text-white/35 focus:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+        onMouseMove={handleMouseMove}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+        {...rest}
+      />
 
-      <div className="relative w-full">
-        <input
-          className={`peer relative z-10 h-13 w-full rounded-md border-2 border-white/12 bg-black/35 px-4 pr-11 font-light text-white outline-none drop-shadow-sm transition-all duration-200 ease-in-out placeholder:text-white/35 focus:border-accent/55 focus:bg-black/45 ${className}`}
-          onMouseMove={handleMouseMove}
-          onMouseEnter={() => setIsHovering(true)}
-          onMouseLeave={() => setIsHovering(false)}
-          {...rest}
-        />
+      {isHovering && (
+        <>
+          <div
+            className="pointer-events-none absolute top-0 left-0 right-0 z-20 h-[2px] rounded-t-xl"
+            style={{
+              background: `radial-gradient(40px circle at ${mousePosition.x}px 0px, var(--color-accent) 0%, transparent 70%)`,
+            }}
+          />
+          <div
+            className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-[2px] rounded-b-xl"
+            style={{
+              background: `radial-gradient(40px circle at ${mousePosition.x}px 2px, var(--color-accent) 0%, transparent 70%)`,
+            }}
+          />
+        </>
+      )}
 
-        {isHovering && (
-          <>
-            <div
-              className="pointer-events-none absolute top-0 left-0 right-0 z-20 h-[2px] overflow-hidden rounded-t-md"
-              style={{
-                background: `radial-gradient(34px circle at ${mousePosition.x}px 0px, var(--color-accent) 0%, transparent 70%)`,
-              }}
-            />
-            <div
-              className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-[2px] overflow-hidden rounded-b-md"
-              style={{
-                background: `radial-gradient(34px circle at ${mousePosition.x}px 2px, var(--color-accent) 0%, transparent 70%)`,
-              }}
-            />
-          </>
-        )}
-
-        {icon && (
-          <div className="absolute right-3 top-1/2 z-20 -translate-y-1/2 text-white/50">
-            {icon}
-          </div>
-        )}
-      </div>
+      {icon && (
+        <div className="absolute right-3 top-1/2 z-20 -translate-y-1/2 text-white/50">
+          {icon}
+        </div>
+      )}
     </div>
   );
 };
 
 const AppSelect = ({
-  label,
   icon,
   className = "",
   children,
@@ -139,49 +143,46 @@ const AppSelect = ({
   };
 
   return (
-    <div className="relative w-full min-w-[200px]">
-      {label && <label className="mb-2 block text-sm text-white/75">{label}</label>}
+    <div className="relative w-full">
+      <select
+        className={`peer relative z-10 h-13 w-full appearance-none rounded-xl border-2 border-white/12 bg-black/35 px-4 pr-11 font-light text-white outline-none transition-all duration-200 focus:border-accent/60 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+        onMouseMove={handleMouseMove}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+        {...rest}
+      >
+        {children}
+      </select>
 
-      <div className="relative w-full">
-        <select
-          className={`peer relative z-10 h-13 w-full appearance-none rounded-md border-2 border-white/12 bg-black/35 px-4 pr-11 font-light text-white outline-none drop-shadow-sm transition-all duration-200 ease-in-out focus:border-accent/55 focus:bg-black/45 [&>option]:bg-black [&>option]:text-white ${className}`}
-          onMouseMove={handleMouseMove}
-          onMouseEnter={() => setIsHovering(true)}
-          onMouseLeave={() => setIsHovering(false)}
-          {...rest}
-        >
-          {children}
-        </select>
+      {isHovering && (
+        <>
+          <div
+            className="pointer-events-none absolute top-0 left-0 right-0 z-20 h-[2px] rounded-t-xl"
+            style={{
+              background: `radial-gradient(40px circle at ${mousePosition.x}px 0px, var(--color-accent) 0%, transparent 70%)`,
+            }}
+          />
+          <div
+            className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-[2px] rounded-b-xl"
+            style={{
+              background: `radial-gradient(40px circle at ${mousePosition.x}px 2px, var(--color-accent) 0%, transparent 70%)`,
+            }}
+          />
+        </>
+      )}
 
-        {isHovering && (
-          <>
-            <div
-              className="pointer-events-none absolute top-0 left-0 right-0 z-20 h-[2px] overflow-hidden rounded-t-md"
-              style={{
-                background: `radial-gradient(34px circle at ${mousePosition.x}px 0px, var(--color-accent) 0%, transparent 70%)`,
-              }}
-            />
-            <div
-              className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-[2px] overflow-hidden rounded-b-md"
-              style={{
-                background: `radial-gradient(34px circle at ${mousePosition.x}px 2px, var(--color-accent) 0%, transparent 70%)`,
-              }}
-            />
-          </>
-        )}
-
-        {icon && (
-          <div className="absolute right-3 top-1/2 z-20 -translate-y-1/2 text-white/50">
-            {icon}
-          </div>
-        )}
-      </div>
+      {icon && (
+        <div className="absolute right-3 top-1/2 z-20 -translate-y-1/2 text-white/50">
+          {icon}
+        </div>
+      )}
     </div>
   );
 };
 
 const Register = () => {
   const [role, setRole] = useState<RoleType>("member");
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isCardHovering, setIsCardHovering] = useState(false);
@@ -221,6 +222,7 @@ const Register = () => {
 
   const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const section = e.currentTarget.getBoundingClientRect();
+
     setCardMousePosition({
       x: e.clientX - section.left,
       y: e.clientY - section.top,
@@ -236,6 +238,7 @@ const Register = () => {
       if (!email.toLowerCase().endsWith("@g.bracu.ac.bd")) {
         return "Members must use a valid BRACU G Suite email";
       }
+
       if (!varsityDepartment || !joinSemester) {
         return "Please provide varsity department and BRAC joining semester";
       }
@@ -263,6 +266,7 @@ const Register = () => {
     setError("");
 
     const validationError = validate();
+
     if (validationError) {
       setError(validationError);
       return;
@@ -317,7 +321,7 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-background flex items-center justify-center p-4 pt-28 pb-12 relative overflow-hidden -mt-16">
+    <div className="relative -mt-16 flex min-h-screen w-full items-center justify-center overflow-hidden bg-background px-4 py-24">
       <div className="absolute inset-0 bg-gradient-to-b from-accent/20 via-background to-black" />
       <div className="absolute top-0 left-1/2 h-[50vh] w-[90vw] -translate-x-1/2 rounded-b-full bg-accent/20 blur-[90px]" />
       <div className="absolute bottom-0 right-0 h-[40vh] w-[40vw] rounded-tl-full bg-accent/10 blur-[80px]" />
@@ -326,377 +330,356 @@ const Register = () => {
         initial={{ opacity: 0, y: 35 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.65, ease: [0.4, 0, 0.2, 1] }}
-        className="relative z-10 w-[96%] max-w-6xl flex justify-between rounded-3xl border border-white/10 bg-black/35 shadow-2xl backdrop-blur-2xl overflow-hidden"
+        className="relative z-10 w-full max-w-4xl overflow-hidden rounded-3xl border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl"
+        onMouseMove={handleCardMouseMove}
+        onMouseEnter={() => setIsCardHovering(true)}
+        onMouseLeave={() => setIsCardHovering(false)}
       >
         <div
-          className="relative h-full w-full lg:w-[58%] overflow-hidden px-5 md:px-10 lg:px-14"
-          onMouseMove={handleCardMouseMove}
-          onMouseEnter={() => setIsCardHovering(true)}
-          onMouseLeave={() => setIsCardHovering(false)}
+          className={`pointer-events-none absolute h-[600px] w-[600px] rounded-full bg-gradient-to-r from-accent/30 via-orange-300/20 to-white/10 blur-3xl transition-opacity duration-200 ${
+            isCardHovering ? "opacity-100" : "opacity-0"
+          }`}
+          style={{
+            transform: `translate(${cardMousePosition.x - 300}px, ${
+              cardMousePosition.y - 300
+            }px)`,
+            transition: "transform 0.1s ease-out",
+          }}
+        />
+
+        <form
+          className="relative z-10 grid gap-5 px-6 py-10 text-center md:px-12"
+          onSubmit={handleSubmit}
         >
-          <div
-            className={`pointer-events-none absolute h-[500px] w-[500px] rounded-full bg-gradient-to-r from-accent/30 via-orange-300/20 to-white/10 blur-3xl transition-opacity duration-200 ${
-              isCardHovering ? "opacity-100" : "opacity-0"
-            }`}
-            style={{
-              transform: `translate(${cardMousePosition.x - 250}px, ${
-                cardMousePosition.y - 250
-              }px)`,
-              transition: "transform 0.1s ease-out",
-            }}
-          />
+          <Link href="/" className="mx-auto block">
+            <Image
+              src="/assets/logos/buac.webp"
+              alt="BUAC Logo"
+              width={62}
+              height={62}
+              className="mx-auto object-contain"
+            />
+          </Link>
 
-          <form
-            className="relative z-10 grid gap-5 py-10 md:py-14 text-center"
-            onSubmit={handleSubmit}
-          >
-            <div className="grid gap-4">
-              <Link href="/" className="mx-auto block">
-                <Image
-                  src="/assets/logos/buac.webp"
-                  alt="BUAC Logo"
-                  width={58}
-                  height={58}
-                  className="mx-auto object-contain"
-                />
-              </Link>
+          <div>
+            <h1 className="font-bebasNeue text-6xl tracking-wider text-white">
+              Create Account
+            </h1>
 
-              <div>
-                <h1 className="font-bebasNeue text-5xl tracking-wider text-white">
-                  Create Account
-                </h1>
-                <p className="mt-1 text-xs text-white/55">
-                  Register as BUAC member or alumni
-                </p>
-              </div>
-            </div>
+            <p className="mt-1 text-xs text-white/55">
+              Register as BUAC member or alumni
+            </p>
+          </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setRole("member");
-                  setError("");
-                }}
-                className={`rounded-md border px-4 py-3 text-left transition-all cursor-pointer ${
-                  role === "member"
-                    ? "border-accent bg-accent text-white"
-                    : "border-white/10 bg-white/5 text-white/60 hover:border-accent/50 hover:text-white"
-                }`}
-              >
-                <FaMountain className="mb-1 text-lg" />
-                <div className="text-sm font-semibold">Member</div>
-                <div className="text-xs opacity-70">Current BRACU student</div>
-              </button>
+          <div className="flex flex-col items-center gap-2">
+            <GoogleAuthButton mode="register" />
+            <span className="text-xs text-white/40">or fill the form below</span>
+          </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setRole("alumni");
-                  setError("");
-                }}
-                className={`rounded-md border px-4 py-3 text-left transition-all cursor-pointer ${
-                  role === "alumni"
-                    ? "border-blue-400 bg-blue-500/80 text-white"
-                    : "border-white/10 bg-white/5 text-white/60 hover:border-blue-400/50 hover:text-white"
-                }`}
-              >
-                <HiAlumni className="mb-1 text-xl" />
-                <div className="text-sm font-semibold">Alumni</div>
-                <div className="text-xs opacity-70">Former BUAC member</div>
-              </button>
-            </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setRole("member");
+                setError("");
+              }}
+              className={`rounded-xl border px-4 py-3 text-left transition-all cursor-pointer ${
+                role === "member"
+                  ? "border-accent bg-accent text-white"
+                  : "border-white/10 bg-white/5 text-white/60 hover:border-accent/50 hover:text-white"
+              }`}
+            >
+              <FaMountain className="mb-1 text-lg" />
+              <div className="text-sm font-semibold">Member</div>
+              <div className="text-xs opacity-70">Current BRACU student</div>
+            </button>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <AppInput
-                placeholder="Full Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={loading}
-                icon={<HiUser className="h-5 w-5" />}
-              />
+            <button
+              type="button"
+              onClick={() => {
+                setRole("alumni");
+                setError("");
+              }}
+              className={`rounded-xl border px-4 py-3 text-left transition-all cursor-pointer ${
+                role === "alumni"
+                  ? "border-blue-400 bg-blue-500/80 text-white"
+                  : "border-white/10 bg-white/5 text-white/60 hover:border-blue-400/50 hover:text-white"
+              }`}
+            >
+              <HiAlumni className="mb-1 text-xl" />
+              <div className="text-sm font-semibold">Alumni</div>
+              <div className="text-xs opacity-70">Former BUAC member</div>
+            </button>
+          </div>
 
-              <AppInput
-                placeholder={role === "member" ? "G Suite Email" : "Gmail Address"}
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
-                icon={<HiMail className="h-5 w-5" />}
-              />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <AppInput
+              placeholder="Full Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={loading}
+              icon={<HiUser className="h-5 w-5" />}
+            />
 
-              <AppInput
-                placeholder="Contact Number"
-                value={contact}
-                onChange={(e) => setContact(e.target.value)}
-                disabled={loading}
-                icon={<HiPhone className="h-5 w-5" />}
-              />
+            <AppInput
+              placeholder={role === "member" ? "G Suite Email" : "Gmail Address"}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
+              icon={<HiMail className="h-5 w-5" />}
+            />
 
-              <AppInput
-                placeholder="Facebook ID Link"
-                value={facebook}
-                onChange={(e) => setFacebook(e.target.value)}
-                disabled={loading}
-                icon={<HiLink className="h-5 w-5" />}
-              />
+            <AppInput
+              placeholder="Contact Number"
+              value={contact}
+              onChange={(e) => setContact(e.target.value)}
+              disabled={loading}
+              icon={<HiPhone className="h-5 w-5" />}
+            />
 
-              {role === "member" && (
-                <>
-                  <AppInput
-                    placeholder="Varsity Department"
-                    value={varsityDepartment}
-                    onChange={(e) => setVarsityDepartment(e.target.value)}
-                    disabled={loading}
-                    icon={<HiAcademicCap className="h-5 w-5" />}
-                  />
+            <AppInput
+              placeholder="Facebook ID Link"
+              value={facebook}
+              onChange={(e) => setFacebook(e.target.value)}
+              disabled={loading}
+              icon={<HiLink className="h-5 w-5" />}
+            />
 
-                  <AppInput
-                    placeholder="BRAC Joining Semester"
-                    value={joinSemester}
-                    onChange={(e) => setJoinSemester(e.target.value)}
-                    disabled={loading}
-                    icon={<HiCalendar className="h-5 w-5" />}
-                  />
-
-                  <AppSelect
-                    value={buacDepartment}
-                    onChange={(e) => {
-                      setBuacDepartment(e.target.value);
-                      if (e.target.value === "Panel") {
-                        setPanelPosition("President");
-                      }
-                    }}
-                    disabled={loading}
-                    icon={<HiSparkles className="h-5 w-5" />}
-                  >
-                    {buacDepartments.map((department) => (
-                      <option key={department} value={department}>
-                        {department}
-                      </option>
-                    ))}
-                  </AppSelect>
-
-                  {!isPanelDepartment && (
-                    <AppSelect
-                      value={buacPosition}
-                      onChange={(e) => setBuacPosition(e.target.value)}
-                      disabled={loading}
-                      icon={<HiBriefcase className="h-5 w-5" />}
-                    >
-                      {memberPositions.map((position) => (
-                        <option key={position} value={position}>
-                          {position}
-                        </option>
-                      ))}
-                    </AppSelect>
-                  )}
-                </>
-              )}
-
-              {role === "alumni" && (
-                <>
-                  <AppSelect
-                    value={buacExDepartment}
-                    onChange={(e) => {
-                      setBuacExDepartment(e.target.value);
-                      if (e.target.value === "Panel") {
-                        setPanelPosition("President");
-                      }
-                    }}
-                    disabled={loading}
-                    icon={<HiSparkles className="h-5 w-5" />}
-                  >
-                    {buacDepartments.map((department) => (
-                      <option key={department} value={department}>
-                        {department}
-                      </option>
-                    ))}
-                  </AppSelect>
-
-                  {!isPanelDepartment && (
-                    <AppSelect
-                      value={buacExPosition}
-                      onChange={(e) => setBuacExPosition(e.target.value)}
-                      disabled={loading}
-                      icon={<HiBriefcase className="h-5 w-5" />}
-                    >
-                      {alumniPositions.map((position) => (
-                        <option key={position} value={position}>
-                          {position}
-                        </option>
-                      ))}
-                    </AppSelect>
-                  )}
-                </>
-              )}
-
-              {isPanelDepartment && (
-                <AppSelect
-                  value={panelPosition}
-                  onChange={(e) => setPanelPosition(e.target.value)}
+            {role === "member" && (
+              <>
+                <AppInput
+                  placeholder="Varsity Department"
+                  value={varsityDepartment}
+                  onChange={(e) => setVarsityDepartment(e.target.value)}
                   disabled={loading}
-                  icon={<HiBriefcase className="h-5 w-5 text-accent" />}
-                  className="border-accent/40"
+                  icon={<HiAcademicCap className="h-5 w-5" />}
+                />
+
+                <AppInput
+                  placeholder="BRAC Joining Semester"
+                  value={joinSemester}
+                  onChange={(e) => setJoinSemester(e.target.value)}
+                  disabled={loading}
+                  icon={<HiCalendar className="h-5 w-5" />}
+                />
+
+                <AppSelect
+                  value={buacDepartment}
+                  onChange={(e) => {
+                    setBuacDepartment(e.target.value);
+
+                    if (e.target.value === "Panel") {
+                      setPanelPosition("President");
+                    }
+                  }}
+                  disabled={loading}
+                  icon={<HiSparkles className="h-5 w-5" />}
                 >
-                  {panelOptions.map((position) => (
-                    <option key={position} value={position}>
-                      {position}
+                  {buacDepartments.map((department) => (
+                    <option key={department} value={department}>
+                      {department}
                     </option>
                   ))}
                 </AppSelect>
-              )}
 
+                {!isPanelDepartment && (
+                  <AppSelect
+                    value={buacPosition}
+                    onChange={(e) => setBuacPosition(e.target.value)}
+                    disabled={loading}
+                    icon={<HiBriefcase className="h-5 w-5" />}
+                  >
+                    {memberPositions.map((position) => (
+                      <option key={position} value={position}>
+                        {position}
+                      </option>
+                    ))}
+                  </AppSelect>
+                )}
+              </>
+            )}
+
+            {role === "alumni" && (
+              <>
+                <AppSelect
+                  value={buacExDepartment}
+                  onChange={(e) => {
+                    setBuacExDepartment(e.target.value);
+
+                    if (e.target.value === "Panel") {
+                      setPanelPosition("President");
+                    }
+                  }}
+                  disabled={loading}
+                  icon={<HiSparkles className="h-5 w-5" />}
+                >
+                  {buacDepartments.map((department) => (
+                    <option key={department} value={department}>
+                      {department}
+                    </option>
+                  ))}
+                </AppSelect>
+
+                {!isPanelDepartment && (
+                  <AppSelect
+                    value={buacExPosition}
+                    onChange={(e) => setBuacExPosition(e.target.value)}
+                    disabled={loading}
+                    icon={<HiBriefcase className="h-5 w-5" />}
+                  >
+                    {alumniPositions.map((position) => (
+                      <option key={position} value={position}>
+                        {position}
+                      </option>
+                    ))}
+                  </AppSelect>
+                )}
+              </>
+            )}
+
+            {isPanelDepartment && (
               <AppSelect
-                value={bloodGroup}
-                onChange={(e) => setBloodGroup(e.target.value)}
+                value={panelPosition}
+                onChange={(e) => setPanelPosition(e.target.value)}
                 disabled={loading}
-                icon={<HiHeart className="h-5 w-5" />}
+                icon={<HiBriefcase className="h-5 w-5 text-accent" />}
+                className="border-accent/40"
               >
-                {bloodGroups.map((group) => (
-                  <option key={group} value={group}>
-                    {group}
+                {panelOptions.map((position) => (
+                  <option key={position} value={position}>
+                    {position}
                   </option>
                 ))}
               </AppSelect>
-
-              <div className="flex items-center justify-between rounded-md border-2 border-white/12 bg-black/35 px-4">
-                <span className="text-sm text-white/65">Donate blood?</span>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setDonateBlood("yes")}
-                    className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                      donateBlood === "yes"
-                        ? "bg-accent text-white"
-                        : "bg-white/10 text-white/50 hover:text-white"
-                    }`}
-                  >
-                    Yes
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDonateBlood("no")}
-                    className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                      donateBlood === "no"
-                        ? "bg-accent text-white"
-                        : "bg-white/10 text-white/50 hover:text-white"
-                    }`}
-                  >
-                    No
-                  </button>
-                </div>
-              </div>
-
-              <AppInput
-                placeholder="Password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
-                icon={
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="cursor-pointer transition-colors hover:text-accent"
-                  >
-                    {showPassword ? (
-                      <HiEye className="h-5 w-5" />
-                    ) : (
-                      <HiEyeOff className="h-5 w-5" />
-                    )}
-                  </button>
-                }
-              />
-
-              <AppInput
-                placeholder="Confirm Password"
-                type={showConfirmPassword ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                disabled={loading}
-                icon={
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="cursor-pointer transition-colors hover:text-accent"
-                  >
-                    {showConfirmPassword ? (
-                      <HiEye className="h-5 w-5" />
-                    ) : (
-                      <HiEyeOff className="h-5 w-5" />
-                    )}
-                  </button>
-                }
-              />
-            </div>
-
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300"
-              >
-                {error}
-              </motion.div>
             )}
 
-            <div className="flex justify-center items-center">
-              <button
-                type="submit"
-                disabled={loading}
-                className="group/button relative inline-flex cursor-pointer items-center justify-center overflow-hidden rounded-md bg-accent px-6 py-2 text-sm font-medium text-white transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-lg hover:shadow-accent/40 disabled:opacity-60"
-              >
-                <span className="flex items-center gap-2 px-2 py-1">
-                  {loading ? (
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />
-                  ) : (
-                    <>
-                      Create Account <HiArrowRight className="h-4 w-4" />
-                    </>
-                  )}
-                </span>
-                <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-13deg)_translateX(-100%)] group-hover/button:duration-1000 group-hover/button:[transform:skew(-13deg)_translateX(100%)]">
-                  <div className="relative h-full w-8 bg-white/20" />
-                </div>
-              </button>
+            <AppSelect
+              value={bloodGroup}
+              onChange={(e) => setBloodGroup(e.target.value)}
+              disabled={loading}
+              icon={<HiHeart className="h-5 w-5" />}
+            >
+              {bloodGroups.map((group) => (
+                <option key={group} value={group}>
+                  {group}
+                </option>
+              ))}
+            </AppSelect>
+
+            <div className="flex items-center justify-between rounded-xl border-2 border-white/12 bg-black/35 px-4">
+              <span className="text-sm text-white/65">Donate blood?</span>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDonateBlood("yes")}
+                  className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                    donateBlood === "yes"
+                      ? "bg-accent text-white"
+                      : "bg-white/10 text-white/50 hover:text-white"
+                  }`}
+                >
+                  Yes
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDonateBlood("no")}
+                  className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                    donateBlood === "no"
+                      ? "bg-accent text-white"
+                      : "bg-white/10 text-white/50 hover:text-white"
+                  }`}
+                >
+                  No
+                </button>
+              </div>
             </div>
 
-            <p className="text-center text-xs text-white/60">
-              Already have an account?{" "}
-              <Link href="/login" className="font-medium text-white hover:text-accent">
-                Sign in
-              </Link>
-            </p>
+            <AppInput
+              placeholder="Password"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
+              icon={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="cursor-pointer transition-colors hover:text-accent"
+                >
+                  {showPassword ? (
+                    <HiEye className="h-5 w-5" />
+                  ) : (
+                    <HiEyeOff className="h-5 w-5" />
+                  )}
+                </button>
+              }
+            />
 
-            <Link
-              href="/"
-              className="text-xs text-white/40 hover:text-accent transition-colors"
-            >
-              ← Back to Home
-            </Link>
-          </form>
-        </div>
-
-        <div className="hidden lg:block w-[42%] h-auto overflow-hidden relative">
-          <Image
-            src="/assets/footerbg.webp"
-            width={1000}
-            height={1000}
-            priority
-            alt="BUAC Adventure"
-            className="h-full w-full object-cover opacity-35 transition-transform duration-500 hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-gradient-to-l from-transparent via-black/20 to-black/55" />
-          <div className="absolute bottom-10 left-10 right-10">
-            <h2 className="font-bebasNeue text-5xl text-white tracking-wider">
-              Join The Trail
-            </h2>
-            <p className="mt-2 text-sm text-white/60">
-              Become part of the BRAC University Adventure Club family.
-            </p>
+            <AppInput
+              placeholder="Confirm Password"
+              type={showConfirmPassword ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              disabled={loading}
+              icon={
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="cursor-pointer transition-colors hover:text-accent"
+                >
+                  {showConfirmPassword ? (
+                    <HiEye className="h-5 w-5" />
+                  ) : (
+                    <HiEyeOff className="h-5 w-5" />
+                  )}
+                </button>
+              }
+            />
           </div>
-        </div>
+
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300"
+            >
+              {error}
+            </motion.div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="mx-auto inline-flex cursor-pointer items-center justify-center rounded-xl bg-accent px-8 py-3 text-sm font-bold text-white transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span className="flex items-center gap-2">
+              {loading ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />
+              ) : (
+                <>
+                  Create Account <HiArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </span>
+          </button>
+
+          <p className="text-center text-xs text-white/60">
+            Already have an account?{" "}
+            <Link href="/login" className="font-medium text-white hover:text-accent">
+              Sign in
+            </Link>
+          </p>
+
+          <Link
+            href="/"
+            className="text-xs text-white/40 hover:text-accent transition-colors"
+          >
+            ← Back to Home
+          </Link>
+        </form>
       </motion.div>
     </div>
   );

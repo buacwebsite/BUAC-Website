@@ -12,7 +12,9 @@ const navLinks = [
   { href: "/", label: "Home" },
   { href: "/tours", label: "Tours" },
   { href: "/activities", label: "Activities" },
+  { href: "/weather", label: "Weather" },
   { href: "/about", label: "About" },
+  { href: "/panel-eb", label: "Panel & EB" },
   { href: "/gallery", label: "Gallery" },
   { href: "/contact", label: "Contact" },
 ];
@@ -21,12 +23,14 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const pathname = usePathname();
   const { isLoggedIn, user, logout } = useAuth();
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "unset";
+
     return () => {
       document.body.style.overflow = "unset";
     };
@@ -34,16 +38,20 @@ const Navbar = () => {
 
   useEffect(() => {
     const handleClickOutside = () => setUserMenuOpen(false);
+
     if (userMenuOpen) {
       document.addEventListener("click", handleClickOutside);
     }
+
     return () => document.removeEventListener("click", handleClickOutside);
   }, [userMenuOpen]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 24);
+
     handleScroll();
     window.addEventListener("scroll", handleScroll);
+
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -62,17 +70,28 @@ const Navbar = () => {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      setLoggingOut(true);
+      setUserMenuOpen(false);
+      setIsOpen(false);
+      await logout();
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
   return (
     <>
-      <nav className="fixed top-4 left-1/2 z-50 w-[calc(100%-1.5rem)] max-w-5xl -translate-x-1/2 transition-all duration-500">
+      <nav className="fixed top-4 left-1/2 z-50 w-[calc(100%-1.5rem)] max-w-7xl -translate-x-1/2 transition-all duration-500">
         <div
-          className={`relative overflow-hidden rounded-full border px-4 shadow-2xl backdrop-blur-2xl transition-all duration-500 ${
+          className={`relative overflow-visible rounded-full border px-4 shadow-2xl backdrop-blur-2xl transition-all duration-500 ${
             scrolled
               ? "border-white/15 bg-black/30 shadow-black/20"
               : "border-white/10 bg-black/20 shadow-black/10"
           }`}
         >
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/8 via-transparent to-accent/10" />
+          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-full bg-gradient-to-r from-white/8 via-transparent to-accent/10" />
           <div className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-white/5" />
 
           <div className="relative flex h-14 items-center justify-between gap-4">
@@ -101,7 +120,7 @@ const Navbar = () => {
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className={`relative rounded-full px-4 py-2 text-xs font-semibold tracking-wide transition-all duration-300 ${
+                      className={`relative whitespace-nowrap rounded-full px-3 py-2 text-xs font-semibold tracking-wide transition-all duration-300 ${
                         isActive(link.href)
                           ? "text-accent"
                           : "text-white/75 hover:text-white"
@@ -118,6 +137,7 @@ const Navbar = () => {
                           }}
                         />
                       )}
+
                       <span className="relative z-10">{link.label}</span>
                     </Link>
                   </li>
@@ -125,20 +145,21 @@ const Navbar = () => {
               </ul>
             </div>
 
-            <div className="hidden lg:flex items-center gap-2">
+            <div className="hidden lg:flex items-center gap-2 shrink-0">
               {isLoggedIn ? (
                 <div className="relative">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setUserMenuOpen(!userMenuOpen);
+                      setUserMenuOpen((prev) => !prev);
                     }}
-                    className="flex cursor-pointer items-center gap-2 rounded-full border border-accent/25 bg-accent/10 px-3 py-2 text-accent transition-all duration-300 hover:bg-accent/20"
+                    className="flex cursor-pointer items-center gap-2 rounded-full border border-accent/25 bg-accent/10 px-4 py-2 text-accent transition-all duration-300 hover:bg-accent/20"
                   >
                     <FaUser className="text-xs" />
                     <span className="max-w-24 truncate text-xs font-semibold">
                       {user?.name || "Admin"}
                     </span>
+
                     <motion.div
                       animate={{ rotate: userMenuOpen ? 180 : 0 }}
                       transition={{ duration: 0.2 }}
@@ -150,19 +171,22 @@ const Navbar = () => {
                   <AnimatePresence>
                     {userMenuOpen && (
                       <motion.div
-                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        initial={{ opacity: 0, y: -8, scale: 0.96 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                        exit={{ opacity: 0, y: -8, scale: 0.96 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute right-0 top-12 z-50 w-60 overflow-hidden rounded-2xl border border-white/10 bg-black/70 shadow-2xl backdrop-blur-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute right-0 top-[calc(100%+0.75rem)] z-[999] w-72 overflow-hidden rounded-2xl border border-white/10 bg-black/90 shadow-2xl shadow-black/50 backdrop-blur-2xl"
                       >
                         <div className="border-b border-white/10 p-4">
                           <p className="truncate text-sm font-semibold text-white">
                             {user?.name || "Admin"}
                           </p>
+
                           <p className="truncate text-xs text-white/45">
                             {user?.email}
                           </p>
+
                           <span
                             className={`mt-2 inline-block rounded-full border px-2 py-0.5 text-xs font-semibold ${getRoleBadgeColor(
                               user?.role || "admin",
@@ -172,12 +196,17 @@ const Navbar = () => {
                           </span>
                         </div>
 
-                        <button
-                          onClick={logout}
-                          className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-sm text-red-400 transition-colors hover:bg-red-500/10"
-                        >
-                          <FaSignOutAlt /> Sign Out
-                        </button>
+                        <div className="p-3">
+                          <button
+                            type="button"
+                            onClick={handleLogout}
+                            disabled={loggingOut}
+                            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-red-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <FaSignOutAlt />
+                            {loggingOut ? "Signing Out..." : "Sign Out"}
+                          </button>
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -186,13 +215,14 @@ const Navbar = () => {
                 <>
                   <Link
                     href="/login"
-                    className="rounded-full px-4 py-2 text-xs font-semibold text-white/75 transition-all hover:bg-white/10 hover:text-white"
+                    className="min-w-[78px] whitespace-nowrap text-center rounded-full px-5 py-2 text-xs font-semibold text-white/75 transition-all hover:bg-white/10 hover:text-white"
                   >
                     Sign In
                   </Link>
+
                   <Link
                     href="/register"
-                    className="rounded-full bg-accent px-4 py-2 text-xs font-bold text-white shadow-lg shadow-accent/20 transition-all hover:scale-105 hover:bg-accent/90 hover:shadow-accent/40"
+                    className="min-w-[82px] whitespace-nowrap text-center rounded-full bg-accent px-5 py-2 text-xs font-bold text-white shadow-lg shadow-accent/20 transition-all hover:scale-105 hover:bg-accent/90 hover:shadow-accent/40"
                   >
                     Join Us
                   </Link>
@@ -257,7 +287,9 @@ const Navbar = () => {
                   <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-accent/20">
                     <FaUser className="text-2xl text-accent" />
                   </div>
+
                   <p className="font-semibold text-white">{user.name}</p>
+
                   <span
                     className={`mt-1 inline-block rounded-full border px-3 py-1 text-xs font-semibold ${getRoleBadgeColor(
                       user.role,
@@ -312,13 +344,13 @@ const Navbar = () => {
                 >
                   {isLoggedIn ? (
                     <button
-                      onClick={() => {
-                        setIsOpen(false);
-                        logout();
-                      }}
-                      className="inline-block rounded-full bg-red-500 px-10 py-4 text-xl font-bold uppercase tracking-wider text-white transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-red-500/50"
+                      type="button"
+                      onClick={handleLogout}
+                      disabled={loggingOut}
+                      className="inline-flex items-center gap-3 rounded-full bg-red-500 px-10 py-4 text-xl font-bold uppercase tracking-wider text-white transition-all duration-300 hover:scale-105 disabled:opacity-60"
                     >
-                      Sign Out
+                      <FaSignOutAlt />
+                      {loggingOut ? "Signing Out..." : "Sign Out"}
                     </button>
                   ) : (
                     <div className="flex flex-col items-center gap-4">
@@ -329,10 +361,11 @@ const Navbar = () => {
                       >
                         Sign In
                       </Link>
+
                       <Link
                         href="/register"
                         onClick={() => setIsOpen(false)}
-                        className="inline-block rounded-full bg-accent px-10 py-4 text-xl font-bold uppercase tracking-wider text-white transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-accent/50"
+                        className="inline-block rounded-full bg-accent px-10 py-4 text-xl font-bold uppercase tracking-wider text-white transition-all duration-300 hover:scale-105"
                       >
                         Join Us
                       </Link>

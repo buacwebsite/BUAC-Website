@@ -25,10 +25,16 @@ export async function POST(request: NextRequest) {
 
     const normalizedEmail = String(email).trim().toLowerCase();
 
-    // Admin login
     if (role === "admin") {
       const adminMail = process.env.adminMail;
       const adminPasswordHash = process.env.adminPassword;
+
+      if (!adminMail || !adminPasswordHash || !process.env.adminJwtSecret) {
+        return NextResponse.json(
+          { message: "Admin environment variables are missing" },
+          { status: 500 },
+        );
+      }
 
       if (normalizedEmail !== adminMail) {
         return NextResponse.json(
@@ -37,7 +43,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const decodedHash = Buffer.from(adminPasswordHash || "", "base64").toString();
+      const decodedHash = Buffer.from(adminPasswordHash, "base64").toString();
       const isValid = await bcrypt.compare(password, decodedHash);
 
       if (!isValid) {
@@ -48,8 +54,12 @@ export async function POST(request: NextRequest) {
       }
 
       const token = jwt.sign(
-        { sub: normalizedEmail, role: "admin", name: "Admin" },
-        process.env.adminJwtSecret || "",
+        {
+          sub: normalizedEmail,
+          role: "admin",
+          name: "Admin",
+        },
+        process.env.adminJwtSecret,
         { expiresIn: "1d" },
       );
 
@@ -65,24 +75,25 @@ export async function POST(request: NextRequest) {
         name: "admin-token",
         value: token,
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
         maxAge: 60 * 60 * 6,
+        path: "/",
       });
 
       res.cookies.set({
         name: "user-token",
         value: token,
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
         maxAge: 60 * 60 * 6,
+        path: "/",
       });
 
       return res;
     }
 
-    // Member / Alumni login
     const user = await kv.get<StoredUser>(`user:${normalizedEmail}`);
 
     if (!user) {
@@ -108,13 +119,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!process.env.adminJwtSecret) {
+      return NextResponse.json(
+        { message: "JWT secret is missing" },
+        { status: 500 },
+      );
+    }
+
     const token = jwt.sign(
       {
         sub: normalizedEmail,
         role: user.role,
         name: user.name,
       },
-      process.env.adminJwtSecret || "",
+      process.env.adminJwtSecret,
       { expiresIn: "7d" },
     );
 
@@ -134,14 +152,16 @@ export async function POST(request: NextRequest) {
       name: "user-token",
       value: token,
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       maxAge: 60 * 60 * 24 * 7,
+      path: "/",
     });
 
     return res;
   } catch (error) {
     console.error("Login error:", error);
+
     return NextResponse.json(
       { message: "Something went wrong" },
       { status: 500 },

@@ -7,15 +7,9 @@ import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useAuth } from "../context/AuthProvider";
 import axios from "axios";
-import { IoIosArrowRoundForward } from "react-icons/io";
 import { HiOutlinePencilAlt } from "react-icons/hi";
 import { motion } from "framer-motion";
-import {
-  StaggerItem,
-  fadeInLeft,
-  fadeInRight,
-  fadeInUp,
-} from "@/lib/animations";
+import { fadeInLeft, fadeInRight } from "@/lib/animations";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -34,7 +28,10 @@ export function DepartmentSections({
 }) {
   const { auth } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
+
   const [editing, setEditing] = useState<Department | null>(null);
+  const [saving, setSaving] = useState(false);
+
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -52,7 +49,7 @@ export function DepartmentSections({
         start: "top top",
         end: "bottom bottom",
         snap: {
-          snapTo: 1 / (departments.length - 1),
+          snapTo: departments.length > 1 ? 1 / (departments.length - 1) : 1,
           duration: { min: 0.6, max: 1.2 },
           delay: 0.1,
           ease: "power2.inOut",
@@ -113,7 +110,7 @@ export function DepartmentSections({
     return () => ctx.revert();
   }, [departments]);
 
-  const openEdit = useCallback((department: (typeof departments)[0]) => {
+  const openEdit = useCallback((department: Department) => {
     setEditing(department);
     setForm({
       name: department.name,
@@ -122,24 +119,38 @@ export function DepartmentSections({
     });
   }, []);
 
-  const closeEdit = () => setEditing(null);
+  const closeEdit = () => {
+    if (saving) return;
+    setEditing(null);
+  };
+
+  const uploadFile = async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const uploadRes = await axios.post("/api/content/upload", formData, {
+      withCredentials: true,
+    });
+
+    if (uploadRes.status !== 200 || !uploadRes.data.url) {
+      throw new Error("Upload failed");
+    }
+
+    return uploadRes.data.url as string;
+  };
 
   const handleSubmit = async (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
+
     if (!editing) return;
+
+    setSaving(true);
 
     try {
       let imageUrl = editing.image;
+
       if (form.imageFile) {
-        const formData = new FormData();
-        formData.append("file", form.imageFile);
-        const uploadRes = await axios.post("/api/content/upload", formData);
-        if (uploadRes.status !== 200 || !uploadRes.data.url) {
-          console.error("Image upload failed");
-          alert("Image upload failed");
-          return;
-        }
-        imageUrl = uploadRes.data.url;
+        imageUrl = await uploadFile(form.imageFile);
       }
 
       const updatedDepartments = departments.map((dept) =>
@@ -152,26 +163,39 @@ export function DepartmentSections({
             }
           : dept,
       );
+
       await axios.put("/api/content/departments", updatedDepartments, {
         withCredentials: true,
       });
+
       alert("Department updated successfully");
       closeEdit();
       window.location.reload();
     } catch (err) {
       console.error("Error updating department", err);
       alert("Error updating department");
+    } finally {
+      setSaving(false);
     }
   };
+
+  if (!departments || departments.length === 0) {
+    return (
+      <section className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-text-muted">No departments available.</p>
+      </section>
+    );
+  }
 
   return (
     <>
       <div ref={containerRef} className="relative overflow-x-hidden">
         {departments.map((department, index) => {
           const isEven = index % 2 === 0;
+
           return (
             <section
-              key={index}
+              key={department.id || index}
               id={department.id}
               className="dept-section relative h-screen py-16 overflow-hidden"
             >
@@ -201,7 +225,8 @@ export function DepartmentSections({
                 <span className="font-mono text-8xl md:text-xl lg:text-6xl text-accent/10 leading-none">
                   {department.number}
                 </span>
-                {auth && typeof window !== "undefined" && window.innerWidth > 1024 && (
+
+                {auth && (
                   <button
                     onClick={() => openEdit(department)}
                     aria-label={`Edit ${department.name}`}
@@ -218,7 +243,7 @@ export function DepartmentSections({
                 <div
                   className={`flex flex-col h-full ${
                     isEven ? "lg:flex-row" : "lg:flex-row-reverse"
-                  } items-center gap-12 lg:gap-20`}
+                  } items-center justify-center gap-8 lg:gap-20`}
                 >
                   <motion.div
                     initial="hidden"
@@ -228,26 +253,21 @@ export function DepartmentSections({
                     className="dept-image-wrapper relative w-full lg:w-1/2"
                   >
                     <div className="relative">
-                      <div className="relative overflow-hidden bg-secondary">
-                        <Image
-                          src={department.image}
-                          alt={`${department.name} Department`}
-                          width={600}
-                          height={600}
-                          className="object-cover"
-                        />
+                      <div className="relative overflow-hidden bg-secondary rounded-3xl shadow-2xl">
+                        {department.image ? (
+                          <Image
+                            src={department.image}
+                            alt={`${department.name} Department`}
+                            width={700}
+                            height={700}
+                            className="object-cover w-full h-auto"
+                          />
+                        ) : (
+                          <div className="h-[420px] w-full bg-accent/10 flex items-center justify-center">
+                            <span className="text-text-muted">No Image</span>
+                          </div>
+                        )}
                       </div>
-                      {auth && typeof window !== "undefined" && window.innerWidth < 1024 && (
-                        <button
-                          onClick={() => openEdit(department)}
-                          aria-label={`Edit ${department.name}`}
-                          title={`Edit ${department.name}`}
-                          className="flex mt-2 items-center justify-end absolute right-0 gap-2 font-medium rounded-full border-2 border-accent transition-all duration-300 cursor-pointer p-2 px-4 py-2 bg-accent text-white hover:bg-transparent hover:text-accent"
-                        >
-                          <HiOutlinePencilAlt className="text-lg sm:text-xl" />
-                          <span>Edit</span>
-                        </button>
-                      )}
                     </div>
                   </motion.div>
 
@@ -256,14 +276,16 @@ export function DepartmentSections({
                     whileInView="visible"
                     viewport={{ once: true }}
                     variants={isEven ? fadeInRight : fadeInLeft}
-                    className={`dept-content w-full lg:w-3/4 ${isEven ? "lg:pl-8" : "lg:pr-8"}`}
+                    className={`dept-content w-full lg:w-3/4 ${
+                      isEven ? "lg:pl-8" : "lg:pr-8"
+                    }`}
                   >
                     <div className="flex items-center gap-4 mb-6">
                       <span className="w-12 h-px bg-accent" />
                     </div>
 
-                    <div className="flex flex-row items-start justify-between">
-                      <h2 className="font-bebasNeue text-5xl md:text-7xl lg:text-8xl text-text-secondary tracking-tight mb-2 md:mb-8 leading-[0.9]">
+                    <div className="mb-6">
+                      <h2 className="font-bebasNeue text-5xl md:text-7xl lg:text-8xl text-text-secondary tracking-tight leading-[0.9]">
                         {department.name}
                       </h2>
                     </div>
@@ -279,7 +301,6 @@ export function DepartmentSections({
         })}
       </div>
 
-      {/* Edit Modal */}
       {editing && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -292,17 +313,19 @@ export function DepartmentSections({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
             onSubmit={handleSubmit}
-            className="bg-linear-to-br from-white to-gray-50 p-8 rounded-2xl max-w-lg w-full mx-4 shadow-2xl border-2 border-accent/20 transform transition-all"
+            className="bg-linear-to-br from-white to-gray-50 p-8 rounded-2xl max-w-lg w-full mx-4 shadow-2xl border-2 border-accent/20 max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-accent/20">
               <h3 className="text-2xl font-bold flex items-center gap-2">
                 <HiOutlinePencilAlt className="text-accent text-3xl" />
                 Edit {editing.name}
               </h3>
+
               <button
                 type="button"
                 onClick={closeEdit}
-                className="text-sm font-medium px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors duration-200 cursor-pointer"
+                disabled={saving}
+                className="text-sm font-medium px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors duration-200 cursor-pointer disabled:opacity-50"
               >
                 Close
               </button>
@@ -312,51 +335,63 @@ export function DepartmentSections({
               Name
             </label>
             <input
-              className="w-full mb-6 p-3 text-text-muted font-semibold border-2 border-gray-300 rounded-lg focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all"
+              className="w-full mb-6 p-3 text-text-muted font-semibold border-2 border-gray-300 rounded-lg focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all disabled:opacity-50"
               value={form.name}
-              onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+              disabled={saving}
+              onChange={(e) =>
+                setForm((s) => ({ ...s, name: e.target.value }))
+              }
             />
 
             <label className="block mb-2 text-sm font-bold text-text-secondary">
               Description
             </label>
             <textarea
-              className="w-full mb-6 p-3 text-text-muted font-semibold border-2 border-gray-300 rounded-lg focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all resize-none"
+              className="w-full mb-6 p-3 text-text-muted font-semibold border-2 border-gray-300 rounded-lg focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all disabled:opacity-50"
               value={form.description}
-              rows={6}
+              rows={7}
+              disabled={saving}
               onChange={(e) =>
                 setForm((s) => ({ ...s, description: e.target.value }))
               }
             />
 
             <label className="block mb-2 text-sm font-bold text-text-secondary">
-              Replace Image
+              Replace Department Image
             </label>
+            <p className="mb-2 text-xs text-text-muted">
+              This image is used as the department section image and orbital node
+              image.
+            </p>
             <input
               type="file"
               accept="image/*"
+              disabled={saving}
               onChange={(e) =>
                 setForm((s) => ({
                   ...s,
                   imageFile: e.target.files?.[0] ?? null,
                 }))
               }
-              className="mb-6 w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-accent file:text-white hover:file:bg-accent/90 file:cursor-pointer cursor-pointer"
+              className="mb-6 w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-accent file:text-white hover:file:bg-accent/90 disabled:opacity-50"
             />
 
             <div className="flex justify-end gap-3 pt-4 border-t-2 border-accent/20">
               <button
                 type="button"
                 onClick={closeEdit}
-                className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-text-secondary font-medium rounded-lg transition-all duration-200 hover:shadow-md"
+                disabled={saving}
+                className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-text-secondary font-medium rounded-lg transition-all duration-200 hover:shadow-md disabled:opacity-50"
               >
                 Cancel
               </button>
+
               <button
                 type="submit"
-                className="px-6 py-3 bg-accent hover:bg-accent/90 text-white font-medium rounded-lg transition-all duration-200 hover:shadow-lg hover:scale-105"
+                disabled={saving}
+                className="px-6 py-3 bg-accent hover:bg-accent/90 text-white font-medium rounded-lg transition-all duration-200 hover:shadow-lg hover:scale-105 disabled:opacity-50"
               >
-                Save Changes
+                {saving ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </motion.form>

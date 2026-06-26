@@ -1,36 +1,16 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { gsap } from "gsap";
-import { ScrollToPlugin } from "gsap/ScrollToPlugin";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useGSAP } from "@gsap/react";
 import axios from "axios";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  HiArrowDown,
+  HiArrowRight,
+  HiBolt,
+  HiLink,
+} from "react-icons/hi2";
 import { DepartmentSections } from "../../components/DepartmentSection";
-import { HiOutlinePencilAlt } from "react-icons/hi";
-import { useEditor } from "@/app/context/EditorContext";
-import { useAuth } from "@/app/context/AuthProvider";
-import {
-  FaChevronDown,
-  FaPeopleGroup,
-  FaUserTie,
-  FaLaptop,
-  FaCamera,
-  FaPaintbrush,
-  FaEnvelopeOpen,
-  FaBullhorn,
-} from "react-icons/fa6";
-import { motion } from "framer-motion";
-import {
-  MotionSection,
-  StaggerGrid,
-  StaggerItem,
-  RevealHeading,
-  fadeInUp,
-} from "@/lib/animations";
-
-gsap.registerPlugin(ScrollToPlugin, ScrollTrigger);
 
 interface Department {
   id: string;
@@ -40,428 +20,565 @@ interface Department {
   number: string;
 }
 
-interface PanelMember {
-  name: string;
-  position: string;
+interface TimelineItem {
+  id: number;
+  departmentId: string;
+  title: string;
+  date: string;
+  content: string;
+  category: string;
+  relatedIds: number[];
+  status: "completed" | "in-progress" | "pending";
+  energy: number;
   image: string;
+}
+
+const defaultDepartments: Department[] = [
+  {
+    id: "creative",
+    name: "Creative",
+    number: "01",
+    image: "/assets/footerbg.webp",
+    description:
+      "The Creative Department of BRAC University Adventure Club (BUAC) is responsible for transforming ideas into immersive experiences through program décor, thematic planning, and handcrafted props. This department shapes the atmosphere of every event, ensuring that each program reflects the adventurous identity and vision of the club. From designing event themes and visual setups to crafting creative elements that enhance participant engagement, the department plays a vital role in bringing BUAC’s programs to life. Through innovation, teamwork, and attention to detail, the Creative Department elevates every adventure beyond execution turning it into a memorable experience.",
+  },
+  {
+    id: "event",
+    name: "Event Management",
+    number: "02",
+    image: "/assets/footerbg.webp",
+    description:
+      "The Event Management Department of BRAC University Adventure Club (BUAC) serves as the backbone of all club activities and initiatives. This department is responsible for planning, coordinating, and executing a wide range of events that reflect the adventurous spirit and core values of the club. From large-scale adventure programs and national-level events to in-campus activities, workshops, and orientation sessions, the team ensures that every event is strategically designed, well-organized, and seamlessly delivered. The department works closely with logistics, finance, and safety teams to maintain high standards of professionalism, safety, and participant engagement. Beyond execution, the Event Management Department focuses on innovation, teamwork, and leadership development providing members with hands-on experience in project planning, communication, crisis management, and operational excellence. Through meticulous coordination and creative execution, the department plays a vital role in strengthening the club’s impact and enhancing the overall adventure culture at BRAC University.",
+  },
+  {
+    id: "hr",
+    name: "Human Resources Management",
+    number: "03",
+    image: "/assets/footerbg.webp",
+    description:
+      "The Human Resources Management Department of BRAC University Adventure Club (BUAC) is responsible for building, managing, and empowering the people who drive the club forward. This department oversees recruitment, member development, internal coordination, and performance management to ensure a motivated, skilled, and well-structured team. From onboarding new adventurers to maintaining discipline, teamwork, and organizational efficiency, the department plays a crucial role in sustaining a healthy club culture. By fostering leadership, accountability, and collaboration, the Human Resources Management Department ensures that every member is prepared to take on challenges and contribute effectively to BUAC’s mission.",
+  },
+  {
+    id: "itphoto",
+    name: "IT & Photography",
+    number: "04",
+    image: "/assets/footerbg.webp",
+    description:
+      "The IT & Photography Department of BRAC University Adventure Club (BUAC) is responsible for managing the club’s digital operations while capturing the essence of every adventure. This department ensures seamless technical support, digital communication, and visual documentation across all club activities. From maintaining digital platforms to capturing powerful moments from events, expeditions, and in-campus programs, the department bridges technology and storytelling. Through innovation, creativity, and precision, the IT & Photography Department preserves BUAC’s journey, strengthens its digital presence, and showcases the adventurous spirit of the club to a wider audience.",
+  },
+  {
+    id: "pubandmarket",
+    name: "Publication & Marketing",
+    number: "05",
+    image: "/assets/footerbg.webp",
+    description:
+      "The Publication & Marketing Department of BRAC University Adventure Club (BUAC) is responsible for documenting, organizing, and presenting the club’s activities through written and published content. This department ensures that every adventure, achievement, and milestone is accurately recorded and professionally communicated. From preparing official documents, proposal letters, and event publications to curating written content for digital and print platforms, the department plays a key role in preserving BUAC’s journey. Through clarity, consistency, and strong storytelling, the Publication & Marketing Department strengthens the club’s identity and ensures its adventures are remembered beyond the trail.",
+  },
+];
+
+function DepartmentNodeImage({
+  image,
+  name,
+  className = "h-10 w-10",
+}: {
+  image: string;
+  name: string;
+  className?: string;
+}) {
+  return (
+    <div className={`relative overflow-hidden rounded-xl ${className}`}>
+      {image ? (
+        <Image
+          src={image}
+          alt={`${name} Node`}
+          fill
+          className="object-cover"
+          sizes="96px"
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center bg-accent text-white">
+          <span className="font-bebasNeue text-lg">{name.charAt(0)}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function getDepartmentDisplayTitle(name: string) {
+  if (name === "Human Resources Management") return "Human Resources";
+  if (name === "Publication & Marketing") return "Publication";
+  return name;
+}
+
+function getShortContent(description: string) {
+  if (!description) return "";
+  if (description.length <= 210) return description;
+  return `${description.slice(0, 210).trim()}...`;
+}
+
+function getStatusStyles(status: TimelineItem["status"]) {
+  switch (status) {
+    case "completed":
+      return "text-white bg-accent border-accent";
+    case "in-progress":
+      return "text-accent bg-white border-white";
+    case "pending":
+      return "text-white bg-black/40 border-white/30";
+    default:
+      return "text-white bg-black/40 border-white/30";
+  }
+}
+
+function buildTimelineData(departments: Department[]): TimelineItem[] {
+  const safeDepartments = departments.length ? departments : defaultDepartments;
+
+  return safeDepartments.map((department, index) => {
+    const id = index + 1;
+
+    const relatedIds =
+      safeDepartments.length <= 1
+        ? []
+        : [
+            ((index + 1) % safeDepartments.length) + 1,
+            ((index + safeDepartments.length - 1) % safeDepartments.length) + 1,
+          ].filter((relatedId, idx, arr) => arr.indexOf(relatedId) === idx);
+
+    return {
+      id,
+      departmentId: department.id,
+      title: getDepartmentDisplayTitle(department.name),
+      date: department.number,
+      content: department.description,
+      category: "Department",
+      relatedIds,
+      status: index === 0 ? "in-progress" : "completed",
+      energy: 78 + index * 4,
+      image: department.image,
+    };
+  });
+}
+
+function RadialDepartmentTimeline({
+  departments,
+  onViewDetails,
+}: {
+  departments: Department[];
+  onViewDetails: (id: string) => void;
+}) {
+  const timelineData = useMemo(
+    () => buildTimelineData(departments),
+    [departments],
+  );
+
+  const [mounted, setMounted] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<Record<number, boolean>>(
+    {},
+  );
+  const [rotationAngle, setRotationAngle] = useState<number>(0);
+  const [autoRotate, setAutoRotate] = useState<boolean>(true);
+  const [pulseEffect, setPulseEffect] = useState<Record<number, boolean>>({});
+  const [activeNodeId, setActiveNodeId] = useState<number | null>(1);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const orbitRef = useRef<HTMLDivElement>(null);
+  const nodeRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const getRelatedItems = useCallback(
+    (itemId: number): number[] => {
+      const currentItem = timelineData.find((item) => item.id === itemId);
+      return currentItem ? currentItem.relatedIds : [];
+    },
+    [timelineData],
+  );
+
+  const isRelatedToActive = useCallback(
+    (itemId: number): boolean => {
+      if (!activeNodeId) return false;
+      const relatedItems = getRelatedItems(activeNodeId);
+      return relatedItems.includes(itemId);
+    },
+    [activeNodeId, getRelatedItems],
+  );
+
+  const centerViewOnNode = useCallback(
+    (nodeId: number) => {
+      const nodeIndex = timelineData.findIndex((item) => item.id === nodeId);
+      const totalNodes = timelineData.length;
+      const targetAngle = (nodeIndex / totalNodes) * 360;
+
+      setRotationAngle(270 - targetAngle);
+    },
+    [timelineData],
+  );
+
+  const toggleItem = useCallback(
+    (id: number) => {
+      setExpandedItems((prev) => {
+        const newState: Record<number, boolean> = {};
+
+        Object.keys(prev).forEach((key) => {
+          const parsedKey = Number(key);
+          newState[parsedKey] = parsedKey === id ? !prev[parsedKey] : false;
+        });
+
+        if (!(id in newState)) {
+          newState[id] = true;
+        }
+
+        if (!prev[id]) {
+          setActiveNodeId(id);
+          setAutoRotate(false);
+
+          const relatedItems = getRelatedItems(id);
+          const newPulseEffect: Record<number, boolean> = {};
+
+          relatedItems.forEach((relId) => {
+            newPulseEffect[relId] = true;
+          });
+
+          setPulseEffect(newPulseEffect);
+          centerViewOnNode(id);
+        } else {
+          setActiveNodeId(null);
+          setAutoRotate(true);
+          setPulseEffect({});
+        }
+
+        return newState;
+      });
+    },
+    [centerViewOnNode, getRelatedItems],
+  );
+
+  const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === containerRef.current || e.target === orbitRef.current) {
+      setExpandedItems({});
+      setActiveNodeId(null);
+      setPulseEffect({});
+      setAutoRotate(true);
+    }
+  };
+
+  useEffect(() => {
+    if (!mounted || !autoRotate) return;
+
+    const rotationTimer = setInterval(() => {
+      setRotationAngle((prev) => Number(((prev + 0.28) % 360).toFixed(3)));
+    }, 50);
+
+    return () => clearInterval(rotationTimer);
+  }, [autoRotate, mounted]);
+
+  const calculateNodePosition = (index: number, total: number) => {
+    const angle = ((index / total) * 360 + rotationAngle) % 360;
+    const radius = 225;
+    const radian = (angle * Math.PI) / 180;
+
+    const x = Number((radius * Math.cos(radian)).toFixed(3));
+    const y = Number((radius * Math.sin(radian)).toFixed(3));
+
+    const zIndex = Math.round(100 + 50 * Math.cos(radian));
+    const opacity = Number(
+      Math.max(
+        0.45,
+        Math.min(1, 0.45 + 0.55 * ((1 + Math.sin(radian)) / 2)),
+      ).toFixed(6),
+    );
+    const scale = Number(
+      (0.86 + 0.18 * ((1 + Math.sin(radian)) / 2)).toFixed(6),
+    );
+
+    return { x, y, angle, zIndex, opacity, scale };
+  };
+
+  return (
+    <section
+      className="relative min-h-screen w-full overflow-hidden bg-background pt-24"
+      ref={containerRef}
+      onClick={handleContainerClick}
+      suppressHydrationWarning
+    >
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(255,98,43,0.18),transparent_32%)]" />
+      <div className="absolute inset-x-0 top-0 h-64 bg-linear-to-b from-accent/10 to-transparent" />
+
+      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-6rem)] max-w-7xl flex-col items-center justify-center px-4">
+        <div className="mb-6 text-center">
+          <motion.h1
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="font-bebasNeue text-6xl leading-none tracking-wider text-accent md:text-8xl lg:text-9xl"
+          >
+            Departments
+          </motion.h1>
+        </div>
+
+        <div className="relative h-[620px] w-full max-w-5xl">
+          <div
+            className="absolute inset-0 flex items-center justify-center"
+            ref={orbitRef}
+            style={{ perspective: "1000px" }}
+          >
+            <div className="absolute z-20 flex h-28 w-28 items-center justify-center rounded-3xl border-2 border-accent bg-black shadow-2xl shadow-accent/30">
+              <div className="absolute h-36 w-36 rounded-full border border-accent/30 animate-ping opacity-40" />
+              <div
+                className="absolute h-44 w-44 rounded-full border border-accent/20 animate-ping opacity-30"
+                style={{ animationDelay: "0.5s" }}
+              />
+
+              <Image
+                src="/assets/logos/buac.webp"
+                alt="BUAC Logo"
+                width={82}
+                height={82}
+                className="relative z-10 h-20 w-20 object-contain"
+                priority
+              />
+            </div>
+
+            <div className="absolute h-[450px] w-[450px] rounded-full border border-accent/20" />
+            <div className="absolute h-[340px] w-[340px] rounded-full border border-accent/10" />
+
+            {mounted &&
+              timelineData.map((item, index) => {
+                const position = calculateNodePosition(
+                  index,
+                  timelineData.length,
+                );
+                const isExpanded = expandedItems[item.id];
+                const isRelated = isRelatedToActive(item.id);
+                const isPulsing = pulseEffect[item.id];
+
+                const nodeStyle = {
+                  transform: `translate(${position.x}px, ${position.y}px) scale(${
+                    isExpanded ? 1.15 : position.scale
+                  })`,
+                  zIndex: isExpanded ? 220 : position.zIndex,
+                  opacity: isExpanded ? 1 : position.opacity,
+                };
+
+                return (
+                  <div
+                    key={item.id}
+                    ref={(el) => {
+                      nodeRefs.current[item.id] = el;
+                    }}
+                    className="absolute cursor-pointer transition-all duration-700"
+                    style={nodeStyle}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleItem(item.id);
+                    }}
+                  >
+                    <div
+                      className={`absolute rounded-full -inset-1 ${
+                        isPulsing ? "animate-pulse duration-1000" : ""
+                      }`}
+                      style={{
+                        background:
+                          "radial-gradient(circle, rgba(255,98,43,0.28) 0%, rgba(255,98,43,0) 70%)",
+                        width: `${item.energy * 0.5 + 48}px`,
+                        height: `${item.energy * 0.5 + 48}px`,
+                        left: `-${(item.energy * 0.5 + 48 - 48) / 2}px`,
+                        top: `-${(item.energy * 0.5 + 48 - 48) / 2}px`,
+                      }}
+                    />
+
+                    <div
+                      className={`
+                        flex h-14 w-14 items-center justify-center rounded-2xl border-2 p-1
+                        ${
+                          isExpanded
+                            ? "border-accent bg-accent text-white shadow-lg shadow-accent/30"
+                            : isRelated
+                              ? "border-accent bg-accent/60 text-white animate-pulse"
+                              : "border-accent/50 bg-accent text-white"
+                        }
+                        transition-all duration-300
+                      `}
+                    >
+                      <DepartmentNodeImage
+                        image={item.image}
+                        name={item.title}
+                        className="h-11 w-11"
+                      />
+                    </div>
+
+                    <div
+                      className={`
+                        absolute top-16 left-1/2 -translate-x-1/2 whitespace-nowrap
+                        font-bebasNeue text-xl tracking-wider transition-all duration-300
+                        ${isExpanded ? "text-accent scale-125" : "text-accent/70"}
+                      `}
+                    >
+                      {item.title}
+                    </div>
+
+                    <AnimatePresence>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 18, scale: 0.94 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 18, scale: 0.94 }}
+                          transition={{ duration: 0.25 }}
+                          className="absolute top-24 left-1/2 w-80 -translate-x-1/2 overflow-visible rounded-3xl border-2 border-accent bg-white p-5 shadow-2xl shadow-accent/20"
+                        >
+                          <div className="absolute -top-4 left-1/2 h-4 w-px -translate-x-1/2 bg-accent/60" />
+
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <span
+                              className={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase ${getStatusStyles(
+                                item.status,
+                              )}`}
+                            >
+                              {item.status === "completed"
+                                ? "Complete"
+                                : item.status === "in-progress"
+                                  ? "Active"
+                                  : "Pending"}
+                            </span>
+
+                            <span className="font-mono text-xs text-text-muted">
+                              {item.date}
+                            </span>
+                          </div>
+
+                          <h3 className="font-bebasNeue text-3xl leading-none tracking-wider text-text-secondary">
+                            {item.title}
+                          </h3>
+
+                          <p className="mt-3 text-xs leading-relaxed text-text-muted">
+                            {getShortContent(item.content)}
+                          </p>
+
+                          <div className="mt-4 border-t border-accent/20 pt-3">
+                            <div className="mb-1 flex items-center justify-between text-xs text-text-muted">
+                              <span className="flex items-center gap-1">
+                                <HiBolt className="h-3 w-3 text-accent" />
+                                Department Energy
+                              </span>
+                              <span className="font-mono">{item.energy}%</span>
+                            </div>
+
+                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-accent/10">
+                              <div
+                                className="h-full rounded-full bg-accent"
+                                style={{ width: `${item.energy}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          {item.relatedIds.length > 0 && (
+                            <div className="mt-4 border-t border-accent/20 pt-3">
+                              <div className="mb-2 flex items-center gap-1">
+                                <HiLink className="h-3 w-3 text-accent" />
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                                  Connected
+                                </h4>
+                              </div>
+
+                              <div className="flex flex-wrap gap-1.5">
+                                {item.relatedIds.map((relatedId) => {
+                                  const relatedItem = timelineData.find(
+                                    (department) => department.id === relatedId,
+                                  );
+
+                                  return (
+                                    <button
+                                      key={relatedId}
+                                      type="button"
+                                      className="flex h-7 items-center rounded-full border border-accent/30 bg-accent/5 px-2 text-xs font-semibold text-accent transition hover:bg-accent hover:text-white"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleItem(relatedId);
+                                      }}
+                                    >
+                                      {relatedItem?.title}
+                                      <HiArrowRight className="ml-1 h-3 w-3" />
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onViewDetails(item.departmentId);
+                            }}
+                            className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-2 text-xs font-bold text-white transition hover:bg-accent/90"
+                          >
+                            View Details
+                            <HiArrowDown className="h-4 w-4" />
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 const About = () => {
   const [departments, setDepartments] = useState<Department[] | null>(null);
-  const [panelMembers, setPanelMembers] = useState<PanelMember[] | null>(null);
-  const { auth } = useAuth();
-  const { openEditor } = useEditor();
-  const [isAnimating, setIsAnimating] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const deptTextContainerRef = useRef<HTMLDivElement>(null);
-  const deptContainerRef = useRef<HTMLUListElement>(null);
-  const deptRef = useRef<Array<HTMLLIElement | null>>([]);
-  const deptNameRef = useRef<Array<HTMLSpanElement | null>>([]);
-  const mmRef = useRef(gsap.matchMedia());
   const fetchedRef = useRef(false);
-  const panelSectionRef = useRef<HTMLDivElement>(null);
-  const panelCardRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   useEffect(() => {
     if (fetchedRef.current) return;
+
     fetchedRef.current = true;
+
     const fetchDepartments = async () => {
       try {
         const res = await axios.get("/api/content/departments");
-        if (res.status !== 200) {
-          console.error("Failed to fetch departments");
-          return;
-        }
-        if (res.data && res.data.departments) {
-          setDepartments(res.data.departments);
+
+        if (res.data && Array.isArray(res.data.departments)) {
+          setDepartments(
+            res.data.departments.length
+              ? res.data.departments
+              : defaultDepartments,
+          );
+        } else {
+          setDepartments(defaultDepartments);
         }
       } catch (err) {
         console.error("Error fetching departments", err);
-      }
-    };
-    const fetchPanelMembers = async () => {
-      try {
-        const res = await axios.get("/api/content/panelMembers");
-        if (res.status !== 200) {
-          console.error("Failed to fetch panel members");
-          return;
-        }
-        if (res.data && res.data.panelMembers) {
-          setPanelMembers(res.data.panelMembers);
-        }
-      } catch (err) {
-        console.error("Error fetching panel members", err);
+        setDepartments(defaultDepartments);
       }
     };
 
     fetchDepartments();
-    fetchPanelMembers();
   }, []);
-
-  useGSAP(
-    () => {
-      if (!departments || departments.length === 0 || !containerRef.current)
-        return;
-      const mm = mmRef.current;
-      const timeline = gsap.timeline({ delay: 0.2 });
-
-      gsap.set(deptRef.current, {
-        width: "100%",
-        flex: 1,
-        padding: "1rem",
-        borderRadius: "0px",
-      });
-      mm.add(
-        {
-          isMobile: "(max-width: 767px)",
-          isDesktop: "(min-width: 768px)",
-        },
-        (context) => {
-          const { isDesktop } = context.conditions ?? { isDesktop: false };
-          gsap.set(deptNameRef.current, {
-            fontSize: isDesktop ? "5rem" : "3rem",
-            opacity: 0,
-          });
-        },
-      );
-
-      gsap.set(deptTextContainerRef.current, { zIndex: 10 });
-
-      setIsAnimating(true);
-
-      timeline
-        .from(deptContainerRef.current, {
-          y: -800,
-          backgroundColor: `#ff622b`,
-          scale: 1.05,
-          gap: "0",
-          duration: 1.2,
-          ease: "power2.out",
-        })
-        .to(deptContainerRef.current, {
-          y: 0,
-          scale: 1.05,
-          duration: 0.3,
-          ease: "power2.out",
-        })
-        .to(deptContainerRef.current, {
-          backgroundColor: `#ff622b`,
-          scale: 0.98,
-          gap: "0",
-          duration: 0.1,
-          ease: "power3.out",
-          onUpdate: () => {
-            gsap.to(deptTextContainerRef.current, {
-              duration: 0.6,
-              ease: "power2.out",
-              color: "var(--color-accent)",
-              onComplete: () => {
-                gsap.set(deptTextContainerRef.current, { zIndex: 0 });
-              },
-            });
-            gsap.to(deptTextContainerRef.current, {
-              duration: 1,
-              ease: "power3.inOut",
-              y:
-                deptContainerRef.current?.offsetHeight &&
-                -deptContainerRef.current.offsetHeight / 2 -
-                  deptTextContainerRef.current!.children[0].clientHeight / 2,
-            });
-          },
-          onComplete: () => {
-            gsap.to(deptNameRef.current, { opacity: 0.5, duration: 0.6 });
-          },
-        })
-        .to(deptContainerRef.current, {
-          scale: 1,
-          gap: "0.5rem",
-          backgroundColor: `transparent`,
-          duration: 0.1,
-          ease: "none",
-          onUpdate: () => {
-            gsap.to(deptRef.current, {
-              duration: 0.6,
-              ease: "power2.out",
-              borderRadius: "12px",
-            });
-          },
-          onComplete: () => {
-            setIsAnimating(false);
-          },
-        });
-    },
-    { scope: containerRef, dependencies: [departments] },
-  );
-
-  const handleMouseEnter = useCallback(
-    (index: number, event: React.MouseEvent<HTMLLIElement>) => {
-      if (isAnimating) event.preventDefault();
-      const isDesktop = window.matchMedia("(min-width: 768px)").matches;
-      deptRef.current.forEach((dept, idx) => {
-        if (dept) {
-          gsap.to(dept, {
-            flex: idx === index ? 3 : 1,
-            duration: 0.6,
-            ease: "elastic.out(1, 0.5)",
-            width:
-              idx === index
-                ? isDesktop
-                  ? "80%"
-                  : "100%"
-                : isDesktop
-                  ? "30%"
-                  : "100%",
-            padding: "1rem",
-            overwrite: true,
-          });
-        }
-      });
-
-      deptNameRef.current.forEach((name, idx) => {
-        if (name) {
-          gsap.to(name, {
-            opacity: idx === index ? 1 : 0.5,
-            fontSize:
-              idx === index
-                ? isDesktop
-                  ? "3rem"
-                  : "2rem"
-                : isDesktop
-                  ? "5rem"
-                  : "3rem",
-            duration: 0.3,
-            ease: "power2.out",
-            overwrite: true,
-          });
-        }
-      });
-    },
-    [isAnimating],
-  );
-
-  const handleMouseLeave = useCallback(
-    (event: React.MouseEvent<HTMLLIElement>) => {
-      if (isAnimating) event.preventDefault();
-      gsap.to(deptRef.current, {
-        flex: 1,
-        duration: 0.6,
-        ease: "elastic.out(1, 0.5)",
-        width: "100%",
-        padding: "1rem",
-        overwrite: true,
-      });
-
-      gsap.to(deptNameRef.current, {
-        opacity: 0.5,
-        fontSize: "5rem",
-        duration: 0.3,
-        ease: "power2.out",
-        overwrite: true,
-      });
-    },
-    [isAnimating],
-  );
 
   const scrollToSection = useCallback((sectionId: string) => {
     const section = document.getElementById(sectionId);
+
     if (section) {
-      gsap.to(window, {
-        scrollTo: { y: section, offsetY: 0, autoKill: true },
-        duration: 1,
-        ease: "power2.inOut",
+      section.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
       });
     }
   }, []);
 
   return (
     <>
-      <div
-        className="flex flex-col h-screen justify-start items-center lg:mt-25 lg:-mb-25 pt-24 md:pt-16"
-        ref={containerRef}
-      >
-        <ul
-          className="flex flex-col md:flex-row text-lg h-[60vh] md:h-2/3 w-full max-w-screen px-4 md:px-8 justify-center items-center"
-          ref={deptContainerRef}
-        >
-          <div
-            className={`absolute h-full w-full flex justify-center items-center px-4`}
-            ref={deptTextContainerRef}
-          >
-            <h1 className="text-6xl sm:text-5xl md:text-8xl lg:text-8xl font-bebasNeue uppercase font-lightbold text-center">
-              Departments
-            </h1>
-          </div>
-          {departments?.map((dept, index) => (
-            <li
-              key={index}
-              ref={(el) => {
-                deptRef.current[index] = el;
-              }}
-              className={`relative group flex flex-col w-full bg-accent/80 h-full items-start justify-center md:justify-between cursor-pointer overflow-hidden z-5`}
-              onMouseEnter={(event) => handleMouseEnter(index, event)}
-              onMouseLeave={(event) => handleMouseLeave(event)}
-              onClick={() => scrollToSection(dept.id)}
-            >
-              <span
-                ref={(el) => {
-                  deptNameRef.current[index] = el;
-                }}
-                className={`font-bebasNeue leading-20 h-full flex items-center md:items-start`}
-              >
-                {(() => {
-                  const iconMap: Record<string, React.ReactNode> = {
-                    event: (
-                      <FaPeopleGroup className="hidden md:flex absolute right-0 -bottom-8 text-8xl md:text-[16rem] z-10" />
-                    ),
-                    hr: (
-                      <FaUserTie className="hidden md:flex absolute bottom-6 text-8xl md:text-[11rem] z-10" />
-                    ),
-                    itphoto: (
-                      <>
-                        <FaLaptop className="hidden md:flex absolute -bottom-4 text-8xl md:text-[16rem] z-10" />
-                        <FaCamera className="hidden md:flex absolute bottom-18 text-8xl md:text-[6rem] z-10" />
-                      </>
-                    ),
-                    creative: (
-                      <FaPaintbrush className="hidden md:flex absolute bottom-2 text-8xl md:text-[13rem] z-10" />
-                    ),
-                    pubandmarket: (
-                      <>
-                        <FaEnvelopeOpen className="hidden md:flex absolute bottom-6 text-8xl md:text-[11rem] z-10" />
-                        <FaBullhorn
-                          style={{ rotate: "-15deg" }}
-                          className="hidden md:flex absolute bottom-24 right-18 text-8xl md:text-5xl z-10"
-                        />
-                      </>
-                    ),
-                  };
-                  return (
-                    iconMap[dept.id] && (
-                      <div className="absolute flex justify-center items-center -bottom-6 -right-10 size-48">
-                        {iconMap[dept.id]}
-                      </div>
-                    )
-                  );
-                })()}
-                <h1 className="text-3xl md:text-7xl">{`${dept.name}`}</h1>
-              </span>
-              <span className="hidden md:flex text-text opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-sm font-medium pb-4 px-4 items-center gap-1">
-                Click to Scroll
-                <FaChevronDown className="animate-bounce" />
-              </span>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <DepartmentSections departments={departments ?? []} />
+      <RadialDepartmentTimeline
+        departments={departments ?? defaultDepartments}
+        onViewDetails={scrollToSection}
+      />
 
-      <MotionSection
-        ref={panelSectionRef}
-        className="relative min-h-screen w-full overflow-hidden bg-linear-to-b from-stone-900 via-stone-800 to-stone-900 flex items-center justify-center py-8 md:py-0"
-      >
-        <Image
-          src="/assets/panelbg.jpg"
-          alt="Panel Background"
-          fill
-          className="absolute inset-0 opacity-10"
-        />
-
-        <div className="relative z-10 w-full h-full px-4 md:px-8 py-8 md:py-16 flex flex-col items-center justify-center">
-          <div className="mb-6 md:mb-12 text-center flex flex-col items-center relative">
-            <RevealHeading className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bebasNeue text-accent tracking-wider mb-2 drop-shadow-lg">
-              Meet the Panel
-            </RevealHeading>
-            {auth && panelMembers && (
-              <motion.button
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                onClick={() => openEditor("panelmembers", panelMembers)}
-                className="bg-accent text-white py-2 px-2 md:py-2 md:px-4 mb-2 flex items-center justify-center gap-2 text-sm md:text-base font-medium rounded-full border-2 border-accent hover:bg-transparent hover:text-accent transition-all duration-300 cursor-pointer z-20"
-                title="Edit Panel Members"
-              >
-                <HiOutlinePencilAlt className="text-lg md:text-xl" />
-                Edit
-              </motion.button>
-            )}
-            <div className="w-20 md:w-32 h-1 bg-accent mx-auto"></div>
-          </div>
-
-          <StaggerGrid className="flex flex-col md:flex-row gap-4 md:gap-6 w-full max-w-8xl min-h-[60vh] md:h-[70vh] justify-center items-stretch">
-            {panelMembers?.map((member, index) => (
-              <StaggerItem
-                key={index}
-                className="group relative flex-1 min-w-0 min-h-125 md:min-h-0 rounded-lg overflow-hidden bg-stone-700 border-2 border-stone-600 shadow-2xl transition-all duration-500 hover:scale-105 hover:border-accent hover:shadow-accent/20 cursor-pointer"
-                style={{
-                  background:
-                    "linear-gradient(180deg, rgba(68,64,60,1) 0%, rgba(41,37,36,1) 100%)",
-                  boxShadow:
-                    "inset 0 2px 4px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.4)",
-                }}
-              >
-                <div className="relative h-full overflow-hidden bg-stone-800">
-                  <div className="absolute inset-0 bg-linear-to-t from-stone-900 via-transparent to-transparent z-10"></div>
-                  <Image
-                    src={member.image}
-                    alt={member.name}
-                    height={300}
-                    width={150}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-x-0 -bottom-12 md:-bottom-16 flex justify-center font-white z-50">
-                    <Image
-                      src="/assets/board.webp"
-                      alt={member.name}
-                      width={292}
-                      height={292}
-                      className="w-64 h-32 md:w-96 md:h-48 object-cover mx-auto brightness-80"
-                    />
-                    <h1
-                      className="absolute inset-0 top-2 md:top-3 h-full uppercase font-poppins font-bold text-base md:text-xl tracking-wider"
-                      style={{
-                        textAlign: "center",
-                        background: "url(/assets/board.webp)",
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                        backgroundClip: "text",
-                        WebkitBackgroundClip: "text",
-                        WebkitTextFillColor: "transparent",
-                        color: "transparent",
-                        filter:
-                          "brightness(0.5) contrast(1.3) drop-shadow(-1px -1px 1px rgba(0,0,0,0.8)) drop-shadow(1px 1px 1px rgba(255,255,255,0.2))",
-                      }}
-                    >
-                      {member.name}
-                    </h1>
-                    <p
-                      className="absolute inset-0 top-8 md:top-10 h-full uppercase font-poppins font-semibold text-xs md:text-sm tracking-widest text-center text-stone-200 opacity-90"
-                      style={{
-                        textAlign: "center",
-                        background: "url(/assets/board.webp)",
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                        backgroundClip: "text",
-                        WebkitBackgroundClip: "text",
-                        WebkitTextFillColor: "transparent",
-                        color: "transparent",
-                        filter:
-                          "brightness(0.5) contrast(1.3) drop-shadow(-1px -1px 1px rgba(0,0,0,0.8)) drop-shadow(1px 1px 1px rgba(255,255,255,0.2))",
-                      }}
-                    >
-                      {member.position}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="absolute inset-0 bg-linear-to-tr from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
-              </StaggerItem>
-            ))}
-          </StaggerGrid>
-        </div>
-      </MotionSection>
-      <section className="h-screen flex justify-center items-center text-6xl font-poppins text-text-secondary">
-        End Section
-      </section>
+      <DepartmentSections departments={departments ?? defaultDepartments} />
     </>
   );
 };

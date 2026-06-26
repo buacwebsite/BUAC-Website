@@ -409,6 +409,9 @@ export default function HeroComp({ images = [] }: { images: HeroSlide[] }) {
         id: loc.id,
         place: loc.name,
         image: loc.image,
+        description: loc.description,
+        country: loc.country,
+        tag: loc.tag,
       })),
     [locations],
   );
@@ -459,7 +462,7 @@ export default function HeroComp({ images = [] }: { images: HeroSlide[] }) {
         </motion.button>
       )}
 
-      <section className="snap-section relative min-h-screen w-full overflow-hidden -mt-16">
+      <section className="snap-section relative min-h-screen w-full overflow-hidden -mt-16 bg-black">
         <AnimatePresence mode="popLayout">
           {current.image ? (
             <motion.div
@@ -470,14 +473,39 @@ export default function HeroComp({ images = [] }: { images: HeroSlide[] }) {
               transition={{ duration: 1.1, ease: [0.4, 0, 0.2, 1] }}
               className="absolute inset-0"
             >
+              {/* Blurred cover layer fills the whole screen */}
               <Image
                 src={current.image}
-                alt={current.name}
+                alt=""
                 fill
                 priority
                 sizes="100vw"
-                className="object-cover"
+                className="object-cover scale-110 blur-2xl opacity-70"
               />
+
+              {/* Soft blended 16:9 image layer */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  maskImage:
+                    "linear-gradient(to bottom, transparent 0%, black 16%, black 82%, transparent 100%)",
+                  WebkitMaskImage:
+                    "linear-gradient(to bottom, transparent 0%, black 16%, black 82%, transparent 100%)",
+                }}
+              >
+                <Image
+                  src={current.image}
+                  alt={current.name}
+                  fill
+                  priority
+                  sizes="100vw"
+                  className="object-contain"
+                />
+              </div>
+
+              {/* Extra soft fade to remove hard horizontal image edge */}
+              <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/70 via-black/20 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 h-52 bg-gradient-to-t from-background via-background/40 to-transparent" />
             </motion.div>
           ) : (
             <motion.div
@@ -521,11 +549,7 @@ export default function HeroComp({ images = [] }: { images: HeroSlide[] }) {
               </motion.div>
             </AnimatePresence>
 
-            <RoadMapTimeline
-              items={locations}
-              active={active}
-              onChange={goTo}
-            />
+            <RoadMapTimeline items={locations} active={active} onChange={goTo} />
           </div>
 
           <div className="relative w-full overflow-hidden">
