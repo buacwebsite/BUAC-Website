@@ -12,12 +12,13 @@ import {
   HiEyeOff,
   HiMail,
   HiShieldCheck,
+  HiUserGroup,
 } from "react-icons/hi";
 import { FaMountain } from "react-icons/fa";
 import { HiAcademicCap } from "react-icons/hi2";
 import GoogleAuthButton from "@/app/components/GoogleAuthButton";
 
-type RoleType = "member" | "alumni" | "admin";
+type RoleType = "member" | "alumni" | "panel" | "admin";
 
 interface AppInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   icon?: React.ReactNode;
@@ -50,6 +51,7 @@ const AppInput = ({ icon, className = "", ...rest }: AppInputProps) => {
               background: `radial-gradient(40px circle at ${mousePosition.x}px 0px, var(--color-accent) 0%, transparent 70%)`,
             }}
           />
+
           <div
             className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 h-[2px] rounded-b-xl"
             style={{
@@ -108,8 +110,16 @@ const Login = () => {
   const roles = [
     { id: "member" as RoleType, label: "Member", icon: <FaMountain /> },
     { id: "alumni" as RoleType, label: "Alumni", icon: <HiAcademicCap /> },
+    { id: "panel" as RoleType, label: "Panel", icon: <HiUserGroup /> },
     { id: "admin" as RoleType, label: "Admin", icon: <HiShieldCheck /> },
   ];
+
+  const getEmailPlaceholder = () => {
+    if (role === "member") return "G Suite Email";
+    if (role === "alumni") return "Gmail Address";
+    if (role === "panel") return "Panel Email";
+    return "Admin Email";
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,6 +198,7 @@ const Login = () => {
             <h1 className="font-bebasNeue text-6xl tracking-wider text-white">
               Sign In
             </h1>
+
             <p className="mt-1 text-xs text-white/55">
               Welcome back to BRAC University Adventure Club
             </p>
@@ -204,6 +215,7 @@ const Login = () => {
                     className="group relative z-[1] flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-accent/50 bg-white/5"
                   >
                     <div className="absolute inset-0 h-full w-full origin-bottom scale-y-0 bg-accent transition-transform duration-500 group-hover:scale-y-100" />
+
                     <span className="z-[2] text-xl text-white/80 transition-all duration-500 group-hover:text-white">
                       {social.icon}
                     </span>
@@ -221,7 +233,7 @@ const Login = () => {
             <div className="h-px flex-1 bg-white/10" />
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {roles.map((item) => (
               <button
                 key={item.id}
@@ -243,13 +255,7 @@ const Login = () => {
           </div>
 
           <AppInput
-            placeholder={
-              role === "member"
-                ? "G Suite Email"
-                : role === "alumni"
-                  ? "Gmail Address"
-                  : "Admin Email"
-            }
+            placeholder={getEmailPlaceholder()}
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}

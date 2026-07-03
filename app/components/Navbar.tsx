@@ -8,20 +8,26 @@ import { useAuth } from "../context/AuthProvider";
 import { FaUser, FaSignOutAlt, FaChevronDown } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 
-const navLinks = [
+const mainNavLinks = [
   { href: "/", label: "Home" },
   { href: "/tours", label: "Tours" },
-  { href: "/activities", label: "Activities" },
-  { href: "/weather", label: "Weather" },
   { href: "/about", label: "About" },
   { href: "/panel-eb", label: "Panel & EB" },
+];
+
+const moreLinks = [
+  { href: "/activities", label: "Activities" },
+  { href: "/weather", label: "Weather" },
   { href: "/gallery", label: "Gallery" },
   { href: "/contact", label: "Contact" },
 ];
 
+const mobileNavLinks = [...mainNavLinks, ...moreLinks];
+
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -37,14 +43,17 @@ const Navbar = () => {
   }, [isOpen]);
 
   useEffect(() => {
-    const handleClickOutside = () => setUserMenuOpen(false);
+    const handleClickOutside = () => {
+      setUserMenuOpen(false);
+      setMoreMenuOpen(false);
+    };
 
-    if (userMenuOpen) {
+    if (userMenuOpen || moreMenuOpen) {
       document.addEventListener("click", handleClickOutside);
     }
 
     return () => document.removeEventListener("click", handleClickOutside);
-  }, [userMenuOpen]);
+  }, [userMenuOpen, moreMenuOpen]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 24);
@@ -56,6 +65,8 @@ const Navbar = () => {
   }, []);
 
   const isActive = (path: string) => pathname === path;
+
+  const isMoreActive = moreLinks.some((link) => pathname === link.href);
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
@@ -74,6 +85,7 @@ const Navbar = () => {
     try {
       setLoggingOut(true);
       setUserMenuOpen(false);
+      setMoreMenuOpen(false);
       setIsOpen(false);
       await logout();
     } finally {
@@ -83,7 +95,7 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="fixed top-4 left-1/2 z-50 w-[calc(100%-1.5rem)] max-w-7xl -translate-x-1/2 transition-all duration-500">
+      <nav className="fixed top-4 left-1/2 z-50 w-[calc(100%-1.5rem)] max-w-6xl -translate-x-1/2 transition-all duration-500">
         <div
           className={`relative overflow-visible rounded-full border px-4 shadow-2xl backdrop-blur-2xl transition-all duration-500 ${
             scrolled
@@ -116,11 +128,11 @@ const Navbar = () => {
 
             <div className="hidden lg:flex items-center gap-2">
               <ul className="flex items-center gap-1">
-                {navLinks.map((link) => (
+                {mainNavLinks.map((link) => (
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className={`relative whitespace-nowrap rounded-full px-3 py-2 text-xs font-semibold tracking-wide transition-all duration-300 ${
+                      className={`relative whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold tracking-wide transition-all duration-300 ${
                         isActive(link.href)
                           ? "text-accent"
                           : "text-white/75 hover:text-white"
@@ -142,6 +154,72 @@ const Navbar = () => {
                     </Link>
                   </li>
                 ))}
+
+                <li className="relative">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMoreMenuOpen((prev) => !prev);
+                      setUserMenuOpen(false);
+                    }}
+                    className={`relative flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold tracking-wide transition-all duration-300 ${
+                      isMoreActive || moreMenuOpen
+                        ? "text-accent"
+                        : "text-white/75 hover:text-white"
+                    }`}
+                  >
+                    {(isMoreActive || moreMenuOpen) && (
+                      <motion.span
+                        layoutId="navbar-active-pill"
+                        className="absolute inset-0 rounded-full border border-accent/30 bg-accent/10"
+                        transition={{
+                          type: "spring",
+                          stiffness: 320,
+                          damping: 32,
+                        }}
+                      />
+                    )}
+
+                    <span className="relative z-10">More</span>
+
+                    <motion.span
+                      className="relative z-10"
+                      animate={{ rotate: moreMenuOpen ? 180 : 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <FaChevronDown className="text-[10px]" />
+                    </motion.span>
+                  </button>
+
+                  <AnimatePresence>
+                    {moreMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                        transition={{ duration: 0.15 }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute left-1/2 top-[calc(100%+0.75rem)] z-[999] w-52 -translate-x-1/2 overflow-hidden rounded-2xl border border-white/10 bg-black/90 p-2 shadow-2xl shadow-black/50 backdrop-blur-2xl"
+                      >
+                        {moreLinks.map((link) => (
+                          <Link
+                            key={link.href}
+                            href={link.href}
+                            onClick={() => setMoreMenuOpen(false)}
+                            className={`block rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+                              isActive(link.href)
+                                ? "bg-accent text-white"
+                                : "text-white/70 hover:bg-white/10 hover:text-accent"
+                            }`}
+                          >
+                            {link.label}
+                          </Link>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </li>
               </ul>
             </div>
 
@@ -152,6 +230,7 @@ const Navbar = () => {
                     onClick={(e) => {
                       e.stopPropagation();
                       setUserMenuOpen((prev) => !prev);
+                      setMoreMenuOpen(false);
                     }}
                     className="flex cursor-pointer items-center gap-2 rounded-full border border-accent/25 bg-accent/10 px-4 py-2 text-accent transition-all duration-300 hover:bg-accent/20"
                   >
@@ -301,7 +380,7 @@ const Navbar = () => {
               )}
 
               <ul className="space-y-6 text-center">
-                {navLinks.map((link, index) => (
+                {mobileNavLinks.map((link, index) => (
                   <motion.li
                     key={link.href}
                     initial={{ opacity: 0, x: 30 }}
@@ -335,7 +414,7 @@ const Navbar = () => {
                     opacity: 1,
                     x: 0,
                     transition: {
-                      delay: navLinks.length * 0.07,
+                      delay: mobileNavLinks.length * 0.07,
                       duration: 0.3,
                     },
                   }}

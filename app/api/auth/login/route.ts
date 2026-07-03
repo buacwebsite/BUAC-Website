@@ -10,11 +10,33 @@ interface StoredUser {
   role: "member" | "alumni" | "admin";
   profile?: Record<string, unknown>;
   createdAt: string;
+  authProvider?: "google" | "password";
+  picture?: string;
+}
+
+type LoginRole = "member" | "alumni" | "panel" | "admin";
+
+function isPanelUser(user: StoredUser) {
+  const profile = user.profile || {};
+
+  return (
+    profile.buacDepartment === "Panel" ||
+    profile.buacExDepartment === "Panel" ||
+    Boolean(profile.panelPosition)
+  );
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, role } = await request.json();
+    const {
+      email,
+      password,
+      role,
+    }: {
+      email?: string;
+      password?: string;
+      role?: LoginRole;
+    } = await request.json();
 
     if (!email || !password) {
       return NextResponse.json(
@@ -25,6 +47,9 @@ export async function POST(request: NextRequest) {
 
     const normalizedEmail = String(email).trim().toLowerCase();
 
+    /**
+     * Admin login
+     */
     if (role === "admin") {
       const adminMail = process.env.adminMail;
       const adminPasswordHash = process.env.adminPassword;
@@ -66,7 +91,11 @@ export async function POST(request: NextRequest) {
       const res = NextResponse.json(
         {
           message: "Login successful",
-          user: { name: "Admin", email: normalizedEmail, role: "admin" },
+          user: {
+            name: "Admin",
+            email: normalizedEmail,
+            role: "admin",
+          },
         },
         { status: 200 },
       );
@@ -94,6 +123,9 @@ export async function POST(request: NextRequest) {
       return res;
     }
 
+    /**
+     * Member / Alumni / Panel login
+     */
     const user = await kv.get<StoredUser>(`user:${normalizedEmail}`);
 
     if (!user) {
@@ -103,7 +135,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (role && user.role !== role) {
+    if (!user.passwordHash) {
+      return NextResponse.json(
+        {
+          message:
+            "This account uses Google login. Please sign in with Google.",
+        },
+        { status: 401 },
+      );
+    }
+
+    if (role === "panel") {
+      if (!isPanelUser(user)) {
+        return NextResponse.json(
+          { message: "This account is not registered as Panel" },
+          { status: 401 },
+        );
+      }
+    } else if (role && user.role !== role) {
       return NextResponse.json(
         { message: `This account is registered as ${user.role}, not ${role}` },
         { status: 401 },
