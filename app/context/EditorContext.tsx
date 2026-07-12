@@ -14,7 +14,10 @@ type EditorState = {
     | "panelmembers"
     | "tours"
     | "activities"
-    | "gallery";
+    | "gallery"
+    | "aboutSection"
+    | "vision"
+    | "home-order";
   data: any;
 };
 

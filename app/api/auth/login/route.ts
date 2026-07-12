@@ -14,17 +14,7 @@ interface StoredUser {
   picture?: string;
 }
 
-type LoginRole = "member" | "alumni" | "panel" | "admin";
-
-function isPanelUser(user: StoredUser) {
-  const profile = user.profile || {};
-
-  return (
-    profile.buacDepartment === "Panel" ||
-    profile.buacExDepartment === "Panel" ||
-    Boolean(profile.panelPosition)
-  );
-}
+type LoginRole = "member" | "alumni" | "admin";
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,7 +43,6 @@ export async function POST(request: NextRequest) {
     if (role === "admin") {
       const adminMail = process.env.adminMail;
       const adminPasswordHash = process.env.adminPassword;
-
       if (!adminMail || !adminPasswordHash || !process.env.adminJwtSecret) {
         return NextResponse.json(
           { message: "Admin environment variables are missing" },
@@ -70,7 +59,6 @@ export async function POST(request: NextRequest) {
 
       const decodedHash = Buffer.from(adminPasswordHash, "base64").toString();
       const isValid = await bcrypt.compare(password, decodedHash);
-
       if (!isValid) {
         return NextResponse.json(
           { message: "Invalid email or password" },
@@ -124,10 +112,9 @@ export async function POST(request: NextRequest) {
     }
 
     /**
-     * Member / Alumni / Panel login
+     * Member / Alumni login
      */
     const user = await kv.get<StoredUser>(`user:${normalizedEmail}`);
-
     if (!user) {
       return NextResponse.json(
         { message: "Invalid email or password" },
@@ -145,14 +132,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (role === "panel") {
-      if (!isPanelUser(user)) {
-        return NextResponse.json(
-          { message: "This account is not registered as Panel" },
-          { status: 401 },
-        );
-      }
-    } else if (role && user.role !== role) {
+    if (role && user.role !== role) {
       return NextResponse.json(
         { message: `This account is registered as ${user.role}, not ${role}` },
         { status: 401 },
@@ -160,7 +140,6 @@ export async function POST(request: NextRequest) {
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-
     if (!isPasswordValid) {
       return NextResponse.json(
         { message: "Invalid email or password" },
@@ -210,7 +189,6 @@ export async function POST(request: NextRequest) {
     return res;
   } catch (error) {
     console.error("Login error:", error);
-
     return NextResponse.json(
       { message: "Something went wrong" },
       { status: 500 },

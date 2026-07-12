@@ -1,146 +1,86 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
-  /* --color-background: #0a192f; */
-  --color-background: oklch(0.92 0.015 75);
-  --color-foreground: #ccd6f6;
+  /* ============================================================
+     LIGHT MODE (default)
+     Clean light backgrounds, dark text
+     ============================================================ */
+  --color-background: #f5f0eb;
+  --color-surface: #ffffff;
+  --color-surface-secondary: #f8f5f1;
+  --color-foreground: #1a1a2e;
   --color-accent: #ff622b;
-  --color-text: #f4f4f5;
-  --color-text-secondary: oklch(0.18 0.02 45);
-  --color-text-muted: oklch(0.45 0.02 45);
+  --color-accent-hover: #e5571f;
+  --color-text: #1a1a2e;
+  --color-text-secondary: #2d2d3f;
+  --color-text-muted: #6b6b80;
+  --color-border: rgba(0, 0, 0, 0.1);
+  --color-border-accent: rgba(255, 98, 43, 0.3);
+  --color-card-bg: #ffffff;
+  --color-card-border: rgba(0, 0, 0, 0.08);
+  --color-overlay: rgba(0, 0, 0, 0.5);
+  --color-nav-bg: rgba(255, 255, 255, 0.85);
+  --color-nav-border: rgba(0, 0, 0, 0.1);
+  --color-input-bg: #ffffff;
+  --color-input-border: rgba(0, 0, 0, 0.15);
+  --color-hero-overlay: rgba(0, 0, 0, 0.6);
+  --color-footer-bg: #1a1a2e;
+  --color-badge-bg: rgba(255, 98, 43, 0.1);
+
   --font-poppins: var(--font-poppins);
   --font-bebasNeue: var(--font-bebasNeue);
+
   --mouse-x: 0;
   --mouse-y: 0;
 }
 
-/* body {
-  font-family: Arial, Helvetica, sans-serif;
-} */
-
-@layer utilities {
-  @keyframes firepulse {
-    0%,
-    100% {
-      transform: translate(-50%, -50%) scale(1);
-      opacity: 0.5;
-    }
-    25% {
-      transform: translate(-50%, -50%) scale(1.1);
-      opacity: 0.4;
-    }
-    50% {
-      transform: translate(-50%, -50%) scale(0.9);
-      opacity: 0.35;
-    }
-    75% {
-      transform: translate(-50%, -50%) scale(1);
-      opacity: 0.5;
-    }
-  }
-
-  .animate-firepulse {
-    animation: firepulse 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  }
-
-  @keyframes fireGlow {
-    0% {
-      background-color: rgba(255, 0, 0, 0.6);
-      box-shadow:
-        0 0 20px rgba(255, 0, 0, 0.6),
-        0 0 40px rgba(255, 0, 0, 0.4);
-      filter: blur(8px);
-    }
-    25% {
-      background-color: rgba(255, 69, 0, 0.7);
-      box-shadow:
-        0 0 30px rgba(255, 69, 0, 0.7),
-        0 0 50px rgba(255, 69, 0, 0.5);
-      filter: blur(10px);
-    }
-    50% {
-      background-color: rgba(255, 140, 0, 0.8);
-      box-shadow:
-        0 0 40px rgba(255, 140, 0, 0.8),
-        0 0 60px rgba(255, 140, 0, 0.6);
-      filter: blur(12px);
-    }
-    75% {
-      background-color: rgba(255, 69, 0, 0.7);
-      box-shadow:
-        0 0 30px rgba(255, 69, 0, 0.7),
-        0 0 50px rgba(255, 69, 0, 0.5);
-      filter: blur(10px);
-    }
-    100% {
-      background-color: rgba(255, 0, 0, 0.6);
-      box-shadow:
-        0 0 20px rgba(255, 0, 0, 0.6),
-        0 0 40px rgba(255, 0, 0, 0.4);
-      filter: blur(8px);
-    }
-  }
-
-  .animate-fireGlow {
-    animation: fireGlow 4s infinite alternate;
-  }
-
-  @keyframes shadow {
-    0% {
-      opacity: 0.85;
-      transform: translate3d(4px, 0, 0);
-      /* transform: translate(-50%, 0); */
-    }
-    25% {
-      opacity: 1;
-      transform: translate3d(8px, 2px, 0);
-      /* transform: translate(-100%, -50%); */
-    }
-    50% {
-      opacity: 1;
-      transform: translate3d(0px, 5px, 0);
-      /* transform: translate(-50%, -100%); */
-    }
-    75% {
-      opacity: 1;
-      transform: translate3d(-4px, 2px, 0);
-      /* transform: translate(0, -50%); */
-    }
-    100% {
-      opacity: 0.85;
-      transform: translate3d(0px, 0, 0);
-      /* transform: translate(-50%, 0); */
-    }
-  }
-
-  .animate-shadow {
-    animation: shadow;
-    /* animation: shadow 1s linear infinite alternate; */
-  }
-
-  @keyframes spark {
-    0% {
-      transform: translate(0, 0) scale(1);
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.8;
-    }
-    100% {
-      transform: translate(
-          calc(var(--drift) + var(--pushX)),
-          calc(-140px - var(--pushY))
-        )
-        scale(0.2);
-      opacity: 0;
-    }
-  }
-
-  .animate-spark {
-    animation: spark 1.5s ease-out infinite;
-  }
+/* ============================================================
+   DARK MODE
+   Dark backgrounds, light text — true dark theme
+   ============================================================ */
+.dark {
+  --color-background: #0a0a0f;
+  --color-surface: #141420;
+  --color-surface-secondary: #1a1a2e;
+  --color-foreground: #e8e8f0;
+  --color-accent: #ff622b;
+  --color-accent-hover: #ff7a4a;
+  --color-text: #e8e8f0;
+  --color-text-secondary: #d4d4e0;
+  --color-text-muted: #8888a0;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-border-accent: rgba(255, 98, 43, 0.3);
+  --color-card-bg: #141420;
+  --color-card-border: rgba(255, 255, 255, 0.08);
+  --color-overlay: rgba(0, 0, 0, 0.7);
+  --color-nav-bg: rgba(10, 10, 15, 0.85);
+  --color-nav-border: rgba(255, 255, 255, 0.1);
+  --color-input-bg: #1a1a2e;
+  --color-input-border: rgba(255, 255, 255, 0.12);
+  --color-hero-overlay: rgba(0, 0, 0, 0.7);
+  --color-footer-bg: #050508;
+  --color-badge-bg: rgba(255, 98, 43, 0.15);
 }
 
-.glow-mask.active {
-  opacity: 0.85;
+/* ============================================================
+   BASE STYLES
+   ============================================================ */
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+  color-scheme: light;
 }
+
+.dark html,
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-text-secondary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 

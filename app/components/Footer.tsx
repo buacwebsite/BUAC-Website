@@ -8,6 +8,21 @@ import { motion } from "framer-motion";
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
+  const giftTeam = [
+    "Mehedi Hasan Nabil",
+    "Farhan Labib Jahin",
+    "Nafisa Rahman",
+    "Mohammad Omar Raihan Shafin",
+  ];
+
+  const upgradingTeam = [
+    "Md. Tawfiq Islam Tonmoy",
+    "Mahmuda Aktar Mridula",
+    "Md. Sadab Zahin Apurbo",
+    "Ahnaf Atif Prapon",
+    "Sadman Sakib Saad",
+  ];
+
   return (
     <motion.footer
       initial={{ opacity: 0 }}
@@ -40,7 +55,6 @@ const Footer = () => {
                 </h3>
               </div>
             </div>
-
             <p className="max-w-md text-center md:text-left text-sm text-zinc-400 leading-relaxed">
               Built by challenges, driven by purpose. Explore more, climb
               higher, and keep the adventure alive.
@@ -51,7 +65,6 @@ const Footer = () => {
             <h3 className="text-sm font-semibold uppercase tracking-[0.25em] text-zinc-400">
               Connect With Us
             </h3>
-
             <div className="flex gap-4">
               <motion.div whileHover={{ scale: 1.15, y: -3 }}>
                 <Link
@@ -64,7 +77,6 @@ const Footer = () => {
                   <FaFacebook size={22} />
                 </Link>
               </motion.div>
-
               <motion.div whileHover={{ scale: 1.15, y: -3 }}>
                 <Link
                   href="https://instagram.com/brac_university_adventure_club"
@@ -76,7 +88,6 @@ const Footer = () => {
                   <FaInstagram size={22} />
                 </Link>
               </motion.div>
-
               <motion.div whileHover={{ scale: 1.15, y: -3 }}>
                 <Link
                   href="https://linkedin.com/company/buac"
@@ -94,14 +105,53 @@ const Footer = () => {
 
         <div className="my-10 h-px w-full bg-gradient-to-r from-transparent via-white/15 to-transparent" />
 
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-center">
+        <div className="flex flex-col items-center gap-8 text-center">
           <p className="text-xs tracking-wide text-zinc-500">
             © {currentYear} BRAC University Adventure Club. All rights reserved.
           </p>
 
-          <p className="text-xs text-zinc-500 italic">
-            A gift with love from Batch 21 <span className="text-accent">■</span>
-          </p>
+          {/* Credits: Batch 21 gift team */}
+          <div className="flex flex-col items-center gap-3">
+            <p className="text-xs text-zinc-500 italic">
+              A gift with love from Batch 21{" "}
+              <span className="text-accent">■</span>
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-zinc-400">
+              {giftTeam.map((name, i) => (
+                <span key={name} className="flex items-center gap-4">
+                  <span className="hover:text-accent transition-colors">
+                    {name}
+                  </span>
+                  {i < giftTeam.length - 1 && (
+                    <span className="text-zinc-700">·</span>
+                  )}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 w-full max-w-sm">
+            <span className="h-px flex-1 bg-zinc-800" />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-accent">
+              1st Upgrading Team
+            </span>
+            <span className="h-px flex-1 bg-zinc-800" />
+          </div>
+
+          {/* 1st Upgrading Team */}
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-zinc-400">
+            {upgradingTeam.map((name, i) => (
+              <span key={name} className="flex items-center gap-4">
+                <span className="hover:text-accent transition-colors">
+                  {name}
+                </span>
+                {i < upgradingTeam.length - 1 && (
+                  <span className="text-zinc-700">·</span>
+                )}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
     </motion.footer>

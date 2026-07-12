@@ -1,6 +1,15 @@
 "use client";
+
 import React, { useState } from "react";
-import { HiOutlinePencilAlt, HiX, HiPlus, HiTrash } from "react-icons/hi";
+import {
+  HiOutlinePencilAlt,
+  HiX,
+  HiPlus,
+  HiTrash,
+  HiArrowUp,
+  HiArrowDown,
+} from "react-icons/hi";
+import { HiOutlineBars3 } from "react-icons/hi2";
 import axios from "axios";
 import { useScrollLock } from "@/lib/scrollLockHelper";
 
@@ -38,6 +47,10 @@ export default function ToursEditor({ data, onClose }: ToursEditorProps) {
     tourIndex: number;
     imageIndex: number;
   } | null>(null);
+
+  // Drag & drop state
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const updateTour = (
     index: number,
@@ -95,7 +108,7 @@ export default function ToursEditor({ data, onClose }: ToursEditorProps) {
       name: "NEW TOUR",
       subtitle: "",
       location: "Location",
-      icon: "🏔️",
+      icon: "■■",
       elevation: "1,000 ft",
       visitCount: 1,
       latestVisitYear: "2025",
@@ -113,6 +126,46 @@ export default function ToursEditor({ data, onClose }: ToursEditorProps) {
   const removeTour = (index: number) => {
     setTours(tours.filter((_, i) => i !== index));
   };
+
+  // ---------- REORDERING (Arrows) ----------
+  const moveTour = (index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= tours.length) return;
+
+    const copy = [...tours];
+    [copy[index], copy[targetIndex]] = [copy[targetIndex], copy[index]];
+    setTours(copy);
+  };
+
+  // ---------- REORDERING (Drag & Drop) ----------
+  const handleDragStart = (index: number) => {
+    setDragIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  };
+
+  const handleDrop = (dropIndex: number) => {
+    if (dragIndex === null || dragIndex === dropIndex) {
+      setDragIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+    const copy = [...tours];
+    const [moved] = copy.splice(dragIndex, 1);
+    copy.splice(dropIndex, 0, moved);
+    setTours(copy);
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+  // -----------------------------------------
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,23 +203,68 @@ export default function ToursEditor({ data, onClose }: ToursEditorProps) {
         </button>
       </div>
 
+      <p className="mb-4 text-xs text-text-muted">
+        Drag a tour by the <strong>≡ handle</strong> and drop it onto another
+        tour to swap positions — first place = top of the Tours page. You can
+        also use the Up/Down arrows.
+      </p>
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {tours.map((tour, tourIndex) => (
           <div
             key={tour.id}
-            className="border border-text-muted/20 rounded-lg p-4 space-y-4"
+            onDragOver={(e) => handleDragOver(e, tourIndex)}
+            onDrop={() => handleDrop(tourIndex)}
+            onDragEnd={handleDragEnd}
+            className={`border rounded-lg p-4 space-y-4 transition-all ${
+              dragOverIndex === tourIndex
+                ? "border-accent bg-accent/5 scale-[1.01]"
+                : "border-text-muted/20"
+            } ${dragIndex === tourIndex ? "opacity-40" : "opacity-100"}`}
           >
             <div className="flex justify-between items-start">
-              <h3 className="text-lg font-semibold text-text-secondary">
-                Tour #{tourIndex + 1}
-              </h3>
-              <button
-                type="button"
-                onClick={() => removeTour(tourIndex)}
-                className="text-red-500 hover:text-red-700 transition-colors"
-              >
-                <HiTrash size={20} />
-              </button>
+              <div className="flex items-center gap-2">
+                <span
+                  draggable
+                  onDragStart={() => handleDragStart(tourIndex)}
+                  className="cursor-grab active:cursor-grabbing rounded-lg border border-accent/30 bg-accent/5 p-2 text-accent hover:bg-accent/15"
+                  title="Drag to reorder"
+                >
+                  <HiOutlineBars3 />
+                </span>
+                <h3 className="text-lg font-semibold text-text-secondary">
+                  Tour #{tourIndex + 1}
+                </h3>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => moveTour(tourIndex, "up")}
+                  disabled={tourIndex === 0}
+                  title="Move up"
+                  className="inline-flex items-center justify-center rounded-lg border border-accent/30 bg-accent/5 p-2 text-accent hover:bg-accent/15 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <HiArrowUp size={18} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveTour(tourIndex, "down")}
+                  disabled={tourIndex === tours.length - 1}
+                  title="Move down"
+                  className="inline-flex items-center justify-center rounded-lg border border-accent/30 bg-accent/5 p-2 text-accent hover:bg-accent/15 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <HiArrowDown size={18} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => removeTour(tourIndex)}
+                  className="text-red-500 hover:text-red-700 transition-colors cursor-pointer"
+                >
+                  <HiTrash size={20} />
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -293,7 +391,6 @@ export default function ToursEditor({ data, onClose }: ToursEditorProps) {
               <label className="block text-sm text-text-muted mb-2">
                 Images (exactly 3)
               </label>
-
               <div className="space-y-2">
                 {tour.images.slice(0, 3).map((img, imgIndex) => (
                   <div
@@ -346,7 +443,8 @@ export default function ToursEditor({ data, onClose }: ToursEditorProps) {
         <button
           type="button"
           onClick={addTour}
-          className="w-full py-2 border-2 border-dashed border-text-muted/30 rounded-lg text-text-muted hover:text-text-secondary hover:border-accent/50 transition-colors flex items-center justify-center gap-2"
+          className="w-full py-2 border-2 border-dashed border-text-muted/30 rounded-lg text-text-muted hover:text-text-secondary hover:border-accent/50 transition-colors flex
+          items-center justify-center gap-2 cursor-pointer"
         >
           <HiPlus size={20} /> Add New Tour
         </button>
@@ -355,14 +453,14 @@ export default function ToursEditor({ data, onClose }: ToursEditorProps) {
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 bg-accent text-white py-2 rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 bg-accent text-white py-2 rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {loading ? "Saving..." : "Save Changes"}
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-2 border border-text-muted/30 text-text-muted rounded-lg hover:bg-text-muted/10 transition-colors"
+            className="px-6 py-2 border border-text-muted/30 text-text-muted rounded-lg hover:bg-text-muted/10 transition-colors cursor-pointer"
           >
             Cancel
           </button>

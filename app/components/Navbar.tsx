@@ -5,8 +5,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "../context/AuthProvider";
-import { FaUser, FaSignOutAlt, FaChevronDown } from "react-icons/fa";
+import {
+  FaUser,
+  FaSignOutAlt,
+  FaChevronDown,
+  FaBell,
+  FaTint,
+} from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import ThemeToggle from "./ThemeToggle";
 
 const mainNavLinks = [
   { href: "/", label: "Home" },
@@ -19,6 +26,7 @@ const moreLinks = [
   { href: "/activities", label: "Activities" },
   { href: "/weather", label: "Weather" },
   { href: "/gallery", label: "Gallery" },
+  { href: "/club-fair", label: "Club Fair" },
   { href: "/contact", label: "Contact" },
 ];
 
@@ -65,21 +73,7 @@ const Navbar = () => {
   }, []);
 
   const isActive = (path: string) => pathname === path;
-
   const isMoreActive = moreLinks.some((link) => pathname === link.href);
-
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case "admin":
-        return "bg-red-500/20 text-red-400 border-red-500/30";
-      case "alumni":
-        return "bg-blue-500/20 text-blue-400 border-blue-500/30";
-      case "member":
-        return "bg-accent/20 text-accent border-accent/30";
-      default:
-        return "bg-gray-500/20 text-gray-400 border-gray-500/30";
-    }
-  };
 
   const handleLogout = async () => {
     try {
@@ -126,6 +120,7 @@ const Navbar = () => {
               </div>
             </Link>
 
+            {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center gap-2">
               <ul className="flex items-center gap-1">
                 {mainNavLinks.map((link) => (
@@ -155,6 +150,7 @@ const Navbar = () => {
                   </li>
                 ))}
 
+                {/* More Dropdown */}
                 <li className="relative">
                   <button
                     type="button"
@@ -223,7 +219,10 @@ const Navbar = () => {
               </ul>
             </div>
 
+            {/* Desktop Right Side */}
             <div className="hidden lg:flex items-center gap-2 shrink-0">
+              <ThemeToggle />
+
               {isLoggedIn ? (
                 <div className="relative">
                   <button
@@ -235,8 +234,9 @@ const Navbar = () => {
                     className="flex cursor-pointer items-center gap-2 rounded-full border border-accent/25 bg-accent/10 px-4 py-2 text-accent transition-all duration-300 hover:bg-accent/20"
                   >
                     <FaUser className="text-xs" />
+
                     <span className="max-w-24 truncate text-xs font-semibold">
-                      {user?.name || "Admin"}
+                      {user?.name || "User"}
                     </span>
 
                     <motion.div
@@ -257,22 +257,24 @@ const Navbar = () => {
                         onClick={(e) => e.stopPropagation()}
                         className="absolute right-0 top-[calc(100%+0.75rem)] z-[999] w-72 overflow-hidden rounded-2xl border border-white/10 bg-black/90 shadow-2xl shadow-black/50 backdrop-blur-2xl"
                       >
-                        <div className="border-b border-white/10 p-4">
-                          <p className="truncate text-sm font-semibold text-white">
-                            {user?.name || "Admin"}
-                          </p>
-
-                          <p className="truncate text-xs text-white/45">
-                            {user?.email}
-                          </p>
-
-                          <span
-                            className={`mt-2 inline-block rounded-full border px-2 py-0.5 text-xs font-semibold ${getRoleBadgeColor(
-                              user?.role || "admin",
-                            )}`}
+                        <div className="p-3 space-y-1 border-b border-white/10">
+                          <Link
+                            href="/notifications"
+                            onClick={() => setUserMenuOpen(false)}
+                            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-accent transition"
                           >
-                            {user?.role?.toUpperCase() || "ADMIN"}
-                          </span>
+                            <FaBell className="text-xs text-accent" />
+                            Notifications
+                          </Link>
+
+                          <Link
+                            href="/blood-donation"
+                            onClick={() => setUserMenuOpen(false)}
+                            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-accent transition"
+                          >
+                            <FaTint className="text-xs text-red-500" />
+                            Blood Donation
+                          </Link>
                         </div>
 
                         <div className="p-3">
@@ -280,7 +282,7 @@ const Navbar = () => {
                             type="button"
                             onClick={handleLogout}
                             disabled={loggingOut}
-                            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-red-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-red-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-600 disabled:opacity-60"
                           >
                             <FaSignOutAlt />
                             {loggingOut ? "Signing Out..." : "Sign Out"}
@@ -301,7 +303,7 @@ const Navbar = () => {
 
                   <Link
                     href="/register"
-                    className="min-w-[82px] whitespace-nowrap text-center rounded-full bg-accent px-5 py-2 text-xs font-bold text-white shadow-lg shadow-accent/20 transition-all hover:scale-105 hover:bg-accent/90 hover:shadow-accent/40"
+                    className="min-w-[82px] whitespace-nowrap text-center rounded-full bg-accent px-5 py-2 text-xs font-bold text-white shadow-lg shadow-accent/20 transition-all hover:scale-105 hover:bg-accent/90"
                   >
                     Join Us
                   </Link>
@@ -309,6 +311,7 @@ const Navbar = () => {
               )}
             </div>
 
+            {/* Mobile Menu Button */}
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="relative z-50 flex h-10 w-10 flex-col items-center justify-center gap-1.5 lg:hidden"
@@ -318,10 +321,12 @@ const Navbar = () => {
                 animate={isOpen ? { rotate: 45, y: 8 } : { rotate: 0, y: 0 }}
                 className="block h-0.5 w-6 origin-center bg-white"
               />
+
               <motion.span
                 animate={isOpen ? { opacity: 0, x: -10 } : { opacity: 1, x: 0 }}
                 className="block h-0.5 w-6 bg-white"
               />
+
               <motion.span
                 animate={isOpen ? { rotate: -45, y: -8 } : { rotate: 0, y: 0 }}
                 className="block h-0.5 w-6 origin-center bg-white"
@@ -331,6 +336,7 @@ const Navbar = () => {
         </div>
       </nav>
 
+      {/* Mobile Drawer */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -347,6 +353,7 @@ const Navbar = () => {
                 transition={{ duration: 0.5 }}
                 className="absolute left-1/4 top-1/4 h-96 w-96 rounded-full bg-accent/15 blur-3xl"
               />
+
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
@@ -356,28 +363,14 @@ const Navbar = () => {
             </div>
 
             <div className="relative flex h-full flex-col items-center justify-center px-8">
-              {isLoggedIn && user && (
-                <motion.div
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2, duration: 0.4 }}
-                  className="mb-8 text-center"
-                >
-                  <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-accent/20">
-                    <FaUser className="text-2xl text-accent" />
-                  </div>
-
-                  <p className="font-semibold text-white">{user.name}</p>
-
-                  <span
-                    className={`mt-1 inline-block rounded-full border px-3 py-1 text-xs font-semibold ${getRoleBadgeColor(
-                      user.role,
-                    )}`}
-                  >
-                    {user.role.toUpperCase()}
-                  </span>
-                </motion.div>
-              )}
+              <motion.div
+                initial={{ opacity: 0, y: -16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="mb-8"
+              >
+                <ThemeToggle />
+              </motion.div>
 
               <ul className="space-y-6 text-center">
                 {mobileNavLinks.map((link, index) => (
@@ -408,13 +401,48 @@ const Navbar = () => {
                   </motion.li>
                 ))}
 
+                {isLoggedIn && (
+                  <motion.li
+                    initial={{ opacity: 0, x: 30 }}
+                    animate={{
+                      opacity: 1,
+                      x: 0,
+                      transition: {
+                        delay: mobileNavLinks.length * 0.07,
+                        duration: 0.3,
+                      },
+                    }}
+                    exit={{ opacity: 0, x: 30 }}
+                    className="border-t border-white/10 pt-4 flex flex-col gap-3"
+                  >
+                    <Link
+                      href="/notifications"
+                      onClick={() => setIsOpen(false)}
+                      className="font-bebasNeue text-2xl text-white/70 hover:text-accent tracking-wide flex items-center justify-center gap-2"
+                    >
+                      <FaBell className="text-sm text-accent" />
+                      Notifications
+                    </Link>
+
+                    <Link
+                      href="/blood-donation"
+                      onClick={() => setIsOpen(false)}
+                      className="font-bebasNeue text-2xl text-white/70 hover:text-accent tracking-wide flex items-center justify-center gap-2"
+                    >
+                      <FaTint className="text-sm text-red-500" />
+                      Blood Donation
+                    </Link>
+                  </motion.li>
+                )}
+
                 <motion.li
                   initial={{ opacity: 0, x: 30 }}
                   animate={{
                     opacity: 1,
                     x: 0,
                     transition: {
-                      delay: mobileNavLinks.length * 0.07,
+                      delay:
+                        (mobileNavLinks.length + (isLoggedIn ? 2 : 0)) * 0.07,
                       duration: 0.3,
                     },
                   }}
@@ -426,7 +454,7 @@ const Navbar = () => {
                       type="button"
                       onClick={handleLogout}
                       disabled={loggingOut}
-                      className="inline-flex items-center gap-3 rounded-full bg-red-500 px-10 py-4 text-xl font-bold uppercase tracking-wider text-white transition-all duration-300 hover:scale-105 disabled:opacity-60"
+                      className="inline-flex items-center gap-3 rounded-full bg-red-500 px-10 py-4 text-xl font-bold uppercase tracking-wider text-white transition hover:scale-105 disabled:opacity-60"
                     >
                       <FaSignOutAlt />
                       {loggingOut ? "Signing Out..." : "Sign Out"}
@@ -436,7 +464,7 @@ const Navbar = () => {
                       <Link
                         href="/login"
                         onClick={() => setIsOpen(false)}
-                        className="inline-block rounded-full border-2 border-accent px-10 py-4 text-xl font-bold uppercase tracking-wider text-accent transition-all duration-300 hover:bg-accent hover:text-white"
+                        className="inline-block rounded-full border-2 border-accent px-10 py-4 text-xl font-bold uppercase tracking-wider text-accent transition hover:bg-accent hover:text-white"
                       >
                         Sign In
                       </Link>
@@ -444,7 +472,7 @@ const Navbar = () => {
                       <Link
                         href="/register"
                         onClick={() => setIsOpen(false)}
-                        className="inline-block rounded-full bg-accent px-10 py-4 text-xl font-bold uppercase tracking-wider text-white transition-all duration-300 hover:scale-105"
+                        className="inline-block rounded-full bg-accent px-10 py-4 text-xl font-bold uppercase tracking-wider text-white transition hover:scale-105"
                       >
                         Join Us
                       </Link>

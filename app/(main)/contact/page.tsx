@@ -12,7 +12,6 @@ import {
   FaLinkedin,
   FaEnvelope,
   FaLocationDot,
-  FaPhone,
   FaPaperPlane,
 } from "react-icons/fa6";
 import { HiOutlinePencilAlt } from "react-icons/hi";
@@ -207,29 +206,6 @@ const Contact = () => {
                     className="text-text-muted hover:text-accent transition-colors duration-300"
                   >
                     {content.email}
-                  </Link>
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              transition={{ duration: 0.25 }}
-              className="bg-background/50 backdrop-blur-sm border border-text-secondary/10 rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300"
-            >
-              <div className="flex items-start gap-6">
-                <div className="bg-accent/10 p-4 rounded-xl">
-                  <FaPhone className="text-3xl text-accent" />
-                </div>
-                <div>
-                  <h3 className="font-bebasNeue text-2xl text-text-secondary mb-2 tracking-wide">
-                    Phone
-                  </h3>
-                  <Link
-                    href={`tel:${content.phone.replace(/\s+/g, "")}`}
-                    className="text-text-muted hover:text-accent transition-colors duration-300"
-                  >
-                    {content.phone}
                   </Link>
                 </div>
               </div>

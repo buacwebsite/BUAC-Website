@@ -9,6 +9,7 @@ import AboutSectionEditor from "./editors/AboutSectionEditor";
 import VisionEditor from "./editors/VisionEditor";
 import ActivitiesEditor from "./editors/ActivitiesEditor";
 import GalleryEditor from "./editors/GalleryEditor";
+import HomeOrderEditor from "./editors/HomeOrderEditor";
 
 export default function GlobalEditorModal() {
   const ctx = useEditor();
@@ -16,8 +17,8 @@ export default function GlobalEditorModal() {
   const { editor, closeEditor } = ctx;
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
-      <div className="bg-background p-6 rounded-xl w-180">
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+      <div className="bg-background p-6 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         {editor.type === "landing-hero" && (
           <LandingHeroEditor data={editor.data} onClose={closeEditor} />
         )}
@@ -47,6 +48,9 @@ export default function GlobalEditorModal() {
         )}
         {editor.type === "gallery" && (
           <GalleryEditor data={editor.data} onClose={closeEditor} />
+        )}
+        {editor.type === "home-order" && (
+          <HomeOrderEditor data={editor.data} onClose={closeEditor} />
         )}
       </div>
     </div>

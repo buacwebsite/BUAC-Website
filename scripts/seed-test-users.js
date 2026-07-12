@@ -119,22 +119,6 @@ const users = [
       donateBlood: "no",
     },
   },
-  {
-    name: "Test Panel",
-    email: "test.panel@g.bracu.ac.bd",
-    role: "member",
-    profile: {
-      contact: "01700000003",
-      varsityDepartment: "CSE",
-      joinSemester: "Spring 2025",
-      buacDepartment: "Panel",
-      buacPosition: "",
-      panelPosition: "President",
-      bloodGroup: "Unknown",
-      donateBlood: "no",
-      facebook: "https://facebook.com/test.panel",
-    },
-  },
 ];
 
 async function main() {
