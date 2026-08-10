@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import axios from "axios";
 import RecruitmentForm from "../../components/RecruitmentForm";
 import {
   FaMountain,
@@ -15,59 +16,39 @@ import {
 import { HiOutlinePencilAlt } from "react-icons/hi";
 import { useEditor } from "@/app/context/EditorContext";
 import { useAuth } from "@/app/context/AuthProvider";
-import axios from "axios";
-import ClassicLoader from "@/app/components/ui/ClassicLoader";
-
-interface JoinUsContent {
-  heading: string;
-  subheading: string;
-  whyJoinHeading: string;
-  benefits: Array<{
-    title: string;
-    description: string;
-  }>;
-  lookingForHeading: string;
-  essentialQualitiesHeading: string;
-  essentialQualities: string[];
-  bonusPointsHeading: string;
-  bonusPoints: string[];
-  applyHeading: string;
-  applySubheading: string;
-  ctaHeading: string;
-  ctaDescription: string;
-}
+import BUACLoader from "@/app/components/ui/BUACLoader";
+import {
+  STATIC_RECRUITMENT,
+  type RecruitmentContent,
+} from "@/lib/siteContent";
+import { usePublicContent } from "@/lib/publicContent";
 
 const Recruitment = () => {
-  const [content, setContent] = useState<JoinUsContent | null>(null);
-  const [recruitmentActive, setRecruitmentActive] = useState(false);
-  const [loadingSettings, setLoadingSettings] = useState(true);
   const { auth } = useAuth();
   const { openEditor } = useEditor();
 
-  useEffect(() => {
-    const fetchContent = async () => {
-      try {
-        const res = await axios.get("/api/content/joinus");
-        setContent(res.data.joinus);
-      } catch (error) {
-        console.error("Failed to fetch join us content:", error);
-      }
-    };
-    fetchContent();
-  }, []);
+  const { data: apiData } = usePublicContent<{ joinus: RecruitmentContent }>(
+    "/api/content/joinus",
+    { joinus: STATIC_RECRUITMENT },
+  );
+
+  const content = apiData?.joinus || STATIC_RECRUITMENT;
+
+  const [recruitmentActive, setRecruitmentActive] = useState(false);
+  const [loadingSettings, setLoadingSettings] = useState(true);
 
   useEffect(() => {
-    const fetchRecruitmentSettings = async () => {
+    const fetchSettings = async () => {
       try {
         const res = await axios.get("/api/content/recruitment-settings");
         setRecruitmentActive(res.data.isActive);
-      } catch (error) {
-        console.error("Failed to fetch recruitment settings:", error);
+      } catch {
+        console.error("Failed to fetch recruitment settings");
       } finally {
         setLoadingSettings(false);
       }
     };
-    fetchRecruitmentSettings();
+    fetchSettings();
   }, []);
 
   const benefitIcons = [
@@ -79,16 +60,8 @@ const Recruitment = () => {
     <FaFire key="fire" className="text-4xl text-accent" />,
   ];
 
-  if (!content) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <ClassicLoader size="lg" />
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-linear-to-b from-background to-background/80 py-20 px-4">
+    <div className="buac-gradient-bg min-h-screen py-20 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16 relative">
           {auth && (
@@ -101,6 +74,7 @@ const Recruitment = () => {
               Edit
             </button>
           )}
+
           <h1 className="font-bebasNeue text-6xl md:text-8xl text-text-secondary mb-4 tracking-wider">
             {content.heading}
           </h1>
@@ -117,7 +91,7 @@ const Recruitment = () => {
             {content.benefits.map((benefit, index) => (
               <div
                 key={index}
-                className="bg-background/50 backdrop-blur-sm border border-text-secondary/10 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:border-accent/20"
+                className="bg-surface/70 backdrop-blur-md border border-border rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:border-accent/30"
               >
                 <div className="bg-accent/10 w-16 h-16 rounded-xl flex items-center justify-center mb-4">
                   {benefitIcons[index]}
@@ -125,15 +99,13 @@ const Recruitment = () => {
                 <h3 className="font-bebasNeue text-2xl text-text-secondary mb-2 tracking-wide">
                   {benefit.title}
                 </h3>
-                <p className="text-text-muted leading-relaxed">
-                  {benefit.description}
-                </p>
+                <p className="text-text-muted leading-relaxed">{benefit.description}</p>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="bg-linear-to-br from-accent/5 to-accent/10 backdrop-blur-sm border border-accent/20 rounded-2xl p-8 md:p-12 mb-16 shadow-xl">
+        <div className="bg-surface/70 backdrop-blur-md border border-accent/20 rounded-2xl p-8 md:p-12 mb-16 shadow-xl">
           <h2 className="font-bebasNeue text-3xl md:text-4xl text-text-secondary mb-6 tracking-wider">
             {content.lookingForHeading}
           </h2>
@@ -177,7 +149,7 @@ const Recruitment = () => {
           <div className="max-w-3xl mx-auto">
             {loadingSettings ? (
               <div className="flex items-center justify-center py-12">
-                <ClassicLoader size="md" />
+                <BUACLoader size="md" />
               </div>
             ) : recruitmentActive ? (
               <>
@@ -192,22 +164,20 @@ const Recruitment = () => {
                 <RecruitmentForm />
               </>
             ) : (
-              <div className="bg-linear-to-br from-accent/10 to-accent/5 backdrop-blur-sm border-2 border-accent/30 rounded-2xl p-12 text-center shadow-xl">
+              <div className="bg-surface/70 backdrop-blur-md border-2 border-accent/30 rounded-2xl p-12 text-center shadow-xl">
                 <FaLock className="text-6xl text-accent mx-auto mb-4" />
                 <h3 className="font-bebasNeue text-3xl text-text-secondary mb-4 tracking-wider">
                   Recruitment is Currently Closed
                 </h3>
                 <p className="text-text-muted text-lg max-w-xl mx-auto">
-                  We&apos;re not accepting new applications at the moment. Please
-                  check back later or follow our social media for updates on when
-                  recruitment reopens!
+                  We are not accepting new applications at the moment. Please check back later.
                 </p>
               </div>
             )}
           </div>
         </div>
 
-        <div className="bg-linear-to-r from-accent/10 via-accent/5 to-accent/10 backdrop-blur-sm border border-accent/20 rounded-2xl p-12 text-center shadow-xl">
+        <div className="bg-surface/70 backdrop-blur-md border border-accent/20 rounded-2xl p-12 text-center shadow-xl">
           <h2 className="font-bebasNeue text-3xl md:text-4xl text-text-secondary mb-4 tracking-wider">
             {content.ctaHeading}
           </h2>

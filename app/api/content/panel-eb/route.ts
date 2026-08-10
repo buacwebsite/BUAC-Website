@@ -20,9 +20,14 @@ interface ExecutiveDepartment {
 interface PanelEbContent {
   panel: PersonImage[];
   executiveBody: ExecutiveDepartment[];
+  featuredVideoUrl: string;
 }
 
-function createEmptyPerson(id: string, title: string, subtitle = ""): PersonImage {
+function createEmptyPerson(
+  id: string,
+  title: string,
+  subtitle = "",
+): PersonImage {
   return {
     id,
     title,
@@ -32,6 +37,7 @@ function createEmptyPerson(id: string, title: string, subtitle = ""): PersonImag
 }
 
 const defaultContent: PanelEbContent = {
+  featuredVideoUrl: "",
   panel: [
     createEmptyPerson("panel-1", "Panel Member 1", "President"),
     createEmptyPerson("panel-2", "Panel Member 2", "Vice President"),
@@ -97,7 +103,10 @@ const defaultContent: PanelEbContent = {
   ],
 };
 
-function normalizePerson(input: Partial<PersonImage>, fallbackId: string): PersonImage {
+function normalizePerson(
+  input: Partial<PersonImage>,
+  fallbackId: string,
+): PersonImage {
   return {
     id: String(input.id || fallbackId),
     title: String(input.title || "Name"),
@@ -138,9 +147,15 @@ function normalizeContent(input: unknown): PanelEbContent {
       })
     : defaultContent.executiveBody;
 
+  const featuredVideoUrl =
+    typeof data.featuredVideoUrl === "string"
+      ? data.featuredVideoUrl.trim()
+      : "";
+
   return {
     panel,
     executiveBody,
+    featuredVideoUrl,
   };
 }
 

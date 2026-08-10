@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios, { AxiosError } from "axios";
 import { motion } from "framer-motion";
 import {
@@ -11,28 +11,9 @@ import {
   HiUpload,
   HiX,
 } from "react-icons/hi";
-import UniqueLoading from "@/app/components/ui/UniqueLoading";
+import { FaYoutube } from "react-icons/fa6";
+import PageLoader from "@/app/components/ui/PageLoader";
 import { useAuth } from "@/app/context/AuthProvider";
-
-interface PerspectiveState {
-  rotateX: number;
-  rotateY: number;
-}
-
-interface SpotlightConfig {
-  spotlightSize?: number;
-  overlayOpacity?: number;
-  className?: string;
-}
-
-interface ImageSpotlightProps {
-  src: string;
-  alt: string;
-  orientation?: "landscape" | "portrait" | "square";
-  width?: number;
-  height?: number;
-  config?: SpotlightConfig;
-}
 
 interface PersonImage {
   id: string;
@@ -50,6 +31,7 @@ interface ExecutiveDepartment {
 interface PanelEbContent {
   panel: PersonImage[];
   executiveBody: ExecutiveDepartment[];
+  featuredVideoUrl: string;
 }
 
 function createEmptyPerson(id: string): PersonImage {
@@ -62,6 +44,7 @@ function createEmptyPerson(id: string): PersonImage {
 }
 
 const defaultContent: PanelEbContent = {
+  featuredVideoUrl: "",
   panel: [
     createEmptyPerson("panel-1"),
     createEmptyPerson("panel-2"),
@@ -107,159 +90,54 @@ const defaultContent: PanelEbContent = {
   ],
 };
 
-function ImageSpotlight({
-  src,
-  alt,
-  orientation = "square",
-  width,
-  height,
-  config = {},
-}: ImageSpotlightProps) {
-  const defaultConfig: Required<SpotlightConfig> = {
-    spotlightSize: 95,
-    overlayOpacity: 0.5,
-    className: "",
-  };
+function getYouTubeId(value: string) {
+  const input = value.trim();
+  if (!input) return "";
 
-  const finalConfig = { ...defaultConfig, ...config };
+  const directId = input.match(/^[a-zA-Z0-9_-]{11}$/);
+  if (directId) return directId[0];
 
-  const [perspective, setPerspective] = useState<PerspectiveState>({
-    rotateX: 0,
-    rotateY: 0,
-  });
-
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const handleMouseMove = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>) => {
-      if (!containerRef.current) return;
-
-      const rect = containerRef.current.getBoundingClientRect();
-      const x = ((event.clientX - rect.left) / rect.width) * 100;
-      const y = ((event.clientY - rect.top) / rect.height) * 100;
-
-      containerRef.current.style.setProperty("--mouse-x", `${x}%`);
-      containerRef.current.style.setProperty("--mouse-y", `${y}%`);
-
-      const rotateY = ((x - 50) / 50) * 8;
-      const rotateX = ((50 - y) / 50) * 8;
-
-      setPerspective({ rotateX, rotateY });
-    },
-    [],
+  const match = input.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
   );
 
-  const handleMouseLeave = () => {
-    setPerspective({ rotateX: 0, rotateY: 0 });
-  };
+  return match?.[1] || "";
+}
 
-  const getContainerDimensions = (): React.CSSProperties => {
-    if (width && height) {
-      return {
-        width: `${width}px`,
-        height: `${height}px`,
-        maxWidth: "100%",
-      };
-    }
+function FeaturedVideo({ videoUrl }: { videoUrl: string }) {
+  const videoId = getYouTubeId(videoUrl);
 
-    if (orientation === "landscape") {
-      return {
-        width: "800px",
-        height: "450px",
-        maxWidth: "100%",
-      };
-    }
-
-    if (orientation === "portrait") {
-      return {
-        width: "450px",
-        height: "600px",
-        maxWidth: "100%",
-      };
-    }
-
-    return {
-      width: "100%",
-      aspectRatio: "1 / 1",
-      maxWidth: "100%",
-    };
-  };
-
-  const containerClasses = `
-    relative overflow-hidden cursor-none rounded-3xl shadow-xl border border-accent/20 bg-accent/10
-    ${finalConfig.className}
-  `.trim();
+  if (!videoId) return null;
 
   return (
-    <div className="flex items-center justify-center">
-      <div
-        ref={containerRef}
-        className={containerClasses}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-        role="img"
-        aria-label={alt}
-        tabIndex={0}
-        style={
-          {
-            ...getContainerDimensions(),
-            "--mouse-x": "50%",
-            "--mouse-y": "50%",
-            "--spotlight-size": `${finalConfig.spotlightSize}px`,
-            "--overlay-opacity": finalConfig.overlayOpacity,
-            transform: `perspective(1000px) rotateX(${perspective.rotateX}deg) rotateY(${perspective.rotateY}deg)`,
-            transformStyle: "preserve-3d",
-            transition: "transform 0.2s ease-out",
-          } as React.CSSProperties
-        }
-      >
-        <img
-          src={src}
-          alt={alt}
-          className="absolute inset-0 h-full w-full object-cover"
-          draggable={false}
-          style={{ filter: "blur(5px)" }}
-        />
-
-        <img
-          src={src}
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover"
-          draggable={false}
-          style={{
-            maskImage: `radial-gradient(
-              circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-              black ${finalConfig.spotlightSize * 0.45}px,
-              transparent ${finalConfig.spotlightSize * 1.7}px
-            )`,
-            WebkitMaskImage: `radial-gradient(
-              circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-              black ${finalConfig.spotlightSize * 0.45}px,
-              transparent ${finalConfig.spotlightSize * 1.7}px
-            )`,
-            zIndex: 2,
-          }}
-        />
-
-        <div
-          className="absolute inset-0 bg-black will-change-[mask-position] transition-all duration-100 ease-out"
-          style={{
-            opacity: finalConfig.overlayOpacity,
-            maskImage: `radial-gradient(
-              circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-              transparent ${finalConfig.spotlightSize * 0.45}px,
-              black ${finalConfig.spotlightSize * 1.7}px
-            )`,
-            WebkitMaskImage: `radial-gradient(
-              circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-              transparent ${finalConfig.spotlightSize * 0.45}px,
-              black ${finalConfig.spotlightSize * 1.7}px
-            )`,
-            zIndex: 10,
-          }}
-        />
+    <motion.section
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="mb-16"
+    >
+      <div className="mb-6 text-center">
+        <div className="mx-auto mb-3 inline-flex items-center gap-2 rounded-full bg-red-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.3em] text-red-500">
+          <FaYoutube className="h-4 w-4" />
+          Featured Video
+        </div>
+        <h2 className="font-bebasNeue text-4xl tracking-wider text-text-secondary md:text-5xl">
+          Meet the Team
+        </h2>
       </div>
-    </div>
+
+      <div className="mx-auto max-w-5xl overflow-hidden rounded-3xl border border-border bg-black shadow-2xl">
+        <div className="relative aspect-video w-full">
+          <iframe
+            src={`https://www.youtube.com/embed/${videoId}?rel=0`}
+            title="BUAC Featured Video"
+            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="absolute inset-0 h-full w-full"
+          />
+        </div>
+      </div>
+    </motion.section>
   );
 }
 
@@ -274,7 +152,7 @@ function EmptyImageBox() {
   );
 }
 
-function PersonCard({
+function SolidImageCard({
   person,
   isAdmin,
   isEditing,
@@ -292,20 +170,18 @@ function PersonCard({
       initial={{ opacity: 0, y: 22 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className="group relative overflow-hidden rounded-[2rem] border border-accent/20 bg-white/40 p-3 shadow-xl backdrop-blur-sm"
+      className="group relative overflow-hidden rounded-[2rem] border border-border bg-surface p-3 shadow-xl"
     >
       <div className="relative">
         {person.image ? (
-          <ImageSpotlight
-            src={person.image}
-            alt="Panel and Executive Body Image"
-            orientation="square"
-            config={{
-              spotlightSize: 105,
-              overlayOpacity: 0.48,
-              className: "w-full",
-            }}
-          />
+          <div className="relative aspect-square w-full overflow-hidden rounded-3xl border border-border bg-surface-secondary">
+            <img
+              src={person.image}
+              alt={person.title || "Panel and Executive Body Image"}
+              className="h-full w-full object-cover"
+              draggable={false}
+            />
+          </div>
         ) : (
           <EmptyImageBox />
         )}
@@ -322,6 +198,7 @@ function PersonCard({
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) onUpload(file);
+                  e.currentTarget.value = "";
                 }}
               />
             </label>
@@ -329,7 +206,7 @@ function PersonCard({
             <button
               type="button"
               onClick={onRemove}
-              className="flex items-center gap-1 rounded-full bg-red-500 px-3 py-2 text-xs font-bold text-white shadow-lg"
+              className="flex cursor-pointer items-center gap-1 rounded-full bg-red-500 px-3 py-2 text-xs font-bold text-white shadow-lg transition hover:bg-red-600"
             >
               <HiTrash />
               Remove
@@ -345,6 +222,9 @@ export default function PanelEbPage() {
   const { auth } = useAuth();
 
   const [content, setContent] = useState<PanelEbContent>(defaultContent);
+  const [originalContent, setOriginalContent] =
+    useState<PanelEbContent>(defaultContent);
+
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -355,9 +235,9 @@ export default function PanelEbPage() {
     const fetchContent = async () => {
       try {
         const res = await axios.get("/api/content/panel-eb");
-
         if (res.data?.content) {
           setContent(res.data.content);
+          setOriginalContent(res.data.content);
         }
       } catch (err) {
         console.error("Failed to fetch Panel & EB content:", err);
@@ -377,25 +257,18 @@ export default function PanelEbPage() {
       withCredentials: true,
     });
 
-    if (!res.data?.url) {
-      throw new Error("Upload failed");
-    }
-
+    if (!res.data?.url) throw new Error("Upload failed");
     return res.data.url as string;
+  };
+
+  const updateFeaturedVideoUrl = (value: string) => {
+    setContent({ ...content, featuredVideoUrl: value });
   };
 
   const updatePanelPersonImage = (index: number, image: string) => {
     const panel = [...content.panel];
-
-    panel[index] = {
-      ...panel[index],
-      image,
-    };
-
-    setContent({
-      ...content,
-      panel,
-    });
+    panel[index] = { ...panel[index], image };
+    setContent({ ...content, panel });
   };
 
   const removePanelPerson = (index: number) => {
@@ -414,13 +287,14 @@ export default function PanelEbPage() {
 
   const uploadPanelImage = async (index: number, file: File) => {
     setUploading(`panel-${index}`);
+    setError("");
 
     try {
       const url = await uploadImage(file);
       updatePanelPersonImage(index, url);
     } catch (err) {
       console.error(err);
-      alert("Image upload failed");
+      setError("Panel image upload failed.");
     } finally {
       setUploading("");
     }
@@ -433,21 +307,12 @@ export default function PanelEbPage() {
   ) => {
     const executiveBody = [...content.executiveBody];
     const images = [...executiveBody[departmentIndex].images];
-
-    images[imageIndex] = {
-      ...images[imageIndex],
-      image,
-    };
-
+    images[imageIndex] = { ...images[imageIndex], image };
     executiveBody[departmentIndex] = {
       ...executiveBody[departmentIndex],
       images,
     };
-
-    setContent({
-      ...content,
-      executiveBody,
-    });
+    setContent({ ...content, executiveBody });
   };
 
   const removeExecutivePerson = (
@@ -455,33 +320,26 @@ export default function PanelEbPage() {
     imageIndex: number,
   ) => {
     const executiveBody = [...content.executiveBody];
-
     executiveBody[departmentIndex] = {
       ...executiveBody[departmentIndex],
       images: executiveBody[departmentIndex].images.filter(
         (_, i) => i !== imageIndex,
       ),
     };
-
-    setContent({
-      ...content,
-      executiveBody,
-    });
+    setContent({ ...content, executiveBody });
   };
 
   const addExecutivePerson = (departmentIndex: number) => {
     const executiveBody = [...content.executiveBody];
     const department = executiveBody[departmentIndex];
-
     executiveBody[departmentIndex] = {
       ...department,
-      images: [...department.images, createEmptyPerson(`${department.id}-${Date.now()}`)],
+      images: [
+        ...department.images,
+        createEmptyPerson(`${department.id}-${Date.now()}`),
+      ],
     };
-
-    setContent({
-      ...content,
-      executiveBody,
-    });
+    setContent({ ...content, executiveBody });
   };
 
   const uploadExecutiveImage = async (
@@ -490,16 +348,30 @@ export default function PanelEbPage() {
     file: File,
   ) => {
     setUploading(`eb-${departmentIndex}-${imageIndex}`);
+    setError("");
 
     try {
       const url = await uploadImage(file);
       updateExecutivePersonImage(departmentIndex, imageIndex, url);
     } catch (err) {
       console.error(err);
-      alert("Image upload failed");
+      setError("Executive body image upload failed.");
     } finally {
       setUploading("");
     }
+  };
+
+  const startEditing = () => {
+    setOriginalContent(JSON.parse(JSON.stringify(content)));
+    setIsEditing(true);
+    setError("");
+  };
+
+  const cancelEditing = () => {
+    if (saving || uploading) return;
+    setContent(JSON.parse(JSON.stringify(originalContent)));
+    setIsEditing(false);
+    setError("");
   };
 
   const saveContent = async () => {
@@ -510,13 +382,11 @@ export default function PanelEbPage() {
       await axios.put(
         "/api/content/panel-eb",
         { content },
-        {
-          withCredentials: true,
-        },
+        { withCredentials: true },
       );
 
+      setOriginalContent(JSON.parse(JSON.stringify(content)));
       setIsEditing(false);
-      alert("Panel & EB updated successfully");
     } catch (err) {
       console.error("Failed to save Panel & EB:", err);
 
@@ -535,11 +405,7 @@ export default function PanelEbPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <UniqueLoading variant="morph" size="lg" />
-      </div>
-    );
+    return <PageLoader label="Loading panel and executive body" />;
   }
 
   return (
@@ -570,9 +436,9 @@ export default function PanelEbPage() {
                 <>
                   <button
                     type="button"
-                    onClick={() => setIsEditing(false)}
-                    disabled={saving}
-                    className="flex items-center gap-2 rounded-full border border-text-muted/30 px-5 py-3 text-sm font-bold text-text-muted transition hover:border-accent hover:text-accent disabled:opacity-50"
+                    onClick={cancelEditing}
+                    disabled={saving || Boolean(uploading)}
+                    className="flex cursor-pointer items-center gap-2 rounded-full border border-border px-5 py-3 text-sm font-bold text-text-muted transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <HiX />
                     Cancel
@@ -581,8 +447,8 @@ export default function PanelEbPage() {
                   <button
                     type="button"
                     onClick={saveContent}
-                    disabled={saving}
-                    className="flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-bold text-white transition hover:bg-accent/90 disabled:opacity-50"
+                    disabled={saving || Boolean(uploading)}
+                    className="flex cursor-pointer items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-bold text-white transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <HiSave />
                     {saving ? "Saving..." : "Save Changes"}
@@ -591,8 +457,8 @@ export default function PanelEbPage() {
               ) : (
                 <button
                   type="button"
-                  onClick={() => setIsEditing(true)}
-                  className="flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-bold text-white transition hover:bg-accent/90"
+                  onClick={startEditing}
+                  className="flex cursor-pointer items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-bold text-white transition hover:bg-accent/90"
                 >
                   <HiOutlinePencilAlt />
                   Edit Page
@@ -603,16 +469,53 @@ export default function PanelEbPage() {
         </div>
 
         {error && (
-          <div className="mb-8 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-600">
+          <div className="mb-8 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-500">
             {error}
           </div>
         )}
 
         {uploading && (
-          <div className="fixed bottom-6 right-6 z-50 rounded-full bg-accent px-5 py-3 text-sm font-bold text-white shadow-xl">
+          <div className="fixed right-6 bottom-6 z-50 rounded-full bg-accent px-5 py-3 text-sm font-bold text-white shadow-xl">
             Uploading image...
           </div>
         )}
+
+        {auth && isEditing && (
+          <div className="mb-10 rounded-3xl border border-red-500/30 bg-surface p-6 shadow-xl">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500 text-white">
+                <FaYoutube className="h-5 w-5" />
+              </div>
+
+              <div className="flex-1">
+                <h3 className="font-bebasNeue text-2xl tracking-wide text-text-secondary">
+                  Featured YouTube Video
+                </h3>
+                <p className="mt-1 mb-4 text-xs text-text-muted">
+                  Paste any YouTube video URL. It will appear at the top of the
+                  Panel & EB page. Leave empty to hide the video section.
+                </p>
+
+                <input
+                  type="url"
+                  value={content.featuredVideoUrl}
+                  onChange={(e) => updateFeaturedVideoUrl(e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  className="w-full rounded-xl border border-input-border bg-input-bg px-4 py-3 text-text-secondary outline-none placeholder:text-text-muted focus:border-accent"
+                />
+
+                {content.featuredVideoUrl &&
+                  !getYouTubeId(content.featuredVideoUrl) && (
+                    <p className="mt-2 text-xs text-red-500">
+                      That does not look like a valid YouTube URL.
+                    </p>
+                  )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <FeaturedVideo videoUrl={content.featuredVideoUrl} />
 
         <section className="mb-24">
           <div className="mb-7 flex items-center justify-between">
@@ -624,7 +527,8 @@ export default function PanelEbPage() {
               <button
                 type="button"
                 onClick={addPanelPerson}
-                className="flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-xs font-bold text-white"
+                disabled={saving || Boolean(uploading)}
+                className="flex cursor-pointer items-center gap-2 rounded-full bg-accent px-4 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <HiPlus />
                 Add Image
@@ -632,18 +536,24 @@ export default function PanelEbPage() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 xl:grid-cols-4">
-            {content.panel.map((person, index) => (
-              <PersonCard
-                key={person.id}
-                person={person}
-                isAdmin={auth}
-                isEditing={isEditing}
-                onRemove={() => removePanelPerson(index)}
-                onUpload={(file) => uploadPanelImage(index, file)}
-              />
-            ))}
-          </div>
+          {content.panel.length > 0 ? (
+            <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 xl:grid-cols-4">
+              {content.panel.map((person, index) => (
+                <SolidImageCard
+                  key={person.id}
+                  person={person}
+                  isAdmin={auth}
+                  isEditing={isEditing}
+                  onRemove={() => removePanelPerson(index)}
+                  onUpload={(file) => uploadPanelImage(index, file)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-3xl border-2 border-dashed border-accent/30 bg-accent/5 px-6 py-16 text-center">
+              <p className="text-text-muted">No panel images available.</p>
+            </div>
+          )}
         </section>
 
         <section>
@@ -665,7 +575,8 @@ export default function PanelEbPage() {
                     <button
                       type="button"
                       onClick={() => addExecutivePerson(departmentIndex)}
-                      className="flex items-center justify-center gap-2 rounded-full bg-accent px-4 py-2 text-xs font-bold text-white"
+                      disabled={saving || Boolean(uploading)}
+                      className="flex cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-4 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <HiPlus />
                       Add Image
@@ -673,26 +584,34 @@ export default function PanelEbPage() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-                  {department.images.map((person, imageIndex) => (
-                    <PersonCard
-                      key={person.id}
-                      person={person}
-                      isAdmin={auth}
-                      isEditing={isEditing}
-                      onRemove={() =>
-                        removeExecutivePerson(departmentIndex, imageIndex)
-                      }
-                      onUpload={(file) =>
-                        uploadExecutiveImage(
-                          departmentIndex,
-                          imageIndex,
-                          file,
-                        )
-                      }
-                    />
-                  ))}
-                </div>
+                {department.images.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                    {department.images.map((person, imageIndex) => (
+                      <SolidImageCard
+                        key={person.id}
+                        person={person}
+                        isAdmin={auth}
+                        isEditing={isEditing}
+                        onRemove={() =>
+                          removeExecutivePerson(departmentIndex, imageIndex)
+                        }
+                        onUpload={(file) =>
+                          uploadExecutiveImage(
+                            departmentIndex,
+                            imageIndex,
+                            file,
+                          )
+                        }
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-3xl border-2 border-dashed border-accent/30 bg-accent/5 px-6 py-14 text-center">
+                    <p className="text-text-muted">
+                      No images available for this department.
+                    </p>
+                  </div>
+                )}
               </section>
             ))}
           </div>

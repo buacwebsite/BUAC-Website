@@ -1,0 +1,22 @@
+{
+  "env": {
+    "ANTHROPIC_API_KEY": "sk-31e08ff323fdf5ef-0cfa14-9dbd78f1",
+    "ANTHROPIC_BASE_URL": "http://localhost:20128/v1",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-sonnet-5",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-fable-5",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "trk/moonshotai/kimi-k3-free"
+  },
+  "permissions": {
+    "allow": [],
+    "deny": []
+  },
+  "model": "haiku",
+  "statusLine": {
+    "type": "command",
+    "command": "node \"C:\\Users\\tawfi\\.claude\\statusline.js\""
+  },
+  "effortLevel": "low",
+  "theme": "dark",
+  "switchModelsOnFlag": false
+}

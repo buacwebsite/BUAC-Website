@@ -7,7 +7,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { FaTint, FaPhone, FaFacebook, FaSearch } from "react-icons/fa";
 import { useAuth } from "@/app/context/AuthProvider";
-import ClassicLoader from "@/app/components/ui/ClassicLoader";
+import PageLoader from "@/app/components/ui/PageLoader";
 
 interface Donor {
   name: string;
@@ -60,15 +60,11 @@ export default function BloodDonationPage() {
   });
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <ClassicLoader size="lg" />
-      </div>
-    );
+    return <PageLoader label="Loading blood donors" />;
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-background to-background/80 py-20 px-4">
+    <div className="min-h-screen bg-background py-20 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10">
@@ -83,7 +79,6 @@ export default function BloodDonationPage() {
           </p>
         </div>
 
-        {/* Search + Filter */}
         <div className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="relative flex-1">
             <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
@@ -91,13 +86,13 @@ export default function BloodDonationPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name or blood group..."
-              className="w-full bg-background/80 border border-text-secondary/20 rounded-xl pl-11 pr-4 py-3 text-text-secondary focus:outline-none focus:border-accent"
+              className="w-full bg-surface border border-text-secondary/20 rounded-xl pl-11 pr-4 py-3 text-text-secondary focus:outline-none focus:border-accent"
             />
           </div>
           <select
             value={groupFilter}
             onChange={(e) => setGroupFilter(e.target.value)}
-            className="bg-background/80 border border-text-secondary/20 rounded-xl px-4 py-3 text-text-secondary focus:outline-none focus:border-accent"
+            className="bg-surface border border-text-secondary/20 rounded-xl px-4 py-3 text-text-secondary focus:outline-none focus:border-accent"
           >
             {bloodGroupsFilter.map((g) => (
               <option key={g} value={g}>
@@ -107,7 +102,6 @@ export default function BloodDonationPage() {
           </select>
         </div>
 
-        {/* Donor Grid */}
         {filtered.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map((donor, i) => (
@@ -116,7 +110,7 @@ export default function BloodDonationPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.03 }}
-                className="bg-background/50 backdrop-blur-sm border border-text-secondary/10 rounded-2xl p-6 shadow-xl"
+                className="bg-surface backdrop-blur-sm border border-text-secondary/10 rounded-2xl p-6 shadow-xl"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div>

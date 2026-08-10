@@ -15,6 +15,7 @@ type EditorState = {
     | "tours"
     | "activities"
     | "gallery"
+    | "gallery-videos"
     | "aboutSection"
     | "vision"
     | "home-order";

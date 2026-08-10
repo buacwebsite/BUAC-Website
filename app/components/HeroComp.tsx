@@ -112,6 +112,7 @@ function DestinationCard({
           src={loc.image}
           alt={loc.name}
           fill
+          loading="lazy"
           sizes="220px"
           className="absolute inset-0 object-cover transition-transform duration-700 group-hover:scale-110"
         />
@@ -174,7 +175,7 @@ function RoadMapTimeline({
 
     let d = `M ${points[0].x} ${points[0].y}`;
 
-    for (let i = 0; i < points.length - 1; i++) {
+    for (let i = 0; i < points.length - 1; i += 1) {
       const p0 = points[i];
       const p1 = points[i + 1];
       const cx = (p0.x + p1.x) / 2;
@@ -268,7 +269,9 @@ function RoadMapTimeline({
                 r={isActive ? 3 : 1.8}
                 fill="none"
                 stroke={
-                  isActive ? "var(--color-accent)" : "rgba(255,255,255,0.6)"
+                  isActive
+                    ? "var(--color-accent)"
+                    : "rgba(255,255,255,0.6)"
                 }
                 strokeWidth="0.4"
                 animate={{ r: isActive ? 3 : 1.8 }}
@@ -298,6 +301,7 @@ function RoadMapTimeline({
                     transition={{ duration: 1.6, repeat: Infinity }}
                     style={{ transformOrigin: `${p.x}px ${p.y}px` }}
                   />
+
                   <motion.circle
                     cx={p.x}
                     cy={p.y}
@@ -370,16 +374,21 @@ function RoadMapTimeline({
 export default function HeroComp({ images = [] }: { images: HeroSlide[] }) {
   const { auth } = useAuth();
   const { openEditor } = useEditor();
-
   const [active, setActive] = useState(0);
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   const locations = useMemo<LocationItem[]>(() => {
     const usableSlides = (images || []).filter(
-      (slide) => slide?.place || slide?.image,
+      (slide) => (slide?.place || slide?.image) && slide?.image,
     );
 
-    if (!usableSlides.length) return FALLBACK_LOCATIONS;
+    /**
+     * Admin content always wins.
+     * FALLBACK_LOCATIONS is used only when no real slides exist.
+     */
+    if (usableSlides.length === 0) {
+      return FALLBACK_LOCATIONS;
+    }
 
     return usableSlides.map((slide, index) => {
       const name = slide.place?.trim() || `Trail ${index + 1}`;
@@ -398,7 +407,9 @@ export default function HeroComp({ images = [] }: { images: HeroSlide[] }) {
   }, [images]);
 
   useEffect(() => {
-    if (active >= locations.length) setActive(0);
+    if (active >= locations.length) {
+      setActive(0);
+    }
   }, [active, locations.length]);
 
   const current = locations[active] ?? locations[0];
@@ -419,6 +430,7 @@ export default function HeroComp({ images = [] }: { images: HeroSlide[] }) {
   const goTo = useCallback(
     (index: number) => {
       const total = locations.length;
+
       if (!total) return;
 
       setActive(((index % total) + total) % total);
@@ -473,17 +485,17 @@ export default function HeroComp({ images = [] }: { images: HeroSlide[] }) {
               transition={{ duration: 1.1, ease: [0.4, 0, 0.2, 1] }}
               className="absolute inset-0"
             >
-              {/* Blurred cover layer fills the whole screen */}
+              {/* Blurred background layer — lazy loaded, no priority */}
               <Image
                 src={current.image}
                 alt=""
                 fill
-                priority
+                loading="lazy"
                 sizes="100vw"
                 className="object-cover scale-110 blur-2xl opacity-70"
               />
 
-              {/* Soft blended 16:9 image layer */}
+              {/* Main visible hero image — only this gets priority */}
               <div
                 className="absolute inset-0"
                 style={{
@@ -503,7 +515,6 @@ export default function HeroComp({ images = [] }: { images: HeroSlide[] }) {
                 />
               </div>
 
-              {/* Extra soft fade to remove hard horizontal image edge */}
               <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/70 via-black/20 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 h-52 bg-gradient-to-t from-background via-background/40 to-transparent" />
             </motion.div>

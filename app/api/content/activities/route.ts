@@ -1,81 +1,324 @@
 import { NextResponse } from "next/server";
-import { kv } from "../../../../lib/kv";
+import { kv } from "@/lib/kv";
 import { authenticateAdmin } from "@/lib/auth";
 
-const defaultContent = [
+export const dynamic = "force-dynamic";
+
+interface Activity {
+  id: number;
+  name: string;
+  description: string;
+  category: string;
+  imageUrl: string;
+}
+
+const defaultContent: Activity[] = [
   {
     id: 1,
-    slug: "bootcamp",
-    name: "Bootcamp",
-    description: "Intensive outdoor training program for new members to build skills and teamwork.",
-    date: "March 15-17, 2026",
-    category: "Training",
+    name: "Step To Glee",
+    description:
+      "BUAC's signature orientation program welcoming new members through entertainment, performances and bonding.",
+    category: "Orientation",
     imageUrl: "",
-    images: [],
-    content: "Our bootcamp is an immersive three-day experience designed to introduce new members to the fundamentals of outdoor adventure. Participants will learn essential skills including camping techniques, navigation, wilderness survival, and team coordination.\n\nThe program features expert-led workshops, hands-on practice sessions, and challenging group activities that build confidence and camaraderie. Whether you're a complete beginner or have some outdoor experience, our bootcamp will prepare you for future adventures with BUAC.\n\nJoin us for an unforgettable journey of learning, growth, and connection with nature and fellow adventurers.",
   },
   {
     id: 2,
-    slug: "school-to-globe",
-    name: "S2G - School to Globe",
-    description: "Our signature club orientation program introducing newcomers to outdoor adventure culture.",
-    date: "February 20, 2026",
-    category: "Orientation",
+    name: "Club Fair",
+    description:
+      "BUAC showcases its activities, recruits new members and inspires students to join the adventure.",
+    category: "Recruitment",
     imageUrl: "",
-    images: [],
-    content: "School to Globe (S2G) is our comprehensive orientation program that bridges the gap between campus life and the wider world of outdoor adventure. This program is specially designed for newcomers to understand our club's mission, values, and the incredible opportunities that await.\n\nDuring S2G, you'll meet current members, hear inspiring stories from past expeditions, learn about upcoming events, and discover how you can contribute to our vibrant community. We cover everything from club structure and membership benefits to safety protocols and environmental conservation practices.\n\nThis is more than just an orientation—it's your first step toward becoming part of a global network of adventure enthusiasts.",
   },
   {
     id: 3,
-    slug: "mountain-marathon",
-    name: "Mountain Marathon",
-    description: "Annual marathon event through scenic mountain trails, open to all adventure enthusiasts.",
-    date: "April 10, 2026",
-    category: "National Event",
+    name: "Bootcamp",
+    description:
+      "Outdoor training program members to build skills, confidence, leadership and teamwork.",
+    category: "Training",
     imageUrl: "",
-    images: [],
-    content: "The BUAC Mountain Marathon is one of our flagship national events, attracting runners and adventure enthusiasts from across the country. This challenging course winds through breathtaking mountain terrain, offering participants stunning views and an unforgettable experience.\n\nWith multiple distance categories available—including 5K, 10K, half marathon, and full marathon—there's a challenge suitable for every fitness level. The event promotes physical fitness, environmental awareness, and community spirit.\n\nAll proceeds support our conservation initiatives and youth outdoor education programs. Whether you're a competitive runner or a casual participant, the Mountain Marathon promises an exhilarating day in nature.",
   },
   {
     id: 4,
-    slug: "club-fair",
-    name: "Club Fair",
-    description: "Showcase of outdoor activities, equipment demos, and club membership drive.",
-    date: "September 5, 2026",
-    category: "National Event",
+    name: "Run Fusion",
+    description:
+      "BUAC's flagship running event promoting fitness, endurance and community through an exciting themed marathon.",
+    category: "Flagship Event",
     imageUrl: "",
-    images: [],
-    content: "The BUAC Club Fair is an exciting annual event where we open our doors to the entire community. This vibrant gathering features interactive demonstrations of various outdoor activities, equipment showcases from leading brands, and presentations by experienced adventurers.\n\nVisitors can try rock climbing on our portable wall, learn about camping gear, participate in navigation workshops, and hear firsthand accounts from club members who've conquered peaks and explored remote trails. It's also the perfect opportunity to learn about membership benefits and sign up for upcoming trips.\n\nFamily-friendly and free to attend, the Club Fair celebrates outdoor adventure culture and welcomes everyone interested in exploring nature, regardless of experience level.",
+  },
+  {
+    id: 5,
+    name: "Football Tournament",
+    description:
+      "An inter-club football competition encouraging healthy competition and teamwork.",
+    category: "Sports",
+    imageUrl: "",
+  },
+  {
+    id: 6,
+    name: "Badminton Tournament",
+    description:
+      "A badminton competition bringing members together through sports and healthy rivalry.",
+    category: "Sports",
+    imageUrl: "",
+  },
+  {
+    id: 7,
+    name: "Cricket Tournament",
+    description:
+      "A competitive cricket event that strengthens BUAC’s sportsmanship and teamwork.",
+    category: "Sports",
+    imageUrl: "",
+  },
+  {
+    id: 8,
+    name: "Creative Workshop",
+    description:
+      "An interactive workshop designed to exhibit creativity and develop practical skills among members.",
+    category: "Workshop",
+    imageUrl: "",
+  },
+  {
+    id: 9,
+    name: "IT Workshop",
+    description:
+      "A skill-development workshop teaching graphic design, photography, video editing and other digital creative skills.",
+    category: "Workshop",
+    imageUrl: "",
+  },
+  {
+    id: 10,
+    name: "First Aid Workshop",
+    description:
+      "A training session teaching members essential first aid and emergency response skills for safe adventures.",
+    category: "Workshop",
+    imageUrl: "",
+  },
+  {
+    id: 11,
+    name: "Swimming Workshop",
+    description:
+      "A practical training program teaching swimming and promotes water safety and fitness.",
+    category: "Workshop",
+    imageUrl: "",
+  },
+  {
+    id: 12,
+    name: "Student Tourism Security Workshop",
+    description:
+      "An awareness seminar focusing on safe risk management, responsible tourism and travel practices.",
+    category: "Workshop",
+    imageUrl: "",
+  },
+  {
+    id: 13,
+    name: "IT Photowalk",
+    description:
+      "A photography quest where members explore the city, enhance photography skills and capture meaningful stories.",
+    category: "Expedition",
+    imageUrl: "",
+  },
+  {
+    id: 14,
+    name: "Iftar Mahfil",
+    description:
+      "A Ramadan gathering bringing existing members and alumni together to share Iftar and strengthen bonds.",
+    category: "Social Event",
+    imageUrl: "",
+  },
+  {
+    id: 15,
+    name: "Get-together",
+    description:
+      "A recreational outing that strengthens connections and creates lasting memories.",
+    category: "Social Event",
+    imageUrl: "",
+  },
+  {
+    id: 16,
+    name: "Short Tour",
+    description:
+      "A brief adventure trip offering members the opportunity to explore nature, bond and gain outdoor experience.",
+    category: "Tour",
+    imageUrl: "",
+  },
+  {
+    id: 17,
+    name: "Long Tour",
+    description:
+      "A multi-day voyage featuring trekking, exploration and unforgettable memories in nature.",
+    category: "Tour",
+    imageUrl: "",
+  },
+  {
+    id: 18,
+    name: "University Adventra",
+    description:
+      "BUAC's national inter-university adventure competition promoting leadership, strategy and collaboration.",
+    category: "Flagship Event",
+    imageUrl: "",
+  },
+  {
+    id: 19,
+    name: "Aquaventure",
+    description:
+      "A BUAC-led club fair highlighting marine conservation while promoting environmental responsibility and student engagement.",
+    category: "Flagship Event",
+    imageUrl: "",
+  },
+  {
+    id: 20,
+    name: "Recruitment",
+    description:
+      "BUAC's recruiting process where eager students are interviewed and selected to become club members.",
+    category: "Recruitment",
+    imageUrl: "",
+  },
+  {
+    id: 21,
+    name: "General Body Meeting (GBM)",
+    description:
+      "A meeting where members provide and receive updates, discuss upcoming events and strengthen communication.",
+    category: "Meeting",
+    imageUrl: "",
+  },
+  {
+    id: 22,
+    name: "Unconquerable: Beyond The Limit",
+    description:
+      "A digital skill-based competition challenging participants in planning, data management, problem-solving and creative presentation.",
+    category: "Competition",
+    imageUrl: "",
+  },
+  {
+    id: 23,
+    name: "Movie Meetup",
+    description:
+      "A casual social event bringing BUAC members together through films and laughter.",
+    category: "Social Event",
+    imageUrl: "",
   },
 ];
 
+function normalizeName(name: string) {
+  return name.trim().toLowerCase();
+}
+
+function normalizeActivity(input: unknown, index: number): Activity {
+  const item =
+    input && typeof input === "object"
+      ? (input as Partial<Activity>)
+      : {};
+
+  const numericId = Number(item.id);
+
+  return {
+    id:
+      Number.isFinite(numericId) && numericId > 0
+        ? numericId
+        : index + 1,
+    name: typeof item.name === "string" ? item.name.trim() : "",
+    description:
+      typeof item.description === "string" ? item.description.trim() : "",
+    category: typeof item.category === "string" ? item.category.trim() : "",
+    imageUrl: typeof item.imageUrl === "string" ? item.imageUrl.trim() : "",
+  };
+}
+
+function normalizeActivities(input: unknown): Activity[] {
+  if (!Array.isArray(input)) {
+    return defaultContent;
+  }
+
+  return input.map((item, index) => normalizeActivity(item, index));
+}
+
+function mergeSavedWithDefaults(saved: Activity[]) {
+  if (!saved.length) {
+    return defaultContent;
+  }
+
+  const usedSavedNames = new Set<string>();
+
+  const mergedDefaults = defaultContent.map((defaultActivity) => {
+    const matchedSaved = saved.find(
+      (activity) =>
+        normalizeName(activity.name) === normalizeName(defaultActivity.name),
+    );
+
+    if (matchedSaved) {
+      usedSavedNames.add(normalizeName(matchedSaved.name));
+    }
+
+    return {
+      ...defaultActivity,
+      imageUrl: matchedSaved?.imageUrl || defaultActivity.imageUrl,
+    };
+  });
+
+  const customSaved = saved.filter(
+    (activity) =>
+      activity.name &&
+      !usedSavedNames.has(normalizeName(activity.name)) &&
+      !defaultContent.some(
+        (defaultActivity) =>
+          normalizeName(defaultActivity.name) === normalizeName(activity.name),
+      ),
+  );
+
+  return [
+    ...mergedDefaults,
+    ...customSaved.map((activity, index) => ({
+      ...activity,
+      id: defaultContent.length + index + 1,
+    })),
+  ];
+}
+
 export async function GET() {
   try {
-    const res = await kv.get("activities");
-    return NextResponse.json({ activities: res || defaultContent });
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ error: "internal error" }, { status: 500 });
+    const saved = await kv.get<unknown>("activities");
+    const normalizedSaved = normalizeActivities(saved);
+    const activities = mergeSavedWithDefaults(normalizedSaved);
+
+    return NextResponse.json({ activities }, { status: 200 });
+  } catch (error) {
+    console.error("Activities GET error:", error);
+
+    return NextResponse.json(
+      {
+        activities: defaultContent,
+        warning: "Using default activities because database fetch failed.",
+      },
+      { status: 200 },
+    );
   }
 }
 
-export async function PUT(req: Request) {
+export async function PUT(request: Request) {
   const isAdmin = await authenticateAdmin();
+
   if (!isAdmin) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+
   try {
-    const body = await req.json();
-    if (!body || !body.activities) {
+    const body = await request.json();
+
+    if (!body || !Array.isArray(body.activities)) {
       return NextResponse.json(
         { error: "missing activities data" },
-        { status: 400 }
+        { status: 400 },
       );
     }
-    await kv.set("activities", body.activities);
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    console.error(err);
+
+    const activities = normalizeActivities(body.activities);
+
+    await kv.set("activities", activities);
+
+    return NextResponse.json({ ok: true, activities }, { status: 200 });
+  } catch (error) {
+    console.error("Activities PUT error:", error);
+
     return NextResponse.json({ error: "internal error" }, { status: 500 });
   }
 }

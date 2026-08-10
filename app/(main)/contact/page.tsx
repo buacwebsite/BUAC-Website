@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,7 +18,7 @@ import { HiOutlinePencilAlt } from "react-icons/hi";
 import { useEditor } from "@/app/context/EditorContext";
 import { useAuth } from "@/app/context/AuthProvider";
 import { motion } from "framer-motion";
-import ClassicLoader from "@/app/components/ui/ClassicLoader";
+import BUACLoader from "@/app/components/ui/BUACLoader";
 import {
   MotionSection,
   RevealHeading,
@@ -26,30 +26,23 @@ import {
   fadeInLeft,
   fadeInRight,
 } from "@/lib/animations";
-
-interface ContactContent {
-  heading: string;
-  subheading: string;
-  location: {
-    line1: string;
-    line2: string;
-    line3: string;
-  };
-  email: string;
-  phone: string;
-  socialLinks: {
-    facebook: string;
-    instagram: string;
-    linkedin: string;
-  };
-  ctaHeading: string;
-  ctaDescription: string;
-}
+import {
+  STATIC_CONTACT,
+  type ContactContent,
+} from "@/lib/siteContent";
+import { usePublicContent } from "@/lib/publicContent";
 
 const Contact = () => {
-  const [content, setContent] = useState<ContactContent | null>(null);
   const { auth } = useAuth();
   const { openEditor } = useEditor();
+
+  const { data: apiData } = usePublicContent<{ contact: ContactContent }>(
+    "/api/content/contact",
+    { contact: STATIC_CONTACT },
+  );
+
+  const content = apiData?.contact || STATIC_CONTACT;
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<{
     type: "success" | "error" | null;
@@ -66,48 +59,26 @@ const Contact = () => {
     mode: "onBlur",
   });
 
-  useEffect(() => {
-    const fetchContent = async () => {
-      try {
-        const res = await axios.get("/api/content/contact");
-        setContent(res.data.contact);
-      } catch (error) {
-        console.error("Failed to fetch contact content:", error);
-      }
-    };
-    fetchContent();
-  }, []);
-
   const onSubmit = async (data: ContactFormData) => {
     setIsSubmitting(true);
     setSubmitStatus({ type: null, message: "" });
 
     try {
       const response = await axios.post("/api/contact/send", data, {
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
       });
-
-      const responseData = response.data;
 
       if (response.status !== 200) {
         setSubmitStatus({
           type: "error",
-          message: responseData.error || "Failed to send message",
+          message: response.data.error || "Failed to send message",
         });
       } else {
-        setSubmitStatus({
-          type: "success",
-          message: responseData.message,
-        });
+        setSubmitStatus({ type: "success", message: response.data.message });
         reset();
-        setTimeout(() => {
-          setSubmitStatus({ type: null, message: "" });
-        }, 5000);
+        setTimeout(() => setSubmitStatus({ type: null, message: "" }), 5000);
       }
-    } catch (error) {
-      console.error("Error:", error);
+    } catch {
       setSubmitStatus({
         type: "error",
         message: "Something went wrong. Please try again later.",
@@ -117,16 +88,8 @@ const Contact = () => {
     }
   };
 
-  if (!content) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <ClassicLoader size="lg" />
-      </div>
-    );
-  }
-
   return (
-    <MotionSection className="min-h-screen bg-linear-to-b from-background to-background/80 py-20 px-4">
+    <MotionSection className="buac-gradient-bg min-h-screen py-20 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16 relative">
           {auth && (
@@ -142,9 +105,11 @@ const Contact = () => {
               Edit
             </motion.button>
           )}
+
           <RevealHeading className="font-bebasNeue text-6xl md:text-8xl text-text-secondary mb-4 tracking-wider">
             {content.heading}
           </RevealHeading>
+
           <motion.p
             initial="hidden"
             whileInView="visible"
@@ -167,7 +132,7 @@ const Contact = () => {
             <motion.div
               whileHover={{ scale: 1.02 }}
               transition={{ duration: 0.25 }}
-              className="bg-background/50 backdrop-blur-sm border border-text-secondary/10 rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300"
+              className="bg-surface backdrop-blur-sm border border-border rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300"
             >
               <div className="flex items-start gap-6">
                 <div className="bg-accent/10 p-4 rounded-xl">
@@ -191,7 +156,7 @@ const Contact = () => {
             <motion.div
               whileHover={{ scale: 1.02 }}
               transition={{ duration: 0.25 }}
-              className="bg-background/50 backdrop-blur-sm border border-text-secondary/10 rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300"
+              className="bg-surface backdrop-blur-sm border border-border rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300"
             >
               <div className="flex items-start gap-6">
                 <div className="bg-accent/10 p-4 rounded-xl">
@@ -214,36 +179,23 @@ const Contact = () => {
             <motion.div
               whileHover={{ scale: 1.02 }}
               transition={{ duration: 0.25 }}
-              className="bg-linear-to-br from-accent/5 to-accent/10 backdrop-blur-sm border border-accent/20 rounded-2xl p-8 shadow-xl"
+              className="bg-accent/5 backdrop-blur-sm border border-accent/20 rounded-2xl p-8 shadow-xl"
             >
               <h3 className="font-bebasNeue text-2xl text-text-secondary mb-6 tracking-wide">
                 Follow Our Journey
               </h3>
               <div className="flex gap-4">
                 {[
-                  {
-                    href: content.socialLinks.facebook,
-                    icon: <FaFacebook className="text-3xl" />,
-                  },
-                  {
-                    href: content.socialLinks.instagram,
-                    icon: <FaInstagram className="text-3xl" />,
-                  },
-                  {
-                    href: content.socialLinks.linkedin,
-                    icon: <FaLinkedin className="text-3xl" />,
-                  },
+                  { href: content.socialLinks.facebook, icon: <FaFacebook className="text-3xl" /> },
+                  { href: content.socialLinks.instagram, icon: <FaInstagram className="text-3xl" /> },
+                  { href: content.socialLinks.linkedin, icon: <FaLinkedin className="text-3xl" /> },
                 ].map((social, i) => (
-                  <motion.div
-                    key={i}
-                    whileHover={{ scale: 1.15, rotate: 5 }}
-                    transition={{ duration: 0.2 }}
-                  >
+                  <motion.div key={i} whileHover={{ scale: 1.15, rotate: 5 }} transition={{ duration: 0.2 }}>
                     <Link
                       href={social.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="bg-background/50 hover:bg-accent/20 p-4 rounded-xl transition-all duration-300 group block"
+                      className="bg-surface hover:bg-accent/20 p-4 rounded-xl transition-all duration-300 group block"
                     >
                       <span className="text-text-secondary group-hover:text-accent transition-colors">
                         {social.icon}
@@ -260,7 +212,7 @@ const Contact = () => {
             whileInView="visible"
             viewport={{ once: true }}
             variants={fadeInRight}
-            className="bg-background/50 backdrop-blur-sm border border-text-secondary/10 rounded-2xl p-8 shadow-xl"
+            className="bg-surface backdrop-blur-sm border border-border rounded-2xl p-8 shadow-xl"
           >
             <h3 className="font-bebasNeue text-3xl text-text-secondary mb-6 tracking-wide">
               Send Us a Message
@@ -289,37 +241,22 @@ const Contact = () => {
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1, duration: 0.3 }}
                 >
-                  <label
-                    htmlFor={field}
-                    className="block text-text-muted mb-2 font-medium capitalize"
-                  >
-                    {field === "name"
-                      ? "Your Name"
-                      : field === "email"
-                        ? "Email Address"
-                        : "Subject"}
+                  <label htmlFor={field} className="block text-text-muted mb-2 font-medium capitalize">
+                    {field === "name" ? "Your Name" : field === "email" ? "Email Address" : "Subject"}
                   </label>
                   <input
                     type={field === "email" ? "email" : "text"}
                     id={field}
                     {...register(field)}
-                    className={`w-full bg-background/80 border rounded-xl px-4 py-3 text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all duration-300 ${
-                      errors[field]
-                        ? "border-red-500/50"
-                        : "border-text-secondary/20"
+                    className={`w-full bg-input-bg border rounded-xl px-4 py-3 text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all duration-300 ${
+                      errors[field] ? "border-red-500/50" : "border-input-border"
                     }`}
                     placeholder={
-                      field === "name"
-                        ? "John Doe"
-                        : field === "email"
-                          ? "john@example.com"
-                          : "Interested in joining a trek"
+                      field === "name" ? "John Doe" : field === "email" ? "john@example.com" : "Interested in joining a trek"
                     }
                   />
                   {errors[field] && (
-                    <p className="mt-1 text-sm text-red-400">
-                      {errors[field].message}
-                    </p>
+                    <p className="mt-1 text-sm text-red-400">{errors[field].message}</p>
                   )}
                 </motion.div>
               ))}
@@ -330,27 +267,20 @@ const Contact = () => {
                 viewport={{ once: true }}
                 transition={{ delay: 0.3, duration: 0.3 }}
               >
-                <label
-                  htmlFor="message"
-                  className="block text-text-muted mb-2 font-medium"
-                >
+                <label htmlFor="message" className="block text-text-muted mb-2 font-medium">
                   Message
                 </label>
                 <textarea
                   id="message"
                   {...register("message")}
                   rows={5}
-                  className={`w-full bg-background/80 border rounded-xl px-4 py-3 text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all duration-300 resize-none ${
-                    errors.message
-                      ? "border-red-500/50"
-                      : "border-text-secondary/20"
+                  className={`w-full bg-input-bg border rounded-xl px-4 py-3 text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all duration-300 resize-none ${
+                    errors.message ? "border-red-500/50" : "border-input-border"
                   }`}
                   placeholder="Tell us about your adventure plans..."
                 />
                 {errors.message && (
-                  <p className="mt-1 text-sm text-red-400">
-                    {errors.message.message}
-                  </p>
+                  <p className="mt-1 text-sm text-red-400">{errors.message.message}</p>
                 )}
               </motion.div>
 
@@ -362,7 +292,7 @@ const Contact = () => {
               >
                 {isSubmitting ? (
                   <>
-                    <ClassicLoader size="sm" className="border-white" />
+                    <BUACLoader size="sm" />
                     Sending...
                   </>
                 ) : (
@@ -380,7 +310,7 @@ const Contact = () => {
           whileInView="visible"
           viewport={{ once: true }}
           variants={fadeInUp}
-          className="bg-linear-to-r from-accent/10 via-accent/5 to-accent/10 backdrop-blur-sm border border-accent/20 rounded-2xl p-12 text-center shadow-xl"
+          className="bg-accent/5 backdrop-blur-sm border border-accent/20 rounded-2xl p-12 text-center shadow-xl"
         >
           <h2 className="font-bebasNeue text-4xl md:text-5xl text-text-secondary mb-4 tracking-wider">
             {content.ctaHeading}

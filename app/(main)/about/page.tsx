@@ -184,7 +184,8 @@ function RadialDepartmentTimeline({
   const nodeRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   useEffect(() => {
-    setMounted(true);
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
   }, []);
 
   const getRelatedItems = useCallback(
@@ -316,7 +317,7 @@ function RadialDepartmentTimeline({
           </motion.h1>
         </div>
 
-        <div className="relative h-[620px] w-full max-w-5xl">
+        <div className="relative h-155 w-full max-w-5xl">
           <div
             className="absolute inset-0 flex items-center justify-center"
             ref={orbitRef}
@@ -339,8 +340,8 @@ function RadialDepartmentTimeline({
               />
             </div>
 
-            <div className="absolute h-[450px] w-[450px] rounded-full border border-accent/20" />
-            <div className="absolute h-[340px] w-[340px] rounded-full border border-accent/10" />
+            <div className="absolute h-112.5 w-112.5 rounded-full border border-accent/20" />
+            <div className="absolute h-85 w-85 rounded-full border border-accent/10" />
 
             {mounted &&
               timelineData.map((item, index) => {

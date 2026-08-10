@@ -6,7 +6,7 @@ import axios from "axios";
 import { motion } from "framer-motion";
 import { HiBell, HiCalendar, HiSpeakerphone, HiOutlinePencilAlt, HiPlus, HiTrash, HiX, HiSave } from "react-icons/hi";
 import { useAuth } from "@/app/context/AuthProvider";
-import ClassicLoader from "@/app/components/ui/ClassicLoader";
+import PageLoader from "@/app/components/ui/PageLoader";
 
 interface Notification {
   id: string;
@@ -97,15 +97,11 @@ export default function NotificationsPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <ClassicLoader size="lg" />
-      </div>
-    );
+    return <PageLoader label="Loading notifications" />;
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-background to-background/80 py-20 px-4">
+    <div className="min-h-screen bg-background py-20 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-10">
           <div>
@@ -116,7 +112,6 @@ export default function NotificationsPage() {
               Latest updates and upcoming events from BUAC.
             </p>
           </div>
-
           {isAdmin && !isEditing && (
             <button
               onClick={startEditing}
@@ -127,7 +122,6 @@ export default function NotificationsPage() {
           )}
         </div>
 
-        {/* Admin editor */}
         {isAdmin && isEditing ? (
           <div className="space-y-4">
             <button
@@ -140,7 +134,7 @@ export default function NotificationsPage() {
             {draft.map((n, i) => (
               <div
                 key={n.id}
-                className="bg-background/50 border border-text-secondary/10 rounded-2xl p-5 space-y-3"
+                className="bg-surface border border-text-secondary/10 rounded-2xl p-5 space-y-3"
               >
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-text-muted">#{i + 1}</span>
@@ -155,19 +149,19 @@ export default function NotificationsPage() {
                   value={n.title}
                   onChange={(e) => updateDraft(i, "title", e.target.value)}
                   placeholder="Title"
-                  className="w-full bg-background border border-text-secondary/20 rounded-lg px-3 py-2 text-text-secondary focus:outline-none focus:border-accent"
+                  className="w-full bg-input-bg border border-text-secondary/20 rounded-lg px-3 py-2 text-text-secondary focus:outline-none focus:border-accent"
                 />
                 <textarea
                   value={n.message}
                   onChange={(e) => updateDraft(i, "message", e.target.value)}
                   placeholder="Message"
                   rows={3}
-                  className="w-full bg-background border border-text-secondary/20 rounded-lg px-3 py-2 text-text-secondary focus:outline-none focus:border-accent resize-none"
+                  className="w-full bg-input-bg border border-text-secondary/20 rounded-lg px-3 py-2 text-text-secondary focus:outline-none focus:border-accent resize-none"
                 />
                 <select
                   value={n.type}
                   onChange={(e) => updateDraft(i, "type", e.target.value)}
-                  className="bg-background border border-text-secondary/20 rounded-lg px-3 py-2 text-text-secondary focus:outline-none focus:border-accent"
+                  className="bg-input-bg border border-text-secondary/20 rounded-lg px-3 py-2 text-text-secondary focus:outline-none focus:border-accent"
                 >
                   <option value="general">General</option>
                   <option value="event">Event</option>
@@ -194,7 +188,6 @@ export default function NotificationsPage() {
             </div>
           </div>
         ) : (
-          /* Public view */
           <div className="space-y-4">
             {notifications.length > 0 ? (
               notifications.map((n, i) => {
@@ -206,7 +199,7 @@ export default function NotificationsPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
-                    className="bg-background/50 backdrop-blur-sm border border-text-secondary/10 rounded-2xl p-6 shadow-xl flex gap-4"
+                    className="bg-surface backdrop-blur-sm border border-text-secondary/10 rounded-2xl p-6 shadow-xl flex gap-4"
                   >
                     <div className={`shrink-0 ${meta.color}`}>
                       <Icon className="text-2xl" />
