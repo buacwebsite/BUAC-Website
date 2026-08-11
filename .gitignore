@@ -43,3 +43,5 @@ app/components/RoadMap.tsx
 app/components/roadPoints.ts
 
 OAUTH2_SETUP.md
+.vercel
+.env*

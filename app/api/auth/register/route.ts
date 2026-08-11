@@ -78,7 +78,6 @@ function getDefaultSemesterSettings(): SemesterSettings {
   const year = String(now.getFullYear());
 
   let semester: SemesterName = "Spring";
-
   if (month >= 4 && month <= 7) {
     semester = "Summer";
   } else if (month >= 8) {
@@ -116,41 +115,41 @@ export async function POST(request: NextRequest) {
 
     if (!name || !email || !password || !role) {
       return NextResponse.json(
-        { message: "All fields are required" },
+        { message: "All required fields must be filled" },
         { status: 400 },
       );
     }
 
     if (!["member", "alumni"].includes(role)) {
-      return NextResponse.json({ message: "Invalid role" }, { status: 400 });
+      return NextResponse.json({ message: "Invalid role selected" }, { status: 400 });
     }
 
     const normalizedEmail = email.trim().toLowerCase();
 
     if (role === "member" && !normalizedEmail.endsWith("@g.bracu.ac.bd")) {
       return NextResponse.json(
-        { message: "Members must use a valid BRACU G Suite email" },
+        { message: "Members must register with a valid BRACU G Suite email (@g.bracu.ac.bd)" },
         { status: 400 },
       );
     }
 
     if (role === "alumni" && !normalizedEmail.endsWith("@gmail.com")) {
       return NextResponse.json(
-        { message: "Alumni must use a Gmail address" },
+        { message: "Alumni must register with a valid Gmail address (@gmail.com)" },
         { status: 400 },
       );
     }
 
     if (password.length < 6) {
       return NextResponse.json(
-        { message: "Password must be at least 6 characters" },
+        { message: "Password must be at least 6 characters long" },
         { status: 400 },
       );
     }
 
     if (!profile?.contact || !profile?.facebook) {
       return NextResponse.json(
-        { message: "Contact number and Facebook ID link are required" },
+        { message: "Contact number and Facebook profile link are required" },
         { status: 400 },
       );
     }
@@ -162,7 +161,7 @@ export async function POST(request: NextRequest) {
         !profile.buacDepartment
       ) {
         return NextResponse.json(
-          { message: "Missing member profile information" },
+          { message: "Missing member profile details" },
           { status: 400 },
         );
       }
@@ -198,14 +197,14 @@ export async function POST(request: NextRequest) {
     if (role === "alumni") {
       if (!profile.buacExDepartment) {
         return NextResponse.json(
-          { message: "Missing alumni profile information" },
+          { message: "Missing alumni profile details" },
           { status: 400 },
         );
       }
 
       if (!departments.includes(profile.buacExDepartment)) {
         return NextResponse.json(
-          { message: "Invalid BUAC ex department" },
+          { message: "Invalid BUAC ex-department" },
           { status: 400 },
         );
       }
@@ -225,17 +224,16 @@ export async function POST(request: NextRequest) {
         !alumniPositions.includes(profile.buacExPosition)
       ) {
         return NextResponse.json(
-          { message: "Invalid BUAC ex position" },
+          { message: "Invalid BUAC ex-position" },
           { status: 400 },
         );
       }
     }
 
     const existingUser = await kv.get(`user:${normalizedEmail}`);
-
     if (existingUser) {
       return NextResponse.json(
-        { message: "An account with this email already exists" },
+        { message: "An account with this email address already exists" },
         { status: 409 },
       );
     }
@@ -243,7 +241,7 @@ export async function POST(request: NextRequest) {
     const passwordHash = await bcrypt.hash(password, 10);
 
     const user = {
-      name,
+      name: name.trim(),
       email: normalizedEmail,
       passwordHash,
       role,
@@ -255,7 +253,6 @@ export async function POST(request: NextRequest) {
     await kv.set(`user:${normalizedEmail}`, user);
 
     const usersList = (await kv.get<string[]>("users:list")) || [];
-
     if (!usersList.includes(normalizedEmail)) {
       usersList.push(normalizedEmail);
       await kv.set("users:list", usersList);
@@ -263,6 +260,7 @@ export async function POST(request: NextRequest) {
 
     const settings = await getActiveSemesterSettings();
 
+    // 1. Sync registration payload to Google Sheets Apps Script
     if (GOOGLE_SCRIPT_URL) {
       try {
         await axios.post(GOOGLE_SCRIPT_URL, {
@@ -275,7 +273,7 @@ export async function POST(request: NextRequest) {
             role === "member"
               ? `Members ${settings.semester} ${settings.year}`
               : `Alumni ${settings.semester} ${settings.year}`,
-          name,
+          name: name.trim(),
           email: normalizedEmail,
           contact: profile?.contact || "",
           facebook: profile?.facebook || "",
@@ -297,38 +295,39 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Send welcome email
+    // 2. Dispatch Welcome Email
     try {
-      const welcomeEmail =
+      const welcomeMailData =
         role === "member"
-          ? buildMemberWelcomeEmail(name)
-          : buildAlumniWelcomeEmail(name);
+          ? buildMemberWelcomeEmail(name.trim())
+          : buildAlumniWelcomeEmail(name.trim());
 
       await sendMail({
         to: normalizedEmail,
-        subject: welcomeEmail.subject,
-        html: welcomeEmail.html,
-        text: welcomeEmail.text,
+        subject: welcomeMailData.subject,
+        html: welcomeMailData.html,
+        text: welcomeMailData.text,
       });
     } catch (emailError) {
       console.error("Failed to send welcome email:", emailError);
     }
 
+    // 3. Generate JWT Token
     const token = jwt.sign(
-      { sub: normalizedEmail, role, name },
-      process.env.adminJwtSecret || "",
+      { sub: normalizedEmail, role, name: name.trim() },
+      process.env.adminJwtSecret || "buac_secret_key_2026",
       { expiresIn: "7d" },
     );
 
-    const res = NextResponse.json(
+    const response = NextResponse.json(
       {
         message: "Account created successfully",
-        user: { name, email: normalizedEmail, role },
+        user: { name: name.trim(), email: normalizedEmail, role },
       },
       { status: 201 },
     );
 
-    res.cookies.set({
+    response.cookies.set({
       name: "user-token",
       value: token,
       httpOnly: true,
@@ -338,12 +337,11 @@ export async function POST(request: NextRequest) {
       path: "/",
     });
 
-    return res;
+    return response;
   } catch (error) {
     console.error("Registration error:", error);
-
     return NextResponse.json(
-      { message: "Something went wrong" },
+      { message: "Something went wrong during registration" },
       { status: 500 },
     );
   }
