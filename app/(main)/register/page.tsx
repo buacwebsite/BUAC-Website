@@ -19,7 +19,7 @@ import {
   HiSparkles,
   HiCalendar,
 } from "react-icons/hi";
-import { FaMountain } from "react-icons/fa";
+import { FaMountain, FaTint } from "react-icons/fa";
 import { HiAcademicCap as HiAlumni } from "react-icons/hi2";
 import CustomSelect from "@/app/components/ui/CustomSelect";
 
@@ -105,7 +105,7 @@ const Register = () => {
   const [contact, setContact] = useState("");
   const [facebook, setFacebook] = useState("");
   const [bloodGroup, setBloodGroup] = useState("");
-  const [donateBlood, setDonateBlood] = useState<"yes" | "no">("no");
+  const [donateBlood, setDonateBlood] = useState<"yes" | "maybe" | "no">("no");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -451,34 +451,34 @@ const Register = () => {
               icon={<HiHeart className="h-5 w-5" />}
             />
 
-            <div className="flex h-12 items-center justify-between rounded-xl border-2 border-white/15 bg-black/50 px-4 sm:h-13">
-              <span className="text-xs text-white/80 sm:text-sm">
-                Donate blood?
-              </span>
+            <div className="rounded-xl border-2 border-white/15 bg-black/50 px-4 py-2.5">
+              <div className="mb-2 flex items-center gap-2 text-xs text-white/80">
+                <FaTint className="h-3.5 w-3.5 text-red-500" />
+                Are you interested to donate blood?
+              </div>
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setDonateBlood("yes")}
-                  className={`cursor-pointer rounded-full px-3.5 py-1 text-xs font-semibold transition-all ${
-                    donateBlood === "yes"
-                      ? "bg-accent text-white"
-                      : "bg-white/10 text-white/60 hover:text-white"
-                  }`}
-                >
-                  Yes
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setDonateBlood("no")}
-                  className={`cursor-pointer rounded-full px-3.5 py-1 text-xs font-semibold transition-all ${
-                    donateBlood === "no"
-                      ? "bg-accent text-white"
-                      : "bg-white/10 text-white/60 hover:text-white"
-                  }`}
-                >
-                  No
-                </button>
+                {(["yes", "maybe", "no"] as const).map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => setDonateBlood(option)}
+                    className={`flex-1 cursor-pointer rounded-lg py-2 text-xs font-semibold capitalize transition-all ${
+                      donateBlood === option
+                        ? option === "yes"
+                          ? "bg-green-500 text-white"
+                          : option === "maybe"
+                            ? "bg-yellow-500 text-white"
+                            : "bg-red-500 text-white"
+                        : "bg-white/10 text-white/60 hover:text-white"
+                    }`}
+                  >
+                    {option === "yes"
+                      ? "Yes, I will"
+                      : option === "maybe"
+                        ? "Maybe"
+                        : "Not now"}
+                  </button>
+                ))}
               </div>
             </div>
 
