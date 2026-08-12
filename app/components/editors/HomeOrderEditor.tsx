@@ -26,12 +26,14 @@ const descriptions: Record<HomeSectionId, string> = {
 };
 
 interface Props {
-  data: HomeSectionId[];
+  // Accepted as 'order' instead of 'data' to match the page.tsx usage
+  order: string[]; 
   onClose: () => void;
+  onSaved: (newOrder: string[]) => void;
 }
 
-export default function HomeOrderEditor({ data, onClose }: Props) {
-  const [order, setOrder] = useState<HomeSectionId[]>(data);
+export default function HomeOrderEditor({ order: initialOrder, onClose, onSaved }: Props) {
+  const [order, setOrder] = useState<string[]>(initialOrder);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -94,8 +96,8 @@ export default function HomeOrderEditor({ data, onClose }: Props) {
         { order },
         { withCredentials: true },
       );
+      onSaved(order);
       onClose();
-      window.location.reload();
     } catch (err) {
       console.error("Failed to save section order:", err);
       setError("Failed to save order. Please try again.");
@@ -104,7 +106,7 @@ export default function HomeOrderEditor({ data, onClose }: Props) {
     }
   };
 
-  const reset = () => setOrder(data);
+  const reset = () => setOrder(initialOrder);
 
   return (
     <div className="w-full max-w-2xl bg-background rounded-xl p-6">
@@ -125,7 +127,7 @@ export default function HomeOrderEditor({ data, onClose }: Props) {
           <strong className="text-text-secondary">3 ways to reorder:</strong>
         </p>
         <ul className="list-disc list-inside space-y-0.5 pl-2">
-          <li>Drag & drop rows using the ⋮⋮ handle</li>
+          <li>Drag & drop rows using the ■■ handle</li>
           <li>Use ▲ ▼ arrows for single step moves</li>
           <li>Pick a position from the dropdown for a direct jump</li>
         </ul>
@@ -144,6 +146,8 @@ export default function HomeOrderEditor({ data, onClose }: Props) {
         {order.map((id, i) => {
           const isDragging = draggedIndex === i;
           const isDragOver = dragOverIndex === i;
+          const sectionId = id as HomeSectionId;
+
           return (
             <div
               key={id}
@@ -153,15 +157,14 @@ export default function HomeOrderEditor({ data, onClose }: Props) {
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, i)}
               onDragEnd={handleDragEnd}
-              className={`flex items-center gap-3 bg-text-secondary/5 border rounded-xl p-4 transition-all ${
+              className={`flex items-center gap-3 bg-surface-secondary border rounded-xl p-4 transition-all ${
                 isDragging
                   ? "opacity-40 border-accent"
                   : isDragOver
-                  ? "border-accent bg-accent/10 scale-[1.01]"
-                  : "border-text-muted/20 hover:border-accent/40"
+                    ? "border-accent bg-accent/10 scale-[1.01]"
+                    : "border-border hover:border-accent/40"
               }`}
             >
-              {/* Drag handle */}
               <div
                 className="cursor-grab active:cursor-grabbing text-text-muted hover:text-accent transition"
                 title="Drag to reorder"
@@ -169,26 +172,23 @@ export default function HomeOrderEditor({ data, onClose }: Props) {
                 <HiBars3 className="text-xl" />
               </div>
 
-              {/* Position badge */}
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-white font-bold text-sm">
                 {i + 1}
               </span>
 
-              {/* Label */}
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-text-secondary truncate">
-                  {labels[id]}
+                  {labels[sectionId] || id}
                 </p>
                 <p className="text-xs text-text-muted truncate">
-                  {descriptions[id]}
+                  {descriptions[sectionId] || ""}
                 </p>
               </div>
 
-              {/* Position dropdown */}
               <select
                 value={i}
                 onChange={(e) => moveToPosition(i, Number(e.target.value))}
-                className="bg-background border border-text-muted/20 rounded-lg px-2 py-1.5 text-sm text-text-secondary focus:outline-none focus:border-accent cursor-pointer"
+                className="bg-background border border-border rounded-lg px-2 py-1.5 text-sm text-text-secondary focus:outline-none focus:border-accent cursor-pointer"
                 title="Move to position"
               >
                 {order.map((_, pos) => (
@@ -198,13 +198,12 @@ export default function HomeOrderEditor({ data, onClose }: Props) {
                 ))}
               </select>
 
-              {/* Arrow buttons */}
               <div className="flex gap-1">
                 <button
                   type="button"
                   onClick={() => moveByOne(i, -1)}
                   disabled={i === 0}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-background border border-text-muted/20 hover:border-accent hover:text-accent transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-background border border-border hover:border-accent hover:text-accent transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                   aria-label="Move up"
                 >
                   <HiChevronUp />
@@ -213,7 +212,7 @@ export default function HomeOrderEditor({ data, onClose }: Props) {
                   type="button"
                   onClick={() => moveByOne(i, 1)}
                   disabled={i === order.length - 1}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-background border border-text-muted/20 hover:border-accent hover:text-accent transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-background border border-border hover:border-accent hover:text-accent transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                   aria-label="Move down"
                 >
                   <HiChevronDown />
@@ -233,12 +232,13 @@ export default function HomeOrderEditor({ data, onClose }: Props) {
         >
           Reset changes
         </button>
+
         <div className="flex gap-3">
           <button
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="px-6 py-2 border border-text-muted/20 text-text-muted rounded-lg hover:border-text-secondary hover:text-text-secondary transition-colors cursor-pointer disabled:opacity-50"
+            className="px-6 py-2 border border-border text-text-muted rounded-lg hover:bg-surface-secondary hover:text-text-secondary transition-colors cursor-pointer disabled:opacity-50"
           >
             Cancel
           </button>
