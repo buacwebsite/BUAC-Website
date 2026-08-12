@@ -4,16 +4,14 @@ import { useAuth } from "../context/AuthProvider";
 import { useEditor } from "../context/EditorContext";
 import HeroComp from "../components/HeroComp";
 import axios from "axios";
-import { gsap } from "gsap";
-import { useGSAP } from "@gsap/react";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import CampfireComp from "../components/CampfireComp";
 import { HiOutlinePencilAlt } from "react-icons/hi";
 import { HiOutlineBars3 } from "react-icons/hi2";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import HomeOrderEditor from "../components/editors/HomeOrderEditor";
 import {
   MotionSection,
   StaggerGrid,
@@ -24,16 +22,23 @@ import {
   scaleIn,
   staggerContainer,
 } from "@/lib/animations";
-import {
-  STATIC_HERO_SLIDES,
-  STATIC_ABOUT,
-  STATIC_VISION,
-  type Quote,
-  type Stat,
-  type Objective,
-} from "@/lib/siteContent";
 
-gsap.registerPlugin(ScrollTrigger);
+interface Quote {
+  name: string;
+  designation: string;
+  quote: string;
+  image: string;
+}
+
+interface Stat {
+  value: string;
+  label: string;
+}
+
+interface Objective {
+  title: string;
+  description: string;
+}
 
 interface HeroImage {
   place: string;
@@ -46,81 +51,32 @@ interface HeroImage {
 
 const defaultSectionOrder = ["about", "campfire", "vision"];
 
-function normalizeQuote(input: unknown): Quote | null {
-  if (!input || typeof input !== "object") return null;
-
-  const item = input as Record<string, unknown>;
-
-  const name =
-    typeof item.name === "string"
-      ? item.name.trim()
-      : typeof item.title === "string"
-        ? (item.title as string).trim()
-        : "";
-
-  const designation =
-    typeof item.designation === "string"
-      ? item.designation.trim()
-      : typeof item.subtitle === "string"
-        ? (item.subtitle as string).trim()
-        : "";
-
-  const quote =
-    typeof item.quote === "string"
-      ? item.quote.trim()
-      : typeof item.description === "string"
-        ? (item.description as string).trim()
-        : "";
-
-  const image =
-    typeof item.image === "string"
-      ? item.image.trim()
-      : typeof item.imageUrl === "string"
-        ? (item.imageUrl as string).trim()
-        : typeof item.img === "string"
-          ? (item.img as string).trim()
-          : "";
-
-  if (!name && !designation && !quote && !image) return null;
-
-  return { name, designation, quote, image };
-}
-
-function normalizeQuotes(input: unknown): Quote[] {
-  if (!input) return [];
-
-  if (Array.isArray(input)) {
-    return input
-      .map((item) => normalizeQuote(item))
-      .filter((item): item is Quote => Boolean(item));
-  }
-
-  if (typeof input === "object") {
-    const obj = input as Record<string, unknown>;
-
-    if (Array.isArray(obj.quotes)) return normalizeQuotes(obj.quotes);
-    if (Array.isArray(obj.items)) return normalizeQuotes(obj.items);
-    if (Array.isArray(obj.data)) return normalizeQuotes(obj.data);
-
-    const single = normalizeQuote(input);
-    return single ? [single] : [];
-  }
-
-  return [];
-}
-
 export default function Home() {
   const { auth, logout, isLoggedIn, user } = useAuth();
   const { openEditor } = useEditor();
 
-  const [images, setImages] = useState<HeroImage[]>(STATIC_HERO_SLIDES);
-  const [quotes, setQuotes] = useState<Quote[]>(STATIC_ABOUT.quotes);
-  const [aboutText, setAboutText] = useState<string>(STATIC_ABOUT.aboutText);
-  const [stats, setStats] = useState<Stat[]>(STATIC_ABOUT.stats);
-  const [visionText, setVisionText] = useState<string>(STATIC_VISION.visionText);
-  const [objectives, setObjectives] = useState<Objective[]>(STATIC_VISION.objectives);
-  const [sectionOrder, setSectionOrder] = useState<string[]>(defaultSectionOrder);
+  /* ---------------- Hero (independent) ---------------- */
+  const [heroImages, setHeroImages] = useState<HeroImage[]>([]);
+  const [heroLoading, setHeroLoading] = useState(true);
+
+  /* ---------------- About (independent, never waits for Hero) ---------------- */
+  const [aboutLoading, setAboutLoading] = useState(true);
+  const [aboutError, setAboutError] = useState(false);
+  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [aboutText, setAboutText] = useState<string>("");
+  const [stats, setStats] = useState<Stat[]>([]);
+
+  /* ---------------- Vision (independent) ---------------- */
+  const [visionLoading, setVisionLoading] = useState(true);
+  const [visionError, setVisionError] = useState(false);
+  const [visionText, setVisionText] = useState<string>("");
+  const [objectives, setObjectives] = useState<Objective[]>([]);
+
+  /* ---------------- Section order ---------------- */
+  const [sectionOrder, setSectionOrder] =
+    useState<string[]>(defaultSectionOrder);
   const [orderLoaded, setOrderLoaded] = useState(false);
+  const [isOrderEditorOpen, setIsOrderEditorOpen] = useState(false);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -138,104 +94,79 @@ export default function Home() {
     fetchOrder();
   }, []);
 
+  // Hero fetch — fully independent, does not block About/Vision.
   useEffect(() => {
     const fetchHeroImages = async () => {
       try {
         const response = await axios.get("/api/content/landinghero");
-
         if (response.status === 200 && Array.isArray(response.data.images)) {
-          if (response.data.images.length > 0) {
-            setImages(response.data.images);
-          }
+          setHeroImages(response.data.images);
         }
       } catch (error) {
         console.error("Error fetching hero images:", error);
+      } finally {
+        setHeroLoading(false);
       }
     };
     fetchHeroImages();
   }, []);
 
+  // About fetch — fully independent, renders as soon as it resolves.
   useEffect(() => {
     const fetchAboutContent = async () => {
       try {
         const response = await axios.get("/api/content/about");
-
         if (response.status === 200) {
-          if (response.data.aboutText) {
-            setAboutText(response.data.aboutText);
-          }
-
-          if (Array.isArray(response.data.stats) && response.data.stats.length > 0) {
-            setStats(response.data.stats);
-          }
-
-          const normalized = normalizeQuotes(response.data.quotes);
-          if (normalized.length > 0) {
-            setQuotes(normalized);
-          }
+          setAboutText(response.data.aboutText || "");
+          setStats(Array.isArray(response.data.stats) ? response.data.stats : []);
+          setQuotes(Array.isArray(response.data.quotes) ? response.data.quotes : []);
+        } else {
+          setAboutError(true);
         }
       } catch (error) {
         console.error("Error fetching about content:", error);
+        setAboutError(true);
+      } finally {
+        setAboutLoading(false);
       }
     };
     fetchAboutContent();
   }, []);
 
+  // Vision fetch — fully independent.
   useEffect(() => {
     const fetchVisionContent = async () => {
       try {
         const response = await axios.get("/api/content/vision");
-
         if (response.status === 200) {
-          if (response.data.visionText) {
-            setVisionText(response.data.visionText);
-          }
-
-          if (Array.isArray(response.data.objectives) && response.data.objectives.length > 0) {
-            setObjectives(response.data.objectives);
-          }
+          setVisionText(response.data.visionText || "");
+          setObjectives(
+            Array.isArray(response.data.objectives)
+              ? response.data.objectives
+              : [],
+          );
+        } else {
+          setVisionError(true);
         }
       } catch (error) {
         console.error("Error fetching vision content:", error);
+        setVisionError(true);
+      } finally {
+        setVisionLoading(false);
       }
     };
     fetchVisionContent();
   }, []);
 
-  useGSAP(
-    () => {
-      const sections = gsap.utils.toArray(".snap-section");
+  const scrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
 
-      sections.forEach((section) => {
-        ScrollTrigger.create({
-          trigger: section as Element,
-          start: "top top",
-          end: "bottom top",
-          snap: {
-            snapTo: 1,
-            duration: { min: 0.6, max: 1.2 },
-            delay: 0.1,
-            ease: "power2.inOut",
-          },
-        });
-      });
+  const openAboutEditor = () =>
+    openEditor("aboutSection", { quotes, aboutText, stats });
 
-      return () => {
-        ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
-      };
-    },
-    { dependencies: [sectionOrder] },
-  );
-
-  const safeQuotes = useMemo(() => normalizeQuotes(quotes), [quotes]);
-
-  const openAboutEditor = () => {
-    openEditor("aboutSection", { quotes: safeQuotes, aboutText, stats });
-  };
-
-  const openVisionEditor = () => {
+  const openVisionEditor = () =>
     openEditor("vision", { visionText, objectives });
-  };
 
   const renderAboutSection = () => (
     <MotionSection
@@ -266,25 +197,52 @@ export default function Home() {
           About Us
         </RevealHeading>
 
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={fadeInUp}
-          className="max-w-3xl mx-auto mb-14"
-        >
-          <p className="text-text-muted text-base leading-relaxed text-center font-poppins">
-            {aboutText}
+        {aboutLoading ? (
+          <div className="mx-auto mb-14 max-w-3xl animate-pulse space-y-3">
+            <div className="mx-auto h-4 w-full rounded bg-surface-secondary" />
+            <div className="mx-auto h-4 w-11/12 rounded bg-surface-secondary" />
+            <div className="mx-auto h-4 w-3/4 rounded bg-surface-secondary" />
+          </div>
+        ) : aboutError ? (
+          <p className="mb-14 text-center text-text-muted">
+            Unable to load about information right now.
           </p>
-        </motion.div>
+        ) : aboutText ? (
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeInUp}
+            className="max-w-3xl mx-auto mb-14"
+          >
+            <p className="text-text-muted text-base leading-relaxed text-center font-poppins">
+              {aboutText}
+            </p>
+          </motion.div>
+        ) : (
+          <p className="mb-14 text-center text-text-muted">
+            {auth
+              ? "No about text added yet. Click Edit to add it."
+              : "About information coming soon."}
+          </p>
+        )}
 
         <RevealHeading className="text-5xl md:text-6xl lg:text-7xl font-bebasNeue text-accent leading-none mb-8 text-center">
           Words of Wisdom
         </RevealHeading>
 
-        {safeQuotes.length > 0 ? (
+        {aboutLoading ? (
+          <div className="mb-14 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="h-64 animate-pulse rounded-3xl bg-surface-secondary"
+              />
+            ))}
+          </div>
+        ) : quotes.length > 0 ? (
           <StaggerGrid className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10 mb-14 relative z-10">
-            {safeQuotes.map((quote, index) => (
+            {quotes.map((quote, index) => (
               <StaggerItem key={`${quote.name}-${index}`}>
                 <motion.div
                   whileHover={{ y: -8, scale: 1.02 }}
@@ -307,7 +265,7 @@ export default function Home() {
                       ) : (
                         <div className="flex h-full w-full items-center justify-center bg-accent/10">
                           <span className="font-bebasNeue text-4xl text-accent">
-                            {(quote.name || "B").charAt(0)}
+                            {(quote.name || "?").charAt(0)}
                           </span>
                         </div>
                       )}
@@ -339,11 +297,11 @@ export default function Home() {
         ) : (
           <div className="mb-14 rounded-3xl border-2 border-dashed border-accent/30 bg-accent/5 p-10 text-center">
             <p className="font-bebasNeue text-3xl tracking-wide text-text-secondary">
-              No Words of Wisdom Added Yet
+              No Words of Wisdom Yet
             </p>
             <p className="mt-2 text-sm text-text-muted">
               {auth
-                ? "Click the Edit button and add quotes to display them here."
+                ? "Click Edit and add quotes to display them here."
                 : "Quotes will appear here soon."}
             </p>
           </div>
@@ -356,17 +314,34 @@ export default function Home() {
           variants={staggerContainer}
           className="grid grid-cols-2 lg:grid-cols-4 gap-8 pt-12 border-t border-border"
         >
-          {stats.map((stat, index) => (
-            <motion.div key={`${stat.label}-${index}`} variants={scaleIn} className="text-center">
-              <AnimatedCounter
-                value={stat.value}
-                className="text-5xl lg:text-6xl font-bebasNeue text-accent mb-2"
+          {aboutLoading ? (
+            [0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-16 animate-pulse rounded-xl bg-surface-secondary"
               />
-              <div className="text-text-secondary uppercase text-sm tracking-wider">
-                {stat.label}
-              </div>
-            </motion.div>
-          ))}
+            ))
+          ) : stats.length > 0 ? (
+            stats.map((stat, index) => (
+              <motion.div
+                key={`${stat.label}-${index}`}
+                variants={scaleIn}
+                className="text-center"
+              >
+                <AnimatedCounter
+                  value={stat.value}
+                  className="text-5xl lg:text-6xl font-bebasNeue text-accent mb-2"
+                />
+                <div className="text-text-secondary uppercase text-sm tracking-wider">
+                  {stat.label}
+                </div>
+              </motion.div>
+            ))
+          ) : (
+            <p className="col-span-full text-center text-sm text-text-muted">
+              {auth ? "No stats added yet." : "Stats coming soon."}
+            </p>
+          )}
         </motion.div>
       </div>
     </MotionSection>
@@ -404,17 +379,34 @@ export default function Home() {
             Our Vision
           </RevealHeading>
 
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeInUp}
-            className="max-w-6xl mx-auto"
-          >
-            <p className="text-text-secondary text-lg leading-relaxed text-justify md:text-center md:text-balance">
-              {visionText}
+          {visionLoading ? (
+            <div className="mx-auto max-w-6xl animate-pulse space-y-3">
+              <div className="mx-auto h-4 w-full rounded bg-surface-secondary" />
+              <div className="mx-auto h-4 w-4/5 rounded bg-surface-secondary" />
+            </div>
+          ) : visionError ? (
+            <p className="text-text-muted">
+              Unable to load the vision statement right now.
             </p>
-          </motion.div>
+          ) : visionText ? (
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeInUp}
+              className="max-w-6xl mx-auto"
+            >
+              <p className="text-text-secondary text-lg leading-relaxed text-justify md:text-center md:text-balance">
+                {visionText}
+              </p>
+            </motion.div>
+          ) : (
+            <p className="text-text-muted">
+              {auth
+                ? "No vision statement added yet."
+                : "Vision statement coming soon."}
+            </p>
+          )}
         </div>
 
         <div className="mt-16">
@@ -422,7 +414,16 @@ export default function Home() {
             Our Objectives
           </RevealHeading>
 
-          {objectives.length > 0 ? (
+          {visionLoading ? (
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+              {[0, 1].map((i) => (
+                <div
+                  key={i}
+                  className="h-40 animate-pulse rounded-2xl bg-surface-secondary"
+                />
+              ))}
+            </div>
+          ) : objectives.length > 0 ? (
             <StaggerGrid className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {objectives.map((objective, index) => (
                 <StaggerItem key={`${objective.title}-${index}`}>
@@ -451,7 +452,7 @@ export default function Home() {
             <div className="text-center text-text-muted py-12">
               <p className="text-lg">
                 {auth
-                  ? "No objectives added yet. Click the edit button to add some!"
+                  ? "No objectives added yet. Click Edit to add some."
                   : "Objectives coming soon..."}
               </p>
             </div>
@@ -469,7 +470,7 @@ export default function Home() {
 
   return (
     <>
-      <HeroComp images={images} />
+      <HeroComp images={heroImages} loading={heroLoading} />
 
       {auth && orderLoaded && (
         <div className="relative z-20">
@@ -477,7 +478,7 @@ export default function Home() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6, duration: 0.3 }}
-            onClick={() => openEditor("home-order", sectionOrder)}
+            onClick={() => setIsOrderEditorOpen(true)}
             className="fixed top-24 left-6 z-40 flex items-center gap-2 rounded-full bg-black/80 border-2 border-accent text-white py-2 px-4 text-sm font-medium shadow-lg hover:bg-accent transition-all duration-300 cursor-pointer"
             title="Reorder Home Sections"
           >
@@ -485,6 +486,17 @@ export default function Home() {
             Reorder Sections
           </motion.button>
         </div>
+      )}
+
+      {isOrderEditorOpen && (
+        <HomeOrderEditor
+          order={sectionOrder}
+          onClose={() => setIsOrderEditorOpen(false)}
+          onSaved={(newOrder) => {
+            setSectionOrder(newOrder);
+            scrollToTop();
+          }}
+        />
       )}
 
       {sectionOrder.map((key) => sectionRenderers[key]?.())}

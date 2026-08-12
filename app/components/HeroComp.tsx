@@ -38,36 +38,6 @@ interface LocationItem {
   tag: string;
 }
 
-const FALLBACK_LOCATIONS: LocationItem[] = [
-  {
-    id: "buac",
-    name: "BUAC",
-    country: "BRAC University Adventure Club",
-    description:
-      "Step into the wild with BUAC — a community built around exploration, teamwork, courage, and unforgettable outdoor stories.",
-    image: "/assets/footerbg.webp",
-    tag: "Adventure",
-  },
-  {
-    id: "trails",
-    name: "Trails",
-    country: "Bangladesh",
-    description:
-      "From misty hills to forest trails, every expedition becomes a memory, a challenge, and a story worth carrying forward.",
-    image: "/assets/panelbg.jpg",
-    tag: "Expedition",
-  },
-  {
-    id: "explore",
-    name: "Explore",
-    country: "BUAC Family",
-    description:
-      "Explore beyond your comfort zone with people who believe that the best views come after the hardest climb.",
-    image: "/assets/footerbg.webp",
-    tag: "Community",
-  },
-];
-
 function slugify(value: string) {
   return value
     .toLowerCase()
@@ -95,15 +65,15 @@ function DestinationCard({
       viewport={{ once: true }}
       transition={{ duration: 0.5, delay: index * 0.08 }}
       whileHover={{ y: -10 }}
-      className="group relative h-[300px] w-[190px] shrink-0 overflow-hidden rounded-[26px] text-left transition-all duration-500 sm:h-[330px] sm:w-[210px]"
+      className="group relative h-[200px] w-[135px] shrink-0 overflow-hidden rounded-[20px] text-left transition-all duration-500 sm:h-[300px] sm:w-[190px] sm:rounded-[26px] md:h-[330px] md:w-[210px]"
       style={{
-        marginTop: active ? 0 : index % 2 ? 22 : 10,
+        marginTop: active ? 0 : index % 2 ? 14 : 6,
         border: active
           ? "1px solid rgba(255, 98, 43, 0.85)"
           : "1px solid rgba(255, 255, 255, 0.08)",
         boxShadow: active
-          ? "0 0 0 1px rgba(255, 98, 43, 0.6), 0 22px 55px rgba(255, 98, 43, 0.22), 0 25px 70px rgba(0,0,0,0.45)"
-          : "0 18px 45px rgba(0,0,0,0.38)",
+          ? "0 0 0 1px rgba(255, 98, 43, 0.6), 0 18px 40px rgba(255, 98, 43, 0.22)"
+          : "0 12px 30px rgba(0,0,0,0.38)",
       }}
       aria-label={`Select ${loc.name}`}
     >
@@ -113,35 +83,38 @@ function DestinationCard({
           alt={loc.name}
           fill
           loading="lazy"
-          sizes="220px"
+          sizes="(max-width: 640px) 135px, 220px"
           className="absolute inset-0 object-cover transition-transform duration-700 group-hover:scale-110"
         />
       ) : (
-        <div className="absolute inset-0 bg-linear-to-br from-accent/40 via-black to-background" />
+        <div className="absolute inset-0 flex items-center justify-center bg-surface-secondary text-xs text-text-muted">
+          No image
+        </div>
       )}
 
       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/5" />
-      <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/20 opacity-70" />
 
       <span
-        className={`absolute top-3 right-3 flex h-9 w-9 items-center justify-center rounded-full shadow-md transition-colors ${
+        className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full shadow-md transition-colors sm:right-3 sm:top-3 sm:h-9 sm:w-9 ${
           active
             ? "bg-accent text-white"
             : "bg-background/90 text-text-secondary"
         }`}
       >
-        <HiBookmark className="h-4 w-4" />
+        <HiBookmark className="h-3 w-3 sm:h-4 sm:w-4" />
       </span>
 
-      <span className="absolute top-3 left-3 rounded-full border border-white/15 bg-black/25 px-3 py-1 text-[10px] font-semibold tracking-widest text-white/80 uppercase backdrop-blur-md">
+      <span className="absolute left-2 top-2 rounded-full border border-white/15 bg-black/25 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-widest text-white/80 backdrop-blur-md sm:left-3 sm:top-3 sm:px-3 sm:py-1 sm:text-[10px]">
         {loc.tag}
       </span>
 
-      <div className="absolute bottom-0 left-0 w-full p-4">
-        <h3 className="font-bebasNeue text-2xl leading-tight tracking-wide text-white">
+      <div className="absolute bottom-0 left-0 w-full p-3 sm:p-4">
+        <h3 className="font-bebasNeue text-lg leading-tight tracking-wide text-white sm:text-2xl">
           {loc.name}
         </h3>
-        <div className="mt-1 text-xs text-white/75">{loc.country}</div>
+        <div className="mt-0.5 line-clamp-1 text-[10px] text-white/75 sm:mt-1 sm:text-xs">
+          {loc.country}
+        </div>
       </div>
     </motion.button>
   );
@@ -164,8 +137,8 @@ function RoadMapTimeline({
   const points = useMemo(() => {
     return items.map((_, i) => {
       const t = count === 1 ? 0.5 : i / (count - 1);
-      const x = 6 + t * 88;
-      const y = 50 + Math.sin(t * Math.PI * 2.2) * 18;
+      const x = 8 + t * 84;
+      const y = 50 + Math.sin(t * Math.PI * 2.2) * 16;
       return { x, y };
     });
   }, [items, count]);
@@ -175,7 +148,7 @@ function RoadMapTimeline({
 
     let d = `M ${points[0].x} ${points[0].y}`;
 
-    for (let i = 0; i < points.length - 1; i += 1) {
+    for (let i = 0; i < points.length - 1; i++) {
       const p0 = points[i];
       const p1 = points[i + 1];
       const cx = (p0.x + p1.x) / 2;
@@ -188,11 +161,11 @@ function RoadMapTimeline({
   if (!items.length) return null;
 
   return (
-    <div className="relative mt-8 h-44 w-full max-w-xl">
+    <div className="relative mt-5 h-32 w-full max-w-xl overflow-hidden sm:mt-8 sm:h-44">
       <svg
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
-        className="absolute inset-0 h-full w-full overflow-visible"
+        className="absolute inset-0 h-full w-full"
       >
         <defs>
           <linearGradient id={gradientId} x1="0" x2="1" y1="0" y2="0">
@@ -236,19 +209,6 @@ function RoadMapTimeline({
           transition={{ duration: 1.8, ease: "easeInOut" }}
         />
 
-        {pathD && (
-          <motion.circle
-            r="0.9"
-            fill="var(--color-accent)"
-            filter={`url(#${glowId})`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 1, 0] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          >
-            <animateMotion dur="6s" repeatCount="indefinite" path={pathD} />
-          </motion.circle>
-        )}
-
         {points.map((p, i) => {
           const isActive = i === active;
 
@@ -261,7 +221,7 @@ function RoadMapTimeline({
                 onChange(i);
               }}
             >
-              <circle cx={p.x} cy={p.y} r={6} fill="transparent" />
+              <circle cx={p.x} cy={p.y} r={7} fill="transparent" />
 
               <motion.circle
                 cx={p.x}
@@ -269,9 +229,7 @@ function RoadMapTimeline({
                 r={isActive ? 3 : 1.8}
                 fill="none"
                 stroke={
-                  isActive
-                    ? "var(--color-accent)"
-                    : "rgba(255,255,255,0.6)"
+                  isActive ? "var(--color-accent)" : "rgba(255,255,255,0.6)"
                 }
                 strokeWidth="0.4"
                 animate={{ r: isActive ? 3 : 1.8 }}
@@ -284,41 +242,21 @@ function RoadMapTimeline({
                 r={isActive ? 1.4 : 0.75}
                 fill={isActive ? "var(--color-accent)" : "#ffffff"}
                 filter={isActive ? `url(#${glowId})` : undefined}
-                whileHover={{ scale: 1.6 }}
               />
 
               {isActive && (
-                <>
-                  <motion.circle
-                    cx={p.x}
-                    cy={p.y}
-                    r={3}
-                    fill="none"
-                    stroke="var(--color-accent)"
-                    strokeWidth="0.3"
-                    initial={{ scale: 0.6, opacity: 0.9 }}
-                    animate={{ scale: 2.4, opacity: 0 }}
-                    transition={{ duration: 1.6, repeat: Infinity }}
-                    style={{ transformOrigin: `${p.x}px ${p.y}px` }}
-                  />
-
-                  <motion.circle
-                    cx={p.x}
-                    cy={p.y}
-                    r={3}
-                    fill="none"
-                    stroke="var(--color-accent)"
-                    strokeWidth="0.3"
-                    initial={{ scale: 0.6, opacity: 0.9 }}
-                    animate={{ scale: 2.4, opacity: 0 }}
-                    transition={{
-                      duration: 1.6,
-                      repeat: Infinity,
-                      delay: 0.8,
-                    }}
-                    style={{ transformOrigin: `${p.x}px ${p.y}px` }}
-                  />
-                </>
+                <motion.circle
+                  cx={p.x}
+                  cy={p.y}
+                  r={3}
+                  fill="none"
+                  stroke="var(--color-accent)"
+                  strokeWidth="0.3"
+                  initial={{ scale: 0.6, opacity: 0.9 }}
+                  animate={{ scale: 2.4, opacity: 0 }}
+                  transition={{ duration: 1.6, repeat: Infinity }}
+                  style={{ transformOrigin: `${p.x}px ${p.y}px` }}
+                />
               )}
             </g>
           );
@@ -333,12 +271,13 @@ function RoadMapTimeline({
           return (
             <div
               key={i}
-              className={`pointer-events-auto absolute -translate-x-1/2 cursor-pointer text-center ${
+              className={`pointer-events-auto absolute -translate-x-1/2 cursor-pointer px-1 text-center ${
                 placeAbove ? "-translate-y-full" : ""
               }`}
               style={{
-                left: `${p.x}%`,
-                top: placeAbove ? `${p.y - 16}%` : `${p.y + 16}%`,
+                left: `${Math.min(Math.max(p.x, 12), 88)}%`,
+                top: placeAbove ? `${p.y - 18}%` : `${p.y + 18}%`,
+                maxWidth: "88px",
               }}
               onClick={(e) => {
                 e.stopPropagation();
@@ -346,8 +285,8 @@ function RoadMapTimeline({
               }}
             >
               <motion.div
-                animate={{ scale: isActive ? 1.08 : 1 }}
-                className={`text-[10px] font-semibold tracking-[0.18em] whitespace-nowrap uppercase select-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] ${
+                animate={{ scale: isActive ? 1.05 : 1 }}
+                className={`truncate text-[8px] font-semibold uppercase tracking-[0.12em] select-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] sm:text-[10px] sm:tracking-[0.18em] ${
                   isActive ? "text-accent" : "text-white/75"
                 }`}
               >
@@ -358,7 +297,7 @@ function RoadMapTimeline({
                 <motion.div
                   initial={{ opacity: 0, y: -2 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-[8px] tracking-wider text-white/60 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
+                  className="truncate text-[7px] tracking-wider text-white/60 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] sm:text-[8px]"
                 >
                   {items[i].country}
                 </motion.div>
@@ -371,7 +310,41 @@ function RoadMapTimeline({
   );
 }
 
-export default function HeroComp({ images = [] }: { images: HeroSlide[] }) {
+function HeroSkeleton() {
+  return (
+    <section className="snap-section relative -mt-16 min-h-screen w-full overflow-hidden bg-black">
+      <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-surface-secondary via-background to-surface-secondary" />
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-7xl flex-col items-start justify-center gap-5 px-4 pt-28 sm:px-6 sm:pt-32">
+        <div className="h-4 w-40 animate-pulse rounded-full bg-white/10" />
+        <div className="h-16 w-3/4 animate-pulse rounded-2xl bg-white/10 sm:h-24" />
+        <div className="h-4 w-1/2 animate-pulse rounded-full bg-white/10" />
+      </div>
+    </section>
+  );
+}
+
+function HeroEmptyState() {
+  return (
+    <section className="snap-section relative -mt-16 flex min-h-screen w-full items-center justify-center overflow-hidden bg-black px-4">
+      <div className="text-center">
+        <p className="font-bebasNeue text-3xl tracking-wider text-white sm:text-5xl">
+          No Destinations Yet
+        </p>
+        <p className="mt-3 text-sm text-white/60">
+          Hero content has not been added yet.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+export default function HeroComp({
+  images = [],
+  loading = false,
+}: {
+  images: HeroSlide[];
+  loading?: boolean;
+}) {
   const { auth } = useAuth();
   const { openEditor } = useEditor();
   const [active, setActive] = useState(0);
@@ -379,16 +352,8 @@ export default function HeroComp({ images = [] }: { images: HeroSlide[] }) {
 
   const locations = useMemo<LocationItem[]>(() => {
     const usableSlides = (images || []).filter(
-      (slide) => (slide?.place || slide?.image) && slide?.image,
+      (slide) => slide?.image && slide?.place,
     );
-
-    /**
-     * Admin content always wins.
-     * FALLBACK_LOCATIONS is used only when no real slides exist.
-     */
-    if (usableSlides.length === 0) {
-      return FALLBACK_LOCATIONS;
-    }
 
     return usableSlides.map((slide, index) => {
       const name = slide.place?.trim() || `Trail ${index + 1}`;
@@ -396,23 +361,19 @@ export default function HeroComp({ images = [] }: { images: HeroSlide[] }) {
       return {
         id: slide.id || `${slugify(name)}-${index}`,
         name,
-        country: slide.country || "BUAC Trail",
-        description:
-          slide.description ||
-          "A highlight from BUAC's adventure trail — where every journey brings new challenges, memories, and stories.",
-        image: slide.image || "",
-        tag: slide.tag || "Adventure",
+        country: slide.country || "",
+        description: slide.description || "",
+        image: slide.image,
+        tag: slide.tag || "",
       };
     });
   }, [images]);
 
   useEffect(() => {
-    if (active >= locations.length) {
-      setActive(0);
-    }
+    if (active >= locations.length) setActive(0);
   }, [active, locations.length]);
 
-  const current = locations[active] ?? locations[0];
+  const current = locations[active];
 
   const editorSlides = useMemo(
     () =>
@@ -430,9 +391,7 @@ export default function HeroComp({ images = [] }: { images: HeroSlide[] }) {
   const goTo = useCallback(
     (index: number) => {
       const total = locations.length;
-
       if (!total) return;
-
       setActive(((index % total) + total) % total);
     },
     [locations.length],
@@ -440,7 +399,7 @@ export default function HeroComp({ images = [] }: { images: HeroSlide[] }) {
 
   const scrollCards = useCallback((dir: number) => {
     scrollerRef.current?.scrollBy({
-      left: dir * 240,
+      left: dir * 180,
       behavior: "smooth",
     });
   }, []);
@@ -455,7 +414,28 @@ export default function HeroComp({ images = [] }: { images: HeroSlide[] }) {
     scrollCards(1);
   };
 
-  if (!current) return null;
+  if (loading) {
+    return <HeroSkeleton />;
+  }
+
+  if (!current) {
+    return (
+      <>
+        {auth && (
+          <motion.button
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            onClick={() => openEditor("landing-hero", editorSlides)}
+            className="absolute right-4 top-24 z-40 flex cursor-pointer items-center justify-center gap-2 rounded-full border-2 border-accent bg-accent px-3 py-2 text-xs font-medium text-white transition-all duration-300 hover:bg-transparent hover:text-accent sm:right-6 sm:px-4 sm:text-sm"
+          >
+            <HiOutlinePencilAlt size={18} />
+            Add Hero Content
+          </motion.button>
+        )}
+        <HeroEmptyState />
+      </>
+    );
+  }
 
   return (
     <>
@@ -465,77 +445,62 @@ export default function HeroComp({ images = [] }: { images: HeroSlide[] }) {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.4, duration: 0.3 }}
           onClick={() => openEditor("landing-hero", editorSlides)}
-          className="absolute top-24 right-6 z-40 bg-accent text-white py-2 px-3 md:px-4 flex items-center justify-center gap-2 text-sm md:text-base font-medium rounded-full border-2 border-accent hover:bg-transparent hover:text-accent transition-all duration-300 cursor-pointer"
+          className="absolute right-4 top-24 z-40 flex cursor-pointer items-center justify-center gap-2 rounded-full border-2 border-accent bg-accent px-3 py-2 text-xs font-medium text-white transition-all duration-300 hover:bg-transparent hover:text-accent sm:right-6 sm:px-4 sm:text-sm"
           aria-label="Edit Landing Hero Slides"
-          title="Edit Landing Hero Slides"
         >
-          <HiOutlinePencilAlt size={20} />
+          <HiOutlinePencilAlt size={18} />
           Edit
         </motion.button>
       )}
 
-      <section className="snap-section relative min-h-screen w-full overflow-hidden -mt-16 bg-black">
+      <section className="snap-section relative -mt-16 min-h-screen w-full overflow-hidden bg-black">
         <AnimatePresence mode="popLayout">
-          {current.image ? (
-            <motion.div
-              key={current.image}
-              initial={{ opacity: 0, scale: 1.08 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 1.1, ease: [0.4, 0, 0.2, 1] }}
+          <motion.div
+            key={current.image}
+            initial={{ opacity: 0, scale: 1.08 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.1, ease: [0.4, 0, 0.2, 1] }}
+            className="absolute inset-0"
+          >
+            <Image
+              src={current.image}
+              alt=""
+              fill
+              loading="lazy"
+              sizes="100vw"
+              className="scale-110 object-cover opacity-70 blur-2xl"
+            />
+
+            <div
               className="absolute inset-0"
+              style={{
+                maskImage:
+                  "linear-gradient(to bottom, transparent 0%, black 16%, black 82%, transparent 100%)",
+                WebkitMaskImage:
+                  "linear-gradient(to bottom, transparent 0%, black 16%, black 82%, transparent 100%)",
+              }}
             >
-              {/* Blurred background layer — lazy loaded, no priority */}
               <Image
                 src={current.image}
-                alt=""
+                alt={current.name}
                 fill
-                loading="lazy"
+                priority
                 sizes="100vw"
-                className="object-cover scale-110 blur-2xl opacity-70"
+                className="object-cover sm:object-contain"
               />
+            </div>
 
-              {/* Main visible hero image — only this gets priority */}
-              <div
-                className="absolute inset-0"
-                style={{
-                  maskImage:
-                    "linear-gradient(to bottom, transparent 0%, black 16%, black 82%, transparent 100%)",
-                  WebkitMaskImage:
-                    "linear-gradient(to bottom, transparent 0%, black 16%, black 82%, transparent 100%)",
-                }}
-              >
-                <Image
-                  src={current.image}
-                  alt={current.name}
-                  fill
-                  priority
-                  sizes="100vw"
-                  className="object-contain"
-                />
-              </div>
-
-              <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/70 via-black/20 to-transparent" />
-              <div className="absolute inset-x-0 bottom-0 h-52 bg-gradient-to-t from-background via-background/40 to-transparent" />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="fallback-bg"
-              initial={{ opacity: 0, scale: 1.08 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 1.1, ease: [0.4, 0, 0.2, 1] }}
-              className="absolute inset-0 bg-linear-to-br from-black via-stone-900 to-background"
-            />
-          )}
+            <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/70 via-black/20 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 h-52 bg-gradient-to-t from-background via-background/40 to-transparent" />
+          </motion.div>
         </AnimatePresence>
 
-        <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/65 to-black/10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/70 to-black/30" />
         <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_35%,rgba(255,98,43,0.28),transparent_34%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_85%_85%,rgba(255,98,43,0.16),transparent_34%)]" />
 
-        <div className="relative z-20 mx-auto flex min-h-screen max-w-7xl flex-col items-start justify-center gap-8 px-6 pt-32 pb-16 md:px-10 lg:px-12">
+        <div className="relative z-20 mx-auto flex min-h-screen max-w-7xl flex-col items-start justify-center gap-5 px-4 pt-28 pb-12 sm:gap-8 sm:px-6 sm:pt-32 sm:pb-16 md:px-10 lg:px-12">
           <div className="w-full max-w-3xl">
             <AnimatePresence mode="wait">
               <motion.div
@@ -545,33 +510,41 @@ export default function HeroComp({ images = [] }: { images: HeroSlide[] }) {
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
               >
-                <div className="mb-4 flex items-center gap-2 text-sm text-white/75">
-                  <IoLocationSharp className="h-4 w-4 text-accent" />
-                  {current.country}
-                </div>
+                {current.country && (
+                  <div className="mb-3 flex items-center gap-2 text-xs text-white/80 sm:mb-4 sm:text-sm">
+                    <IoLocationSharp className="h-4 w-4 shrink-0 text-accent" />
+                    <span className="truncate">{current.country}</span>
+                  </div>
+                )}
 
-                <h1 className="font-bebasNeue text-7xl leading-none tracking-wide text-white drop-shadow-2xl sm:text-8xl md:text-9xl lg:text-[11rem]">
+                <h1 className="font-bebasNeue text-[3.2rem] leading-[0.92] tracking-wide text-white drop-shadow-2xl sm:text-8xl md:text-9xl lg:text-[11rem]">
                   {current.name}
                 </h1>
 
-                <p className="mt-6 max-w-xl text-sm leading-relaxed text-white/75 md:text-base">
-                  {current.description}
-                </p>
+                {current.description && (
+                  <p className="mt-4 max-w-xl text-xs leading-relaxed text-white/80 sm:mt-6 sm:text-sm md:text-base">
+                    {current.description}
+                  </p>
+                )}
               </motion.div>
             </AnimatePresence>
 
-            <RoadMapTimeline items={locations} active={active} onChange={goTo} />
+            <RoadMapTimeline
+              items={locations}
+              active={active}
+              onChange={goTo}
+            />
           </div>
 
-          <div className="relative w-full overflow-hidden">
+          <div className="relative -mx-4 w-[calc(100%+2rem)] overflow-hidden sm:mx-0 sm:w-full">
             <div
               ref={scrollerRef}
-              className="no-scrollbar flex gap-5 overflow-x-auto px-1 pt-4 pb-6"
+              className="no-scrollbar flex gap-3 overflow-x-auto px-4 pt-3 pb-4 sm:gap-5 sm:px-1 sm:pt-4 sm:pb-6"
               style={{
                 WebkitMaskImage:
-                  "linear-gradient(to right, transparent 0%, black 3%, black 96%, transparent 100%)",
+                  "linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%)",
                 maskImage:
-                  "linear-gradient(to right, transparent 0%, black 3%, black 96%, transparent 100%)",
+                  "linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%)",
               }}
             >
               {locations.map((loc, index) => (
@@ -585,41 +558,43 @@ export default function HeroComp({ images = [] }: { images: HeroSlide[] }) {
               ))}
             </div>
 
-            <div className="mt-2 flex items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={goPrev}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur-md transition hover:bg-accent hover:border-accent cursor-pointer"
-                aria-label="Previous destination"
-              >
-                <HiChevronLeft className="h-5 w-5" />
-              </button>
+            {locations.length > 1 && (
+              <div className="mt-1 flex items-center justify-center gap-3 sm:mt-2">
+                <button
+                  type="button"
+                  onClick={goPrev}
+                  className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur-md transition hover:border-accent hover:bg-accent sm:h-10 sm:w-10"
+                  aria-label="Previous destination"
+                >
+                  <HiChevronLeft className="h-5 w-5" />
+                </button>
 
-              <div className="flex items-center gap-1.5">
-                {locations.map((_, index) => (
-                  <button
-                    type="button"
-                    key={index}
-                    onClick={() => goTo(index)}
-                    className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                      index === active
-                        ? "w-6 bg-accent"
-                        : "w-1.5 bg-white/40 hover:bg-white/70"
-                    }`}
-                    aria-label={`Go to slide ${index + 1}`}
-                  />
-                ))}
+                <div className="flex items-center gap-1.5">
+                  {locations.map((_, index) => (
+                    <button
+                      type="button"
+                      key={index}
+                      onClick={() => goTo(index)}
+                      className={`h-1.5 cursor-pointer rounded-full transition-all ${
+                        index === active
+                          ? "w-6 bg-accent"
+                          : "w-1.5 bg-white/40 hover:bg-white/70"
+                      }`}
+                      aria-label={`Go to slide ${index + 1}`}
+                    />
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={goNext}
+                  className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur-md transition hover:border-accent hover:bg-accent sm:h-10 sm:w-10"
+                  aria-label="Next destination"
+                >
+                  <HiChevronRight className="h-5 w-5" />
+                </button>
               </div>
-
-              <button
-                type="button"
-                onClick={goNext}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur-md transition hover:bg-accent hover:border-accent cursor-pointer"
-                aria-label="Next destination"
-              >
-                <HiChevronRight className="h-5 w-5" />
-              </button>
-            </div>
+            )}
           </div>
         </div>
       </section>

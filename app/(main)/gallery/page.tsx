@@ -9,7 +9,8 @@ import { useAuth } from "@/app/context/AuthProvider";
 import { useEditor } from "@/app/context/EditorContext";
 import { ImageGallery } from "@/app/components/gallery/ImageGallery";
 import YouTubeGallery from "@/app/components/gallery/YouTubeGallery";
-import { usePublicContent } from "@/lib/publicContent";
+import { useApiData } from "@/lib/publicContent";
+import PageLoader from "@/app/components/ui/PageLoader";
 
 type GalleryCategory = "pictures" | "videos";
 
@@ -18,6 +19,11 @@ interface GalleryItem {
   type: "image" | "video";
   url: string;
   youtubeUrl: string;
+}
+
+interface GalleryResponse {
+  images?: GalleryItem[];
+  error?: string;
 }
 
 interface YouTubeVideo {
@@ -31,21 +37,9 @@ interface YouTubeVideo {
 interface YouTubeChannelResponse {
   channelId?: string;
   channelInput?: string;
-  totalVideos?: number;
   videos: YouTubeVideo[];
   error?: string;
 }
-
-const FALLBACK_PICTURES: string[] = [
-  "/assets/footerbg.webp",
-  "/assets/panelbg.jpg",
-  "/assets/footerbg.webp",
-  "/assets/panelbg.jpg",
-  "/assets/footerbg.webp",
-  "/assets/panelbg.jpg",
-];
-
-const STATIC_GALLERY_ITEMS: GalleryItem[] = [];
 
 export default function Gallery() {
   const { auth } = useAuth();
@@ -54,29 +48,21 @@ export default function Gallery() {
   const [activeCategory, setActiveCategory] =
     useState<GalleryCategory>("pictures");
 
-  const { data: apiData } = usePublicContent<{ images: GalleryItem[] }>(
+  const { data, loading, error } = useApiData<GalleryResponse>(
     "/api/content/gallery",
-    { images: STATIC_GALLERY_ITEMS },
   );
 
   const items = useMemo(
-    () => (Array.isArray(apiData?.images) ? apiData.images : []),
-    [apiData],
-  );
-
-  const adminPictureUrls = useMemo(
-    () =>
-      items
-        .filter(
-          (item) => item.type === "image" && Boolean(item.url?.trim()),
-        )
-        .map((item) => item.url.trim()),
-    [items],
+    () => (Array.isArray(data?.images) ? data.images : []),
+    [data],
   );
 
   const pictureUrls = useMemo(
-    () => (adminPictureUrls.length > 0 ? adminPictureUrls : FALLBACK_PICTURES),
-    [adminPictureUrls],
+    () =>
+      items
+        .filter((item) => item.type === "image" && Boolean(item.url?.trim()))
+        .map((item) => item.url.trim()),
+    [items],
   );
 
   const [channelVideos, setChannelVideos] = useState<YouTubeVideo[]>([]);
@@ -96,9 +82,7 @@ export default function Gallery() {
         }
 
         if (response.data.channelId) {
-          setChannelUrl(
-            `https://www.youtube.com/channel/${response.data.channelId}`,
-          );
+          setChannelUrl(`https://www.youtube.com/channel/${response.data.channelId}`);
         } else if (response.data.channelInput) {
           const input = response.data.channelInput;
           const handle = input.startsWith("@") ? input : `@${input}`;
@@ -108,8 +92,8 @@ export default function Gallery() {
         if (response.data.error) {
           setVideoError(response.data.error);
         }
-      } catch (error) {
-        console.error("Failed to fetch YouTube channel videos:", error);
+      } catch (err) {
+        console.error("Failed to fetch YouTube channel videos:", err);
         setVideoError("Failed to load YouTube videos.");
       } finally {
         setLoadingVideos(false);
@@ -118,6 +102,10 @@ export default function Gallery() {
 
     fetchChannelVideos();
   }, []);
+
+  if (loading) {
+    return <PageLoader label="Loading gallery" />;
+  }
 
   return (
     <main className="buac-gradient-bg min-h-screen px-4 py-20 font-poppins text-text-secondary md:px-8">
@@ -144,14 +132,9 @@ export default function Gallery() {
           <p className="mb-3 text-xs font-bold uppercase tracking-[0.35em] text-accent">
             BUAC Memories
           </p>
-
           <h1 className="font-bebasNeue text-6xl leading-none tracking-wider text-text-secondary md:text-8xl">
             GALLERY
           </h1>
-
-          <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-text-muted md:text-base">
-            Explore pictures from BUAC adventures and watch our YouTube videos.
-          </p>
         </motion.header>
 
         <div className="mb-10 flex justify-center">
@@ -197,7 +180,27 @@ export default function Gallery() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
           >
-            <ImageGallery images={pictureUrls} columns={3} />
+            {error ? (
+              <div className="flex min-h-[300px] flex-col items-center justify-center rounded-3xl border-2 border-dashed border-red-500/25 bg-red-500/5 px-6 text-center">
+                <p className="text-sm text-red-400">
+                  Unable to load pictures right now.
+                </p>
+              </div>
+            ) : pictureUrls.length > 0 ? (
+              <ImageGallery images={pictureUrls} columns={3} />
+            ) : (
+              <div className="flex min-h-[420px] flex-col items-center justify-center rounded-3xl border-2 border-dashed border-accent/25 bg-surface/50 px-6 text-center backdrop-blur-md">
+                <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-accent/10 text-accent">
+                  <FaImages className="h-10 w-10" />
+                </div>
+                <h2 className="font-bebasNeue text-4xl tracking-wider text-text-secondary">
+                  No Pictures Yet
+                </h2>
+                <p className="mt-2 max-w-md text-sm text-text-muted">
+                  Pictures will appear here once added.
+                </p>
+              </div>
+            )}
           </motion.section>
         )}
 

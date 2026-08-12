@@ -38,77 +38,52 @@ export function DepartmentSections({
     imageFile: null as File | null,
   });
 
-  useGSAP(() => {
-    if (!departments || departments.length === 0) return;
+  useGSAP(
+    () => {
+      if (!departments || departments.length === 0) return;
 
-    const ctx = gsap.context(() => {
-      const sections = containerRef.current?.querySelectorAll(".dept-section");
+      const ctx = gsap.context(() => {
+        const sections =
+          containerRef.current?.querySelectorAll(".dept-section");
 
-      ScrollTrigger.create({
-        trigger: containerRef.current,
-        start: "top top",
-        end: "bottom bottom",
-        snap: {
-          snapTo: departments.length > 1 ? 1 / (departments.length - 1) : 1,
-          duration: { min: 0.6, max: 1.2 },
-          delay: 0.1,
-          ease: "power2.inOut",
-        },
-      });
+        sections?.forEach((section) => {
+          const horizontalText = section.querySelector(".horizontal-text");
+          const image = section.querySelector(".dept-image-wrapper");
+          const content = section.querySelector(".dept-content");
 
-      sections?.forEach((section) => {
-        const horizontalText = section.querySelector(".horizontal-text");
-        const image = section.querySelector(".dept-image-wrapper");
-        const content = section.querySelector(".dept-content");
-
-        const tl = gsap.timeline({
-          scrollTrigger: {
-            trigger: section,
-            start: "top center",
-            toggleActions: "play none none reverse",
-          },
-        });
-
-        tl.fromTo(
-          horizontalText,
-          { xPercent: -100, opacity: 0 },
-          { xPercent: 0, opacity: 1, duration: 1.2, ease: "power4.out" },
-          "-=1",
-        )
-          .fromTo(
-            image,
-            { scale: 0.8, opacity: 0, rotate: -5 },
-            {
-              scale: 1,
-              opacity: 1,
-              rotate: 0,
-              duration: 1,
-              ease: "power3.out",
+          const tl = gsap.timeline({
+            scrollTrigger: {
+              trigger: section,
+              start: "top center",
+              toggleActions: "play none none reverse",
             },
-            "-=0.8",
+          });
+
+          tl.fromTo(
+            horizontalText,
+            { xPercent: -60, opacity: 0 },
+            { xPercent: 0, opacity: 1, duration: 1.2, ease: "power4.out" },
+            "-=1",
           )
-          .fromTo(
-            content,
-            { opacity: 0, x: 50 },
-            { opacity: 1, x: 0, duration: 0.8, ease: "power2.out" },
-            "-=0.6",
-          );
-
-        gsap.to(horizontalText, {
-          xPercent: 30,
-          ease: "none",
-          scrollTrigger: {
-            trigger: section,
-            start: "top bottom",
-            end: "bottom top",
-            scrub: 1.5,
-          },
+            .fromTo(
+              image,
+              { scale: 0.9, opacity: 0 },
+              { scale: 1, opacity: 1, duration: 0.9, ease: "power3.out" },
+              "-=0.8",
+            )
+            .fromTo(
+              content,
+              { opacity: 0, y: 30 },
+              { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" },
+              "-=0.6",
+            );
         });
-      });
-    }, containerRef);
+      }, containerRef);
 
-    return () => ctx.revert();
-  }, [departments]);
+      return () => ctx.revert();
+    },
+    { dependencies: [departments] },
+  );
 
   const openEdit = useCallback((department: Department) => {
     setEditing(department);
@@ -168,7 +143,6 @@ export function DepartmentSections({
         withCredentials: true,
       });
 
-      alert("Department updated successfully");
       closeEdit();
       window.location.reload();
     } catch (err) {
@@ -181,7 +155,7 @@ export function DepartmentSections({
 
   if (!departments || departments.length === 0) {
     return (
-      <section className="min-h-screen flex items-center justify-center bg-background">
+      <section className="flex min-h-screen items-center justify-center bg-background px-4">
         <p className="text-text-muted">No departments available.</p>
       </section>
     );
@@ -197,32 +171,32 @@ export function DepartmentSections({
             <section
               key={department.id || index}
               id={department.id}
-              className="dept-section relative h-screen py-16 overflow-hidden"
+              className="dept-section relative min-h-screen overflow-hidden py-16 sm:py-20"
             >
-              <div className="absolute bottom-4 md:-bottom-12 left-1/2 -translate-x-1/2 w-screen pointer-events-none select-none z-0">
+              <div className="pointer-events-none absolute bottom-2 left-1/2 z-0 w-screen -translate-x-1/2 select-none sm:bottom-4 md:-bottom-12">
                 <div className="horizontal-text w-max">
-                  <span className="font-bebasNeue text-[12vw] md:text-[20vw] text-accent/10 whitespace-nowrap tracking-tight leading-none">
+                  <span className="font-bebasNeue text-[18vw] leading-none tracking-tight whitespace-nowrap text-accent/10 sm:text-[16vw] md:text-[20vw]">
                     {department.name}
-                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                     {department.name}
-                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                     {department.name}
                   </span>
                 </div>
               </div>
 
               <motion.div
-                initial={{ opacity: 0, x: isEven ? 50 : -50 }}
+                initial={{ opacity: 0, x: isEven ? 40 : -40 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-                className={`floating-number absolute top-8 md:top-16 flex gap-4 justify-between items-center z-11 ${
+                transition={{ duration: 0.5 }}
+                className={`floating-number absolute top-6 z-20 flex items-center justify-between gap-3 sm:top-10 md:top-16 ${
                   isEven
-                    ? "right-8 md:right-20 lg:right-32"
-                    : "left-8 md:left-20 lg:left-32"
-                } z-10`}
+                    ? "right-4 sm:right-8 lg:right-20"
+                    : "left-4 sm:left-8 lg:left-20"
+                }`}
               >
-                <span className="font-mono text-8xl md:text-xl lg:text-6xl text-accent/10 leading-none">
+                <span className="font-mono text-4xl leading-none text-accent/15 sm:text-5xl lg:text-6xl">
                   {department.number}
                 </span>
 
@@ -230,8 +204,7 @@ export function DepartmentSections({
                   <button
                     onClick={() => openEdit(department)}
                     aria-label={`Edit ${department.name}`}
-                    title={`Edit ${department.name}`}
-                    className="flex items-center justify-center gap-0 sm:gap-2 font-medium rounded-full border-2 border-accent transition-all duration-300 cursor-pointer p-2 sm:px-4 sm:py-2 bg-accent text-white hover:bg-transparent hover:text-accent"
+                    className="flex cursor-pointer items-center justify-center gap-1.5 rounded-full border-2 border-accent bg-accent p-2 font-medium text-white transition-all hover:bg-transparent hover:text-accent sm:gap-2 sm:px-4 sm:py-2"
                   >
                     <HiOutlinePencilAlt className="text-lg sm:text-xl" />
                     <span className="hidden sm:inline">Edit</span>
@@ -239,11 +212,11 @@ export function DepartmentSections({
                 )}
               </motion.div>
 
-              <div className="relative z-10 h-full w-full max-w-8xl mx-auto px-6 md:px-12 lg:px-20">
+              <div className="relative z-10 mx-auto h-full w-full max-w-7xl px-4 sm:px-6 md:px-12 lg:px-20">
                 <div
-                  className={`flex flex-col h-full ${
+                  className={`flex h-full flex-col items-center justify-center gap-6 pt-16 sm:gap-8 sm:pt-20 lg:gap-16 lg:pt-0 ${
                     isEven ? "lg:flex-row" : "lg:flex-row-reverse"
-                  } items-center justify-center gap-8 lg:gap-20`}
+                  }`}
                 >
                   <motion.div
                     initial="hidden"
@@ -252,22 +225,21 @@ export function DepartmentSections({
                     variants={isEven ? fadeInLeft : fadeInRight}
                     className="dept-image-wrapper relative w-full lg:w-1/2"
                   >
-                    <div className="relative">
-                      <div className="relative overflow-hidden bg-secondary rounded-3xl shadow-2xl">
-                        {department.image ? (
-                          <Image
-                            src={department.image}
-                            alt={`${department.name} Department`}
-                            width={700}
-                            height={700}
-                            className="object-cover w-full h-auto"
-                          />
-                        ) : (
-                          <div className="h-[420px] w-full bg-accent/10 flex items-center justify-center">
-                            <span className="text-text-muted">No Image</span>
-                          </div>
-                        )}
-                      </div>
+                    <div className="relative overflow-hidden rounded-2xl bg-surface-secondary shadow-2xl sm:rounded-3xl">
+                      {department.image ? (
+                        <Image
+                          src={department.image}
+                          alt={`${department.name} Department`}
+                          width={700}
+                          height={700}
+                          sizes="(max-width: 1024px) 100vw, 50vw"
+                          className="h-auto w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-[240px] w-full items-center justify-center bg-accent/10 sm:h-[360px]">
+                          <span className="text-text-muted">No Image</span>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
 
@@ -276,21 +248,19 @@ export function DepartmentSections({
                     whileInView="visible"
                     viewport={{ once: true }}
                     variants={isEven ? fadeInRight : fadeInLeft}
-                    className={`dept-content w-full lg:w-3/4 ${
-                      isEven ? "lg:pl-8" : "lg:pr-8"
+                    className={`dept-content w-full lg:w-1/2 ${
+                      isEven ? "lg:pl-6" : "lg:pr-6"
                     }`}
                   >
-                    <div className="flex items-center gap-4 mb-6">
-                      <span className="w-12 h-px bg-accent" />
+                    <div className="mb-4 flex items-center gap-4 sm:mb-6">
+                      <span className="h-px w-10 bg-accent sm:w-12" />
                     </div>
 
-                    <div className="mb-6">
-                      <h2 className="font-bebasNeue text-5xl md:text-7xl lg:text-8xl text-text-secondary tracking-tight leading-[0.9]">
-                        {department.name}
-                      </h2>
-                    </div>
+                    <h2 className="mb-4 font-bebasNeue text-[2.5rem] leading-[0.9] tracking-tight text-text-secondary sm:mb-6 sm:text-6xl lg:text-7xl">
+                      {department.name}
+                    </h2>
 
-                    <p className="text-text-muted text-sm md:text-xl leading-tight md:leading-relaxed text-justify w-full mb-10">
+                    <p className="w-full text-sm leading-relaxed text-text-muted sm:text-base md:text-lg">
                       {department.description}
                     </p>
                   </motion.div>
@@ -305,64 +275,60 @@ export function DepartmentSections({
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm text-text-secondary flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm sm:p-4"
         >
           <motion.form
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            initial={{ scale: 0.95, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            transition={{ duration: 0.3 }}
             onSubmit={handleSubmit}
-            className="bg-linear-to-br from-white to-gray-50 p-8 rounded-2xl max-w-lg w-full mx-4 shadow-2xl border-2 border-accent/20 max-h-[90vh] overflow-y-auto"
+            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border-2 border-accent/20 bg-surface p-5 shadow-2xl sm:p-8"
           >
-            <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-accent/20">
-              <h3 className="text-2xl font-bold flex items-center gap-2">
-                <HiOutlinePencilAlt className="text-accent text-3xl" />
-                Edit {editing.name}
+            <div className="mb-5 flex items-center justify-between gap-3 border-b-2 border-accent/20 pb-4">
+              <h3 className="flex items-center gap-2 text-lg font-bold text-text-secondary sm:text-2xl">
+                <HiOutlinePencilAlt className="shrink-0 text-2xl text-accent sm:text-3xl" />
+                <span className="truncate">Edit {editing.name}</span>
               </h3>
 
               <button
                 type="button"
                 onClick={closeEdit}
                 disabled={saving}
-                className="text-sm font-medium px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors duration-200 cursor-pointer disabled:opacity-50"
+                className="shrink-0 cursor-pointer rounded-lg bg-surface-secondary px-3 py-2 text-sm font-medium text-text-secondary transition hover:bg-border disabled:opacity-50"
               >
                 Close
               </button>
             </div>
 
-            <label className="block mb-2 text-sm font-bold text-text-secondary">
+            <label className="mb-2 block text-sm font-bold text-text-secondary">
               Name
             </label>
+
             <input
-              className="w-full mb-6 p-3 text-text-muted font-semibold border-2 border-gray-300 rounded-lg focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all disabled:opacity-50"
+              className="mb-5 w-full rounded-lg border-2 border-border bg-input-bg p-3 font-semibold text-text-secondary transition focus:border-accent focus:outline-none disabled:opacity-50"
               value={form.name}
               disabled={saving}
-              onChange={(e) =>
-                setForm((s) => ({ ...s, name: e.target.value }))
-              }
+              onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
             />
 
-            <label className="block mb-2 text-sm font-bold text-text-secondary">
+            <label className="mb-2 block text-sm font-bold text-text-secondary">
               Description
             </label>
+
             <textarea
-              className="w-full mb-6 p-3 text-text-muted font-semibold border-2 border-gray-300 rounded-lg focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all disabled:opacity-50"
+              className="mb-5 w-full rounded-lg border-2 border-border bg-input-bg p-3 text-text-secondary transition focus:border-accent focus:outline-none disabled:opacity-50"
               value={form.description}
-              rows={7}
+              rows={6}
               disabled={saving}
               onChange={(e) =>
                 setForm((s) => ({ ...s, description: e.target.value }))
               }
             />
 
-            <label className="block mb-2 text-sm font-bold text-text-secondary">
+            <label className="mb-2 block text-sm font-bold text-text-secondary">
               Replace Department Image
             </label>
-            <p className="mb-2 text-xs text-text-muted">
-              This image is used as the department section image and orbital node
-              image.
-            </p>
+
             <input
               type="file"
               accept="image/*"
@@ -373,15 +339,15 @@ export function DepartmentSections({
                   imageFile: e.target.files?.[0] ?? null,
                 }))
               }
-              className="mb-6 w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-accent file:text-white hover:file:bg-accent/90 disabled:opacity-50"
+              className="mb-6 w-full text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-accent file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-accent/90 disabled:opacity-50"
             />
 
-            <div className="flex justify-end gap-3 pt-4 border-t-2 border-accent/20">
+            <div className="flex flex-col-reverse gap-3 border-t-2 border-accent/20 pt-4 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={closeEdit}
                 disabled={saving}
-                className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-text-secondary font-medium rounded-lg transition-all duration-200 hover:shadow-md disabled:opacity-50"
+                className="cursor-pointer rounded-lg bg-surface-secondary px-6 py-3 font-medium text-text-secondary transition hover:bg-border disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -389,7 +355,7 @@ export function DepartmentSections({
               <button
                 type="submit"
                 disabled={saving}
-                className="px-6 py-3 bg-accent hover:bg-accent/90 text-white font-medium rounded-lg transition-all duration-200 hover:shadow-lg hover:scale-105 disabled:opacity-50"
+                className="cursor-pointer rounded-lg bg-accent px-6 py-3 font-medium text-white transition hover:bg-accent/90 disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save Changes"}
               </button>

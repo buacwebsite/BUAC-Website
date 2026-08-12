@@ -19,6 +19,7 @@ import { useEditor } from "@/app/context/EditorContext";
 import { useAuth } from "@/app/context/AuthProvider";
 import { motion } from "framer-motion";
 import BUACLoader from "@/app/components/ui/BUACLoader";
+import PageLoader from "@/app/components/ui/PageLoader";
 import {
   MotionSection,
   RevealHeading,
@@ -26,22 +27,41 @@ import {
   fadeInLeft,
   fadeInRight,
 } from "@/lib/animations";
-import {
-  STATIC_CONTACT,
-  type ContactContent,
-} from "@/lib/siteContent";
-import { usePublicContent } from "@/lib/publicContent";
+import { useApiData } from "@/lib/publicContent";
+
+interface ContactContent {
+  heading: string;
+  subheading: string;
+  location: {
+    line1: string;
+    line2: string;
+    line3: string;
+  };
+  email: string;
+  phone: string;
+  socialLinks: {
+    facebook: string;
+    instagram: string;
+    linkedin: string;
+  };
+  ctaHeading: string;
+  ctaDescription: string;
+}
+
+interface ContactResponse {
+  contact?: ContactContent;
+  error?: string;
+}
 
 const Contact = () => {
   const { auth } = useAuth();
   const { openEditor } = useEditor();
 
-  const { data: apiData } = usePublicContent<{ contact: ContactContent }>(
+  const { data, loading, error } = useApiData<ContactResponse>(
     "/api/content/contact",
-    { contact: STATIC_CONTACT },
   );
 
-  const content = apiData?.contact || STATIC_CONTACT;
+  const content = data?.contact;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<{
@@ -59,12 +79,12 @@ const Contact = () => {
     mode: "onBlur",
   });
 
-  const onSubmit = async (data: ContactFormData) => {
+  const onSubmit = async (formData: ContactFormData) => {
     setIsSubmitting(true);
     setSubmitStatus({ type: null, message: "" });
 
     try {
-      const response = await axios.post("/api/contact/send", data, {
+      const response = await axios.post("/api/contact/send", formData, {
         headers: { "Content-Type": "application/json" },
       });
 
@@ -88,6 +108,20 @@ const Contact = () => {
     }
   };
 
+  if (loading) {
+    return <PageLoader label="Loading contact information" />;
+  }
+
+  if (error || !content) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4 text-center">
+        <p className="text-text-muted">
+          Contact information is not available right now.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <MotionSection className="buac-gradient-bg min-h-screen py-20 px-4">
       <div className="max-w-7xl mx-auto">
@@ -107,18 +141,20 @@ const Contact = () => {
           )}
 
           <RevealHeading className="font-bebasNeue text-6xl md:text-8xl text-text-secondary mb-4 tracking-wider">
-            {content.heading}
+            {content.heading || "Contact"}
           </RevealHeading>
 
-          <motion.p
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeInUp}
-            className="text-text-muted text-lg md:text-xl max-w-2xl mx-auto"
-          >
-            {content.subheading}
-          </motion.p>
+          {content.subheading && (
+            <motion.p
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeInUp}
+              className="text-text-muted text-lg md:text-xl max-w-2xl mx-auto"
+            >
+              {content.subheading}
+            </motion.p>
+          )}
         </div>
 
         <div className="grid md:grid-cols-2 gap-12 mb-16">
@@ -129,82 +165,107 @@ const Contact = () => {
             variants={fadeInLeft}
             className="space-y-8"
           >
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              transition={{ duration: 0.25 }}
-              className="bg-surface backdrop-blur-sm border border-border rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300"
-            >
-              <div className="flex items-start gap-6">
-                <div className="bg-accent/10 p-4 rounded-xl">
-                  <FaLocationDot className="text-3xl text-accent" />
+            {(content.location.line1 ||
+              content.location.line2 ||
+              content.location.line3) && (
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                transition={{ duration: 0.25 }}
+                className="bg-surface backdrop-blur-sm border border-border rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300"
+              >
+                <div className="flex items-start gap-6">
+                  <div className="bg-accent/10 p-4 rounded-xl">
+                    <FaLocationDot className="text-3xl text-accent" />
+                  </div>
+                  <div>
+                    <h3 className="font-bebasNeue text-2xl text-text-secondary mb-2 tracking-wide">
+                      Location
+                    </h3>
+                    <p className="text-text-muted leading-relaxed">
+                      {content.location.line1}
+                      <br />
+                      {content.location.line2}
+                      <br />
+                      {content.location.line3}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bebasNeue text-2xl text-text-secondary mb-2 tracking-wide">
-                    Location
-                  </h3>
-                  <p className="text-text-muted leading-relaxed">
-                    {content.location.line1}
-                    <br />
-                    {content.location.line2}
-                    <br />
-                    {content.location.line3}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            )}
 
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              transition={{ duration: 0.25 }}
-              className="bg-surface backdrop-blur-sm border border-border rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300"
-            >
-              <div className="flex items-start gap-6">
-                <div className="bg-accent/10 p-4 rounded-xl">
-                  <FaEnvelope className="text-3xl text-accent" />
-                </div>
-                <div>
-                  <h3 className="font-bebasNeue text-2xl text-text-secondary mb-2 tracking-wide">
-                    Email
-                  </h3>
-                  <Link
-                    href={`mailto:${content.email}`}
-                    className="text-text-muted hover:text-accent transition-colors duration-300"
-                  >
-                    {content.email}
-                  </Link>
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              transition={{ duration: 0.25 }}
-              className="bg-accent/5 backdrop-blur-sm border border-accent/20 rounded-2xl p-8 shadow-xl"
-            >
-              <h3 className="font-bebasNeue text-2xl text-text-secondary mb-6 tracking-wide">
-                Follow Our Journey
-              </h3>
-              <div className="flex gap-4">
-                {[
-                  { href: content.socialLinks.facebook, icon: <FaFacebook className="text-3xl" /> },
-                  { href: content.socialLinks.instagram, icon: <FaInstagram className="text-3xl" /> },
-                  { href: content.socialLinks.linkedin, icon: <FaLinkedin className="text-3xl" /> },
-                ].map((social, i) => (
-                  <motion.div key={i} whileHover={{ scale: 1.15, rotate: 5 }} transition={{ duration: 0.2 }}>
+            {content.email && (
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                transition={{ duration: 0.25 }}
+                className="bg-surface backdrop-blur-sm border border-border rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300"
+              >
+                <div className="flex items-start gap-6">
+                  <div className="bg-accent/10 p-4 rounded-xl">
+                    <FaEnvelope className="text-3xl text-accent" />
+                  </div>
+                  <div>
+                    <h3 className="font-bebasNeue text-2xl text-text-secondary mb-2 tracking-wide">
+                      Email
+                    </h3>
                     <Link
-                      href={social.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-surface hover:bg-accent/20 p-4 rounded-xl transition-all duration-300 group block"
+                      href={`mailto:${content.email}`}
+                      className="text-text-muted hover:text-accent transition-colors duration-300"
                     >
-                      <span className="text-text-secondary group-hover:text-accent transition-colors">
-                        {social.icon}
-                      </span>
+                      {content.email}
                     </Link>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {(content.socialLinks.facebook ||
+              content.socialLinks.instagram ||
+              content.socialLinks.linkedin) && (
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                transition={{ duration: 0.25 }}
+                className="bg-accent/5 backdrop-blur-sm border border-accent/20 rounded-2xl p-8 shadow-xl"
+              >
+                <h3 className="font-bebasNeue text-2xl text-text-secondary mb-6 tracking-wide">
+                  Follow Our Journey
+                </h3>
+                <div className="flex gap-4">
+                  {[
+                    content.socialLinks.facebook && {
+                      href: content.socialLinks.facebook,
+                      icon: <FaFacebook className="text-3xl" />,
+                    },
+                    content.socialLinks.instagram && {
+                      href: content.socialLinks.instagram,
+                      icon: <FaInstagram className="text-3xl" />,
+                    },
+                    content.socialLinks.linkedin && {
+                      href: content.socialLinks.linkedin,
+                      icon: <FaLinkedin className="text-3xl" />,
+                    },
+                  ]
+                    .filter(Boolean)
+                    .map((social, i) => (
+                      <motion.div
+                        key={i}
+                        whileHover={{ scale: 1.15, rotate: 5 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Link
+                          href={(social as { href: string }).href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-surface hover:bg-accent/20 p-4 rounded-xl transition-all duration-300 group block"
+                        >
+                          <span className="text-text-secondary group-hover:text-accent transition-colors">
+                            {(social as { icon: React.ReactNode }).icon}
+                          </span>
+                        </Link>
+                      </motion.div>
+                    ))}
+                </div>
+              </motion.div>
+            )}
           </motion.div>
 
           <motion.div
@@ -241,8 +302,15 @@ const Contact = () => {
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1, duration: 0.3 }}
                 >
-                  <label htmlFor={field} className="block text-text-muted mb-2 font-medium capitalize">
-                    {field === "name" ? "Your Name" : field === "email" ? "Email Address" : "Subject"}
+                  <label
+                    htmlFor={field}
+                    className="block text-text-muted mb-2 font-medium capitalize"
+                  >
+                    {field === "name"
+                      ? "Your Name"
+                      : field === "email"
+                        ? "Email Address"
+                        : "Subject"}
                   </label>
                   <input
                     type={field === "email" ? "email" : "text"}
@@ -251,12 +319,11 @@ const Contact = () => {
                     className={`w-full bg-input-bg border rounded-xl px-4 py-3 text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all duration-300 ${
                       errors[field] ? "border-red-500/50" : "border-input-border"
                     }`}
-                    placeholder={
-                      field === "name" ? "John Doe" : field === "email" ? "john@example.com" : "Interested in joining a trek"
-                    }
                   />
                   {errors[field] && (
-                    <p className="mt-1 text-sm text-red-400">{errors[field].message}</p>
+                    <p className="mt-1 text-sm text-red-400">
+                      {errors[field].message}
+                    </p>
                   )}
                 </motion.div>
               ))}
@@ -277,10 +344,11 @@ const Contact = () => {
                   className={`w-full bg-input-bg border rounded-xl px-4 py-3 text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all duration-300 resize-none ${
                     errors.message ? "border-red-500/50" : "border-input-border"
                   }`}
-                  placeholder="Tell us about your adventure plans..."
                 />
                 {errors.message && (
-                  <p className="mt-1 text-sm text-red-400">{errors.message.message}</p>
+                  <p className="mt-1 text-sm text-red-400">
+                    {errors.message.message}
+                  </p>
                 )}
               </motion.div>
 
@@ -305,28 +373,34 @@ const Contact = () => {
           </motion.div>
         </div>
 
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={fadeInUp}
-          className="bg-accent/5 backdrop-blur-sm border border-accent/20 rounded-2xl p-12 text-center shadow-xl"
-        >
-          <h2 className="font-bebasNeue text-4xl md:text-5xl text-text-secondary mb-4 tracking-wider">
-            {content.ctaHeading}
-          </h2>
-          <p className="text-text-muted text-lg max-w-3xl mx-auto mb-8">
-            {content.ctaDescription}
-          </p>
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
-            <Link
-              href="/tours"
-              className="inline-block bg-accent hover:bg-accent/90 text-white font-bebasNeue text-xl tracking-wider px-8 py-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl"
-            >
-              Explore Our Tours
-            </Link>
+        {(content.ctaHeading || content.ctaDescription) && (
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeInUp}
+            className="bg-accent/5 backdrop-blur-sm border border-accent/20 rounded-2xl p-12 text-center shadow-xl"
+          >
+            {content.ctaHeading && (
+              <h2 className="font-bebasNeue text-4xl md:text-5xl text-text-secondary mb-4 tracking-wider">
+                {content.ctaHeading}
+              </h2>
+            )}
+            {content.ctaDescription && (
+              <p className="text-text-muted text-lg max-w-3xl mx-auto mb-8">
+                {content.ctaDescription}
+              </p>
+            )}
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
+              <Link
+                href="/tours"
+                className="inline-block bg-accent hover:bg-accent/90 text-white font-bebasNeue text-xl tracking-wider px-8 py-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl"
+              >
+                Explore Our Tours
+              </Link>
+            </motion.div>
           </motion.div>
-        </motion.div>
+        )}
       </div>
     </MotionSection>
   );

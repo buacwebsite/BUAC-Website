@@ -1,26 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import Image from "next/image";
-import { motion } from "framer-motion";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
+import { useLenis } from "lenis/react";
 import { HiOutlinePencilAlt } from "react-icons/hi";
-import {
-  IoCalendarSharp,
-  IoLocationSharp,
-} from "react-icons/io5";
-import {
-  FaLeaf,
-  FaMountain,
-} from "react-icons/fa";
+import { IoLocationSharp, IoCalendarSharp } from "react-icons/io5";
+import { FaMountain, FaLeaf } from "react-icons/fa";
 import { useAuth } from "@/app/context/AuthProvider";
 import { useEditor } from "@/app/context/EditorContext";
+import { motion } from "framer-motion";
+import { fadeInUp, fadeInLeft, fadeInRight } from "@/lib/animations";
 import PageLoader from "@/app/components/ui/PageLoader";
-import {
-  fadeInLeft,
-  fadeInRight,
-  fadeInUp,
-} from "@/lib/animations";
+
+gsap.registerPlugin(ScrollTrigger);
 
 interface TourImage {
   type: string;
@@ -39,261 +35,27 @@ interface Tour {
   visitCount: number;
   latestVisitYear: string;
   layoutType: "left" | "right";
-  gridLayout: "standard" | "reversed" | string;
+  gridLayout: string;
   images: TourImage[];
 }
 
-function getImage(
-  tour: Tour,
-  index: number,
-  fallbackAlt: string,
-): TourImage {
-  return (
-    tour.images?.[index] || {
-      type: index === 0 ? "main" : "small",
-      alt: fallbackAlt,
-      url: "",
-    }
-  );
-}
+const Tours = () => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const maskPathRef = useRef<SVGPathElement>(null);
 
-function TourImageCard({
-  image,
-  className = "",
-  primary = false,
-  latestVisitYear,
-  align = "left",
-}: {
-  image: TourImage;
-  className?: string;
-  primary?: boolean;
-  latestVisitYear?: string;
-  align?: "left" | "right";
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.96 }}
-      whileInView={{ opacity: 1, scale: 1 }}
-      viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.4 }}
-      className={`group relative overflow-hidden rounded-2xl border border-border bg-surface shadow-xl ${className}`}
-    >
-      {image.url ? (
-        <Image
-          src={image.url}
-          alt={image.alt}
-          fill
-          sizes={
-            primary
-              ? "(max-width: 1024px) 100vw, 66vw"
-              : "(max-width: 1024px) 50vw, 33vw"
-          }
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center bg-surface-secondary p-5 text-center text-text-muted">
-          <span className="text-sm">{image.alt}</span>
-        </div>
-      )}
-
-      {primary && (
-        <>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
-
-          <span
-            className={`absolute bottom-4 z-20 rounded-full bg-accent/90 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm ${
-              align === "left" ? "left-4" : "right-4"
-            }`}
-          >
-            Latest Visit - {latestVisitYear}
-          </span>
-        </>
-      )}
-
-      <div className="pointer-events-none absolute inset-0 rounded-2xl border-2 border-transparent transition-colors duration-300 group-hover:border-accent/45" />
-    </motion.div>
-  );
-}
-
-function TourInfo({
-  tour,
-  align = "left",
-}: {
-  tour: Tour;
-  align?: "left" | "right";
-}) {
-  const textAlign =
-    align === "right" ? "text-right" : "text-left";
-
-  const justify =
-    align === "right" ? "justify-end" : "justify-start";
-
-  return (
-    <>
-      <motion.h2
-        variants={fadeInUp}
-        className={`mb-6 font-bebasNeue text-6xl leading-none tracking-tight text-text-secondary sm:text-7xl md:text-8xl lg:text-9xl ${textAlign}`}
-      >
-        {tour.name}
-
-        {tour.subtitle && (
-          <span className="mt-2 block text-3xl text-text-muted sm:text-4xl md:text-5xl">
-            {tour.subtitle}
-          </span>
-        )}
-      </motion.h2>
-
-      <motion.div
-        variants={fadeInUp}
-        className={`mb-6 flex flex-wrap gap-3 text-sm text-text-muted ${justify}`}
-      >
-        <span className="flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 shadow-sm">
-          <IoLocationSharp className="text-accent" />
-          {tour.location}
-        </span>
-
-        {tour.elevation && (
-          <span className="flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 shadow-sm">
-            <FaMountain className="text-accent" />
-            {tour.elevation}
-          </span>
-        )}
-
-        {tour.description && (
-          <span className="flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 shadow-sm">
-            <FaLeaf className="text-accent" />
-            {tour.description}
-          </span>
-        )}
-
-        <span className="flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 shadow-sm">
-          <IoCalendarSharp className="text-accent" />
-          Visited {tour.visitCount} times
-        </span>
-      </motion.div>
-    </>
-  );
-}
-
-function StandardTourLayout({
-  tour,
-}: {
-  tour: Tour;
-}) {
-  const mainImage = getImage(
-    tour,
-    0,
-    "Main tour image",
-  );
-
-  const smallImageOne = getImage(
-    tour,
-    1,
-    "Tour image 2",
-  );
-
-  const smallImageTwo = getImage(
-    tour,
-    2,
-    "Tour image 3",
-  );
-
-  return (
-    <section className="relative z-10 flex min-h-[76svh] items-center py-14 md:py-20">
-      <div className="mx-auto w-full max-w-7xl px-6 lg:px-12">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
-          variants={fadeInRight}
-        >
-          <TourInfo tour={tour} />
-
-          <div className="grid h-[420px] grid-cols-3 grid-rows-2 gap-3 sm:h-[480px] lg:h-[520px] lg:gap-4">
-            <TourImageCard
-              image={mainImage}
-              primary
-              latestVisitYear={tour.latestVisitYear}
-              className="col-span-2 row-span-2"
-            />
-
-            <TourImageCard image={smallImageOne} />
-
-            <TourImageCard image={smallImageTwo} />
-          </div>
-        </motion.div>
-      </div>
-    </section>
-  );
-}
-
-function ReversedTourLayout({
-  tour,
-}: {
-  tour: Tour;
-}) {
-  const smallImageOne = getImage(
-    tour,
-    0,
-    "Tour image 1",
-  );
-
-  const smallImageTwo = getImage(
-    tour,
-    1,
-    "Tour image 2",
-  );
-
-  const mainImage = getImage(
-    tour,
-    2,
-    "Main tour image",
-  );
-
-  return (
-    <section className="relative z-10 flex min-h-[76svh] items-center py-14 md:py-20">
-      <div className="mx-auto w-full max-w-7xl px-6 lg:px-12">
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
-          variants={fadeInLeft}
-        >
-          <TourInfo tour={tour} align="right" />
-
-          <div className="grid h-[420px] grid-cols-3 grid-rows-2 gap-3 sm:h-[480px] lg:h-[520px] lg:gap-4">
-            <TourImageCard image={smallImageOne} />
-
-            <TourImageCard image={smallImageTwo} />
-
-            <TourImageCard
-              image={mainImage}
-              primary
-              latestVisitYear={tour.latestVisitYear}
-              align="right"
-              className="col-span-2 row-span-2 col-start-2 row-start-1"
-            />
-          </div>
-        </motion.div>
-      </div>
-    </section>
-  );
-}
-
-export default function Tours() {
   const [tours, setTours] = useState<Tour[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const lenis = useLenis();
   const { auth } = useAuth();
   const { openEditor } = useEditor();
+
+  const handleEdit = () => openEditor("tours", tours);
 
   useEffect(() => {
     const fetchTours = async () => {
       try {
-        const response = await axios.get(
-          "/api/content/tours",
-        );
-
+        const response = await axios.get("/api/content/tours");
         setTours(response.data.tours || []);
       } catch (error) {
         console.error("Failed to fetch tours:", error);
@@ -305,13 +67,175 @@ export default function Tours() {
     fetchTours();
   }, []);
 
-  const handleEdit = () => {
-    openEditor("tours", tours);
+  useGSAP(
+    () => {
+      if (!lenis || loading || tours.length === 0) return;
+
+      const handleScroll = () => ScrollTrigger.update();
+      lenis.on("scroll", handleScroll);
+
+      gsap.ticker.lagSmoothing(0);
+
+      const maskPath = maskPathRef.current;
+      const container = containerRef.current;
+
+      if (maskPath && container) {
+        const length = maskPath.getTotalLength();
+        maskPath.style.strokeDasharray = String(length);
+        maskPath.style.strokeDashoffset = String(length);
+
+        gsap.to(maskPath, {
+          strokeDashoffset: 0,
+          ease: "none",
+          scrollTrigger: {
+            trigger: container,
+            start: "top top",
+            end: "bottom bottom",
+            scrub: 1.2,
+            invalidateOnRefresh: true,
+          },
+        });
+      }
+
+      ScrollTrigger.refresh();
+
+      return () => {
+        lenis.off("scroll", handleScroll);
+        ScrollTrigger.getAll().forEach((t) => t.kill());
+      };
+    },
+    {
+      dependencies: [lenis, loading, tours.length],
+      scope: containerRef,
+      revertOnUpdate: true,
+    },
+  );
+
+  const renderTourImage = (image: TourImage, index: number) => (
+    <motion.div
+      key={index}
+      initial={{ opacity: 0, scale: 0.95 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={{ duration: 0.5, delay: index * 0.08 }}
+      className="group relative aspect-[4/3] cursor-pointer overflow-hidden rounded-xl border border-border bg-surface sm:rounded-2xl"
+    >
+      {image.url ? (
+        <Image
+          src={image.url}
+          alt={image.alt}
+          fill
+          sizes="(max-width: 640px) 45vw, 30vw"
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center bg-surface-secondary text-text-muted">
+          <span className="px-2 text-center text-[10px] sm:text-xs">
+            {image.alt}
+          </span>
+        </div>
+      )}
+    </motion.div>
+  );
+
+  const renderTour = (tour: Tour) => {
+    const reversed = tour.gridLayout === "reversed";
+
+    return (
+      <section
+        key={tour.id}
+        className="relative flex min-h-screen w-full items-center justify-center bg-background px-4 py-20 sm:px-6 sm:py-24 md:px-10 lg:px-16"
+      >
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-80px" }}
+          variants={reversed ? fadeInLeft : fadeInRight}
+          className="mx-auto w-full max-w-7xl"
+        >
+          <motion.h2
+            variants={fadeInUp}
+            className={`mb-4 font-bebasNeue text-[2.75rem] leading-[0.9] tracking-tight text-text-secondary sm:mb-6 sm:text-7xl md:text-8xl lg:text-[8rem] ${
+              reversed ? "sm:text-right" : ""
+            }`}
+          >
+            {tour.name}
+
+            {tour.subtitle && (
+              <span className="mt-1 block text-xl text-text-muted sm:mt-2 sm:text-4xl lg:text-5xl">
+                {tour.subtitle}
+              </span>
+            )}
+          </motion.h2>
+
+          <motion.div
+            variants={fadeInUp}
+            className={`mb-6 flex flex-wrap gap-2 text-xs text-text-muted sm:mb-8 sm:gap-3 sm:text-sm ${
+              reversed ? "sm:justify-end" : ""
+            }`}
+          >
+            <span className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 sm:gap-2 sm:px-4 sm:py-2">
+              <IoLocationSharp className="shrink-0 text-accent" />
+              <span className="truncate">{tour.location}</span>
+            </span>
+
+            {tour.elevation && (
+              <span className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 sm:gap-2 sm:px-4 sm:py-2">
+                <FaMountain className="shrink-0 text-accent" />
+                {tour.elevation}
+              </span>
+            )}
+
+            {tour.description && (
+              <span className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 sm:gap-2 sm:px-4 sm:py-2">
+                <FaLeaf className="shrink-0 text-accent" />
+                <span className="truncate">{tour.description}</span>
+              </span>
+            )}
+
+            <span className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 sm:gap-2 sm:px-4 sm:py-2">
+              <IoCalendarSharp className="shrink-0 text-accent" />
+              Visited {tour.visitCount}x
+            </span>
+          </motion.div>
+
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.6 }}
+              className="group relative col-span-2 aspect-video cursor-pointer overflow-hidden rounded-xl border border-border bg-surface sm:row-span-2 sm:aspect-auto sm:min-h-[380px] sm:rounded-2xl"
+            >
+              <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-60 transition-opacity group-hover:opacity-80" />
+
+              {tour.images[0]?.url ? (
+                <Image
+                  src={tour.images[0].url}
+                  alt={tour.images[0].alt}
+                  fill
+                  sizes="(max-width: 640px) 100vw, 66vw"
+                  className="object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-surface-secondary text-text-muted">
+                  <span className="text-sm">Main Image</span>
+                </div>
+              )}
+
+              <span className="absolute bottom-3 left-3 z-20 rounded-full bg-accent/90 px-2.5 py-1 text-[10px] font-medium text-white backdrop-blur-sm sm:bottom-4 sm:left-4 sm:px-3 sm:text-sm">
+                Latest — {tour.latestVisitYear}
+              </span>
+            </motion.div>
+
+            {tour.images.slice(1, 3).map((img, i) => renderTourImage(img, i))}
+          </div>
+        </motion.div>
+      </section>
+    );
   };
 
-  if (loading) {
-    return <PageLoader label="Loading tours" />;
-  }
+  if (loading) return <PageLoader label="Loading tours" />;
 
   return (
     <>
@@ -319,95 +243,83 @@ export default function Tours() {
         <motion.button
           initial={{ opacity: 0, scale: 0 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{
-            delay: 0.35,
-            type: "spring",
-          }}
+          transition={{ delay: 0.5, type: "spring" }}
           onClick={handleEdit}
-          className="fixed right-8 bottom-8 z-50 flex cursor-pointer items-center gap-2 rounded-full bg-accent p-4 text-white shadow-lg shadow-accent/25 transition hover:bg-accent/90"
+          className="fixed bottom-6 right-4 z-50 flex cursor-pointer items-center gap-2 rounded-full bg-accent p-3.5 text-white shadow-lg transition-colors hover:bg-accent/90 sm:bottom-8 sm:right-8 sm:p-4"
           title="Edit Tours"
         >
-          <HiOutlinePencilAlt size={24} />
+          <HiOutlinePencilAlt size={22} />
         </motion.button>
       )}
 
-      <main className="page-shell relative min-h-screen overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-[0.14]">
-          <svg
-            viewBox="0 0 100 1000"
-            preserveAspectRatio="none"
-            className="h-full w-full"
-            aria-hidden="true"
-          >
-            <path
-              d="M52 0 C8 70,92 120,52 190 C10 260,90 315,52 390 C12 465,88 520,52 600 C10 680,90 740,52 820 C15 890,82 940,52 1000"
-              fill="none"
-              stroke="var(--color-text-muted)"
-              strokeWidth="0.45"
-              strokeLinecap="round"
-              strokeDasharray="2 2.5"
-            />
+      {tours.length > 0 ? (
+        <div
+          ref={containerRef}
+          className="relative w-full overflow-x-hidden bg-background"
+        >
+          <div className="pointer-events-none absolute inset-0 z-0 hidden opacity-15 sm:block">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 1920 6000"
+              preserveAspectRatio="none"
+              className="h-full w-full"
+            >
+              <defs>
+                <mask id="tours-path-mask">
+                  <path
+                    ref={maskPathRef}
+                    fill="none"
+                    stroke="#ffffff"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    d="M960 0 C 400 800, 1500 1600, 960 2400 C 400 3200, 1500 4000, 960 4800 C 400 5400, 1200 5800, 960 6000"
+                  />
+                </mask>
+              </defs>
 
-            <path
-              d="M52 0 C8 70,92 120,52 190 C10 260,90 315,52 390 C12 465,88 520,52 600 C10 680,90 740,52 820 C15 890,82 940,52 1000"
-              fill="none"
-              stroke="var(--color-accent)"
-              strokeWidth="0.14"
-              strokeLinecap="round"
-              strokeDasharray="0.6 3.2"
-            />
-          </svg>
+              <path
+                fill="none"
+                stroke="var(--color-text-muted)"
+                strokeWidth="8"
+                strokeLinecap="round"
+                strokeDasharray="18 18"
+                mask="url(#tours-path-mask)"
+                d="M960 0 C 400 800, 1500 1600, 960 2400 C 400 3200, 1500 4000, 960 4800 C 400 5400, 1200 5800, 960 6000"
+              />
+            </svg>
+          </div>
+
+          <div className="relative w-full">{tours.map(renderTour)}</div>
         </div>
+      ) : (
+        <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6 text-center">
+          <FaMountain className="mb-5 text-5xl text-accent/30 sm:text-6xl" />
 
-        {tours.length > 0 ? (
-          <div className="relative">
-            {tours.map((tour) =>
-              tour.gridLayout === "reversed" ? (
-                <ReversedTourLayout
-                  key={tour.id}
-                  tour={tour}
-                />
-              ) : (
-                <StandardTourLayout
-                  key={tour.id}
-                  tour={tour}
-                />
-              ),
-            )}
-          </div>
-        ) : (
-          <div className="relative z-10 flex min-h-[70svh] flex-col items-center justify-center px-6 text-center">
-            <FaMountain className="mb-5 text-6xl text-accent/30" />
+          <h1 className="font-bebasNeue text-4xl tracking-wider text-text-secondary sm:text-5xl">
+            No Tours Available
+          </h1>
 
-            <h1 className="font-bebasNeue text-5xl tracking-wider text-text-secondary">
-              No Tours Available
-            </h1>
+          <p className="mt-3 max-w-xl text-sm text-text-muted">
+            There are currently no tours to display. Please check again later.
+          </p>
+        </div>
+      )}
 
-            <p className="mt-3 max-w-xl text-text-muted">
-              There are currently no tours to display. Please check again
-              later.
-            </p>
-          </div>
-        )}
-
-        {tours.length > 0 && (
-          <section className="relative z-10 flex min-h-[38svh] items-center justify-center px-6 py-12 text-center">
-            <div>
-              <p className="mb-3 text-xs font-bold uppercase tracking-[0.35em] text-accent">
-                BUAC Trails
-              </p>
-
-              <h2 className="font-bebasNeue text-5xl tracking-wider text-text-secondary md:text-6xl">
-                End of the Trail
-              </h2>
-
-              <p className="mt-3 text-sm text-text-muted">
-                More adventures are waiting beyond the next horizon.
-              </p>
-            </div>
-          </section>
-        )}
-      </main>
+      {tours.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="flex h-[40vh] items-center justify-center border-t border-border bg-background px-4 sm:h-[50vh]"
+        >
+          <h2 className="text-center font-bebasNeue text-4xl tracking-wider text-text-secondary sm:text-5xl">
+            End of the Trail
+          </h2>
+        </motion.div>
+      )}
     </>
   );
-}
+};
+
+export default Tours;
