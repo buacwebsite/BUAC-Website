@@ -3,36 +3,91 @@
 import { useEffect } from "react";
 import { useLenis } from "lenis/react";
 
-/**
- * Locks global smooth scrolling while modals/editors are open,
- * but preserves native wheel/touch scrolling inside modal content.
- */
-export function useScrollLock(lock: boolean) {
+interface PreviousBodyStyles {
+  overflow: string;
+  touchAction: string;
+  overscrollBehavior: string;
+  paddingRight: string;
+}
+
+interface PreviousHtmlStyles {
+  overflow: string;
+  overscrollBehavior: string;
+}
+
+export function useScrollLock(
+  lock: boolean,
+) {
   const lenis = useLenis();
 
   useEffect(() => {
+    if (!lock) {
+      return;
+    }
+
     const body = document.body;
-    const html = document.documentElement;
+    const html =
+      document.documentElement;
 
-    if (lock) {
-      lenis?.stop();
+    const previousBodyStyles: PreviousBodyStyles =
+      {
+        overflow: body.style.overflow,
+        touchAction:
+          body.style.touchAction,
+        overscrollBehavior:
+          body.style.overscrollBehavior,
+        paddingRight:
+          body.style.paddingRight,
+      };
 
-      body.style.overflow = "hidden";
-      html.style.overflow = "hidden";
-      body.style.touchAction = "none";
-    } else {
-      lenis?.start();
+    const previousHtmlStyles: PreviousHtmlStyles =
+      {
+        overflow: html.style.overflow,
+        overscrollBehavior:
+          html.style
+            .overscrollBehavior,
+      };
 
-      body.style.overflow = "";
-      html.style.overflow = "";
-      body.style.touchAction = "";
+    const scrollbarWidth =
+      window.innerWidth -
+      document.documentElement
+        .clientWidth;
+
+    lenis?.stop();
+
+    body.style.overflow = "hidden";
+    body.style.touchAction = "none";
+    body.style.overscrollBehavior =
+      "none";
+
+    html.style.overflow = "hidden";
+    html.style.overscrollBehavior =
+      "none";
+
+    if (scrollbarWidth > 0) {
+      body.style.paddingRight = `${scrollbarWidth}px`;
     }
 
     return () => {
+      body.style.overflow =
+        previousBodyStyles.overflow;
+
+      body.style.touchAction =
+        previousBodyStyles.touchAction;
+
+      body.style.overscrollBehavior =
+        previousBodyStyles.overscrollBehavior;
+
+      body.style.paddingRight =
+        previousBodyStyles.paddingRight;
+
+      html.style.overflow =
+        previousHtmlStyles.overflow;
+
+      html.style.overscrollBehavior =
+        previousHtmlStyles.overscrollBehavior;
+
       lenis?.start();
-      body.style.overflow = "";
-      html.style.overflow = "";
-      body.style.touchAction = "";
     };
   }, [lock, lenis]);
 }

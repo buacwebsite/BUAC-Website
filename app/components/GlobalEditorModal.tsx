@@ -1,5 +1,6 @@
 "use client";
 
+import type { WheelEvent, TouchEvent } from "react";
 import { useEditor } from "../context/EditorContext";
 import LandingHeroEditor from "./editors/LandingHeroEditor";
 import DepartmentsEditor from "./editors/DepartmentsEditor";
@@ -14,98 +15,135 @@ import GalleryEditor from "./editors/GalleryEditor";
 import HomeOrderEditor from "./editors/HomeOrderEditor";
 
 export default function GlobalEditorModal() {
-  const ctx = useEditor();
+  const context = useEditor();
 
-  if (!ctx || !ctx.editor.isOpen) {
+  if (
+    !context ||
+    !context.editor.isOpen
+  ) {
     return null;
   }
 
-  const { editor, closeEditor } = ctx;
+  const {
+    editor,
+    closeEditor,
+  } = context;
 
-  const homeOrder = Array.isArray(editor.data)
+  const homeOrder = Array.isArray(
+    editor.data,
+  )
     ? editor.data
-    : [];
+    : editor.data &&
+        typeof editor.data === "object" &&
+        Array.isArray(editor.data.order)
+      ? editor.data.order
+      : [];
+
+  const stopWheelPropagation = (
+    event: WheelEvent<HTMLDivElement>,
+  ) => {
+    event.stopPropagation();
+  };
+
+  const stopTouchPropagation = (
+    event: TouchEvent<HTMLDivElement>,
+  ) => {
+    event.stopPropagation();
+  };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm">
-      <div className="flex h-full w-full items-center justify-center p-3 sm:p-4 md:p-6">
+    <div className="fixed inset-0 z-[100] overflow-hidden bg-black/70 backdrop-blur-sm">
+      <div className="flex h-full w-full items-center justify-center p-2 sm:p-4 md:p-6">
         <div
-          className="flex h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
+          className="flex max-h-[96dvh] min-h-0 w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
           data-lenis-prevent
-          onWheel={(e) => e.stopPropagation()}
-          onTouchMove={(e) => e.stopPropagation()}
+          onWheel={stopWheelPropagation}
+          onTouchMove={stopTouchPropagation}
         >
-          {editor.type === "landing-hero" && (
+          {editor.type ===
+            "landing-hero" && (
             <LandingHeroEditor
               data={editor.data}
               onClose={closeEditor}
             />
           )}
 
-          {editor.type === "departments" && (
+          {editor.type ===
+            "departments" && (
             <DepartmentsEditor
               data={editor.data}
               onClose={closeEditor}
             />
           )}
 
-          {editor.type === "contact" && (
+          {editor.type ===
+            "contact" && (
             <ContactEditor
               data={editor.data}
               onClose={closeEditor}
             />
           )}
 
-          {editor.type === "joinus" && (
+          {editor.type ===
+            "joinus" && (
             <JoinUsEditor
               data={editor.data}
               onClose={closeEditor}
             />
           )}
 
-          {editor.type === "panelmembers" && (
+          {editor.type ===
+            "panelmembers" && (
             <PanelMembersEditor
               data={editor.data}
               onClose={closeEditor}
             />
           )}
 
-          {editor.type === "tours" && (
+          {editor.type ===
+            "tours" && (
             <ToursEditor
               data={editor.data}
               onClose={closeEditor}
             />
           )}
 
-          {editor.type === "aboutSection" && (
+          {editor.type ===
+            "aboutSection" && (
             <AboutSectionEditor
               data={editor.data}
               onClose={closeEditor}
             />
           )}
 
-          {editor.type === "vision" && (
+          {editor.type ===
+            "vision" && (
             <VisionEditor
-              initialData={editor.data}
+              initialData={
+                editor.data
+              }
               onClose={closeEditor}
             />
           )}
 
-          {editor.type === "activities" && (
+          {editor.type ===
+            "activities" && (
             <ActivitiesEditor
               data={editor.data}
               onClose={closeEditor}
             />
           )}
 
-          {editor.type === "gallery" && (
+          {editor.type ===
+            "gallery" && (
             <GalleryEditor
               data={editor.data}
               onClose={closeEditor}
             />
           )}
 
-          {editor.type === "home-order" && (
+          {editor.type ===
+            "home-order" && (
             <HomeOrderEditor
               order={homeOrder}
               onClose={closeEditor}
