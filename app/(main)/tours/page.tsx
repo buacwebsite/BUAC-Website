@@ -8,12 +8,16 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { useLenis } from "lenis/react";
 import { HiOutlinePencilAlt } from "react-icons/hi";
-import { IoLocationSharp, IoCalendarSharp } from "react-icons/io5";
+import { IoLocationSharp } from "react-icons/io5";
 import { FaMountain, FaLeaf } from "react-icons/fa";
 import { useAuth } from "@/app/context/AuthProvider";
 import { useEditor } from "@/app/context/EditorContext";
 import { motion } from "framer-motion";
-import { fadeInUp, fadeInLeft, fadeInRight } from "@/lib/animations";
+import {
+  fadeInUp,
+  fadeInLeft,
+  fadeInRight,
+} from "@/lib/animations";
 import PageLoader from "@/app/components/ui/PageLoader";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -50,7 +54,9 @@ const Tours = () => {
   const { auth } = useAuth();
   const { openEditor } = useEditor();
 
-  const handleEdit = () => openEditor("tours", tours);
+  const handleEdit = () => {
+    openEditor("tours", tours);
+  };
 
   useEffect(() => {
     const fetchTours = async () => {
@@ -71,9 +77,11 @@ const Tours = () => {
     () => {
       if (!lenis || loading || tours.length === 0) return;
 
-      const handleScroll = () => ScrollTrigger.update();
-      lenis.on("scroll", handleScroll);
+      const handleScroll = () => {
+        ScrollTrigger.update();
+      };
 
+      lenis.on("scroll", handleScroll);
       gsap.ticker.lagSmoothing(0);
 
       const maskPath = maskPathRef.current;
@@ -81,6 +89,7 @@ const Tours = () => {
 
       if (maskPath && container) {
         const length = maskPath.getTotalLength();
+
         maskPath.style.strokeDasharray = String(length);
         maskPath.style.strokeDashoffset = String(length);
 
@@ -101,7 +110,10 @@ const Tours = () => {
 
       return () => {
         lenis.off("scroll", handleScroll);
-        ScrollTrigger.getAll().forEach((t) => t.kill());
+
+        ScrollTrigger.getAll().forEach((trigger) => {
+          trigger.kill();
+        });
       };
     },
     {
@@ -111,58 +123,64 @@ const Tours = () => {
     },
   );
 
-  const renderTourImage = (image: TourImage, index: number) => (
-    <motion.div
-      key={index}
-      initial={{ opacity: 0, scale: 0.95 }}
-      whileInView={{ opacity: 1, scale: 1 }}
-      viewport={{ once: true, margin: "-60px" }}
-      transition={{ duration: 0.5, delay: index * 0.08 }}
-      className="group relative aspect-[4/3] cursor-pointer overflow-hidden rounded-xl border border-border bg-surface sm:rounded-2xl"
-    >
-      {image.url ? (
-        <Image
-          src={image.url}
-          alt={image.alt}
-          fill
-          sizes="(max-width: 640px) 45vw, 30vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center bg-surface-secondary text-text-muted">
-          <span className="px-2 text-center text-[10px] sm:text-xs">
-            {image.alt}
-          </span>
-        </div>
-      )}
-    </motion.div>
-  );
+  const renderTourImage = (image: TourImage, index: number) => {
+    return (
+      <motion.div
+        key={`${image.alt}-${index}`}
+        initial={{ opacity: 0, scale: 0.96 }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        viewport={{ once: true, margin: "-40px" }}
+        transition={{
+          duration: 0.4,
+          delay: index * 0.05,
+          ease: [0.4, 0, 0.2, 1],
+        }}
+        className="group relative aspect-[4/3] cursor-pointer overflow-hidden rounded-lg border border-border bg-surface sm:rounded-xl"
+      >
+        {image.url ? (
+          <Image
+            src={image.url}
+            alt={image.alt}
+            fill
+            sizes="(max-width: 640px) 42vw, (max-width: 1024px) 26vw, 220px"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-surface-secondary px-2 text-center">
+            <span className="text-[9px] text-text-muted sm:text-xs">
+              {image.alt || "No image"}
+            </span>
+          </div>
+        )}
+      </motion.div>
+    );
+  };
 
   const renderTour = (tour: Tour) => {
-    const reversed = tour.gridLayout === "reversed";
+    const isReversed = tour.gridLayout === "reversed";
 
     return (
       <section
         key={tour.id}
-        className="relative flex min-h-screen w-full items-center justify-center bg-background px-4 py-20 sm:px-6 sm:py-24 md:px-10 lg:px-16"
+        className="relative flex min-h-[58vh] w-full items-center justify-center bg-background px-4 py-12 sm:min-h-[68vh] sm:px-6 sm:py-16 md:px-10 lg:px-14"
       >
         <motion.div
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, margin: "-80px" }}
-          variants={reversed ? fadeInLeft : fadeInRight}
-          className="mx-auto w-full max-w-7xl"
+          viewport={{ once: true, margin: "-60px" }}
+          variants={isReversed ? fadeInLeft : fadeInRight}
+          className="mx-auto w-full max-w-5xl"
         >
           <motion.h2
             variants={fadeInUp}
-            className={`mb-4 font-bebasNeue text-[2.75rem] leading-[0.9] tracking-tight text-text-secondary sm:mb-6 sm:text-7xl md:text-8xl lg:text-[8rem] ${
-              reversed ? "sm:text-right" : ""
+            className={`mb-3 font-bebasNeue text-[2.1rem] leading-[0.86] tracking-tight text-text-secondary sm:mb-4 sm:text-5xl md:text-6xl lg:text-[5rem] ${
+              isReversed ? "sm:text-right" : ""
             }`}
           >
             {tour.name}
 
             {tour.subtitle && (
-              <span className="mt-1 block text-xl text-text-muted sm:mt-2 sm:text-4xl lg:text-5xl">
+              <span className="mt-1 block text-base text-text-muted sm:text-2xl lg:text-3xl">
                 {tour.subtitle}
               </span>
             )}
@@ -170,72 +188,83 @@ const Tours = () => {
 
           <motion.div
             variants={fadeInUp}
-            className={`mb-6 flex flex-wrap gap-2 text-xs text-text-muted sm:mb-8 sm:gap-3 sm:text-sm ${
-              reversed ? "sm:justify-end" : ""
+            className={`mb-4 flex flex-wrap gap-2 text-[10px] text-text-muted sm:mb-5 sm:text-xs ${
+              isReversed ? "sm:justify-end" : ""
             }`}
           >
-            <span className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 sm:gap-2 sm:px-4 sm:py-2">
-              <IoLocationSharp className="shrink-0 text-accent" />
-              <span className="truncate">{tour.location}</span>
-            </span>
+            {tour.location && (
+              <span className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5">
+                <IoLocationSharp className="shrink-0 text-accent" />
+                <span className="truncate">{tour.location}</span>
+              </span>
+            )}
 
             {tour.elevation && (
-              <span className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 sm:gap-2 sm:px-4 sm:py-2">
+              <span className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5">
                 <FaMountain className="shrink-0 text-accent" />
-                {tour.elevation}
+                <span>{tour.elevation}</span>
               </span>
             )}
 
-            {tour.description && (
-              <span className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 sm:gap-2 sm:px-4 sm:py-2">
+            {tour.latestVisitYear && (
+              <span className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5">
                 <FaLeaf className="shrink-0 text-accent" />
-                <span className="truncate">{tour.description}</span>
+                <span>{tour.latestVisitYear}</span>
               </span>
             )}
-
-            <span className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 sm:gap-2 sm:px-4 sm:py-2">
-              <IoCalendarSharp className="shrink-0 text-accent" />
-              Visited {tour.visitCount}x
-            </span>
           </motion.div>
 
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4">
+          <div
+            className={`grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 ${
+              isReversed ? "sm:[direction:rtl]" : ""
+            }`}
+          >
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.96 }}
               whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.6 }}
-              className="group relative col-span-2 aspect-video cursor-pointer overflow-hidden rounded-xl border border-border bg-surface sm:row-span-2 sm:aspect-auto sm:min-h-[380px] sm:rounded-2xl"
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.45 }}
+              className="group relative col-span-2 aspect-video cursor-pointer overflow-hidden rounded-lg border border-border bg-surface sm:row-span-2 sm:min-h-[210px] sm:rounded-xl md:min-h-[250px] lg:min-h-[280px] sm:[direction:ltr]"
             >
-              <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-60 transition-opacity group-hover:opacity-80" />
+              <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/65 via-transparent to-transparent opacity-60 transition-opacity duration-500 group-hover:opacity-80" />
 
               {tour.images[0]?.url ? (
                 <Image
                   src={tour.images[0].url}
-                  alt={tour.images[0].alt}
+                  alt={tour.images[0].alt || tour.name}
                   fill
-                  sizes="(max-width: 640px) 100vw, 66vw"
-                  className="object-cover transition-transform duration-700 group-hover:scale-105"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 60vw, 480px"
+                  className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-surface-secondary text-text-muted">
-                  <span className="text-sm">Main Image</span>
+                <div className="flex h-full w-full items-center justify-center bg-surface-secondary">
+                  <span className="text-xs text-text-muted">
+                    No main image
+                  </span>
                 </div>
               )}
 
-              <span className="absolute bottom-3 left-3 z-20 rounded-full bg-accent/90 px-2.5 py-1 text-[10px] font-medium text-white backdrop-blur-sm sm:bottom-4 sm:left-4 sm:px-3 sm:text-sm">
-                Latest — {tour.latestVisitYear}
-              </span>
+              {tour.latestVisitYear && (
+                <span className="absolute bottom-2 left-2 z-20 rounded-full bg-accent/90 px-2.5 py-1 text-[9px] font-medium text-white backdrop-blur-sm sm:bottom-3 sm:left-3 sm:text-xs">
+                  {tour.latestVisitYear}
+                </span>
+              )}
             </motion.div>
 
-            {tour.images.slice(1, 3).map((img, i) => renderTourImage(img, i))}
+            <div className="contents sm:[direction:ltr]">
+              {tour.images
+                .slice(1, 3)
+                .map((image, index) => renderTourImage(image, index))}
+            </div>
           </div>
         </motion.div>
       </section>
     );
   };
 
-  if (loading) return <PageLoader label="Loading tours" />;
+  if (loading) {
+    return <PageLoader label="Loading tours" />;
+  }
 
   return (
     <>
@@ -245,10 +274,10 @@ const Tours = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.5, type: "spring" }}
           onClick={handleEdit}
-          className="fixed bottom-6 right-4 z-50 flex cursor-pointer items-center gap-2 rounded-full bg-accent p-3.5 text-white shadow-lg transition-colors hover:bg-accent/90 sm:bottom-8 sm:right-8 sm:p-4"
+          className="fixed bottom-6 right-4 z-50 flex cursor-pointer items-center gap-2 rounded-full bg-accent p-3 text-white shadow-lg transition-colors hover:bg-accent/90 sm:bottom-8 sm:right-8 sm:p-4"
           title="Edit Tours"
         >
-          <HiOutlinePencilAlt size={22} />
+          <HiOutlinePencilAlt size={21} />
         </motion.button>
       )}
 
@@ -311,9 +340,9 @@ const Tours = () => {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="flex h-[40vh] items-center justify-center border-t border-border bg-background px-4 sm:h-[50vh]"
+          className="flex h-[30vh] items-center justify-center border-t border-border bg-background px-4 sm:h-[36vh]"
         >
-          <h2 className="text-center font-bebasNeue text-4xl tracking-wider text-text-secondary sm:text-5xl">
+          <h2 className="text-center font-bebasNeue text-3xl tracking-wider text-text-secondary sm:text-4xl">
             End of the Trail
           </h2>
         </motion.div>

@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { FaFacebook, FaInstagram, FaLinkedin } from "react-icons/fa6";
+import {
+  FaFacebook,
+  FaInstagram,
+  FaLinkedin,
+} from "react-icons/fa6";
 import { motion } from "framer-motion";
 
 const Footer = () => {
@@ -21,6 +25,7 @@ const Footer = () => {
     "Mahmuda Aktar Mridula",
     "Md. Sadab Zahin Apurbo",
     "Ahnaf Atif Prapon",
+    "Tahir Kawser Provat",
     "Sadman Sakib Saad",
   ];
 
@@ -30,34 +35,36 @@ const Footer = () => {
       whileInView={{ opacity: 1 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5 }}
-      className="site-footer relative w-full overflow-hidden bg-background text-text-secondary font-poppins border-t border-border"
+      className="site-footer relative w-full overflow-hidden border-t border-border bg-background font-poppins text-text-secondary"
     >
-      <div className="absolute left-1/2 top-0 h-32 w-[60vw] -translate-x-1/2 rounded-full bg-accent/8 blur-3xl pointer-events-none" />
+      <div className="pointer-events-none absolute left-1/2 top-0 h-32 w-[80vw] -translate-x-1/2 rounded-full bg-accent/8 blur-3xl sm:w-[60vw]" />
 
-      <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,var(--color-text-secondary)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-text-secondary)_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none" />
-
-      <div className="relative z-10 mx-auto max-w-7xl px-6 py-10">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <Link href="/" className="flex items-center gap-3 group">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
+        <div className="flex flex-col gap-6 text-center md:flex-row md:items-center md:justify-between md:text-left">
+          <Link
+            href="/"
+            className="group flex flex-col items-center justify-center gap-3 sm:flex-row md:justify-start"
+          >
             <Image
               src="/assets/logos/buac.webp"
               alt="BUAC Logo"
-              width={48}
-              height={48}
-              className="object-contain transition-transform duration-300 group-hover:scale-110"
+              width={44}
+              height={44}
+              className="object-contain transition-transform duration-300 group-hover:scale-110 sm:h-[48px] sm:w-[48px]"
             />
 
             <div>
-              <h2 className="font-bebasNeue text-xl tracking-wider text-text-secondary leading-none">
+              <h2 className="font-bebasNeue text-lg leading-none tracking-wider text-text-secondary sm:text-xl">
                 BRAC UNIVERSITY
               </h2>
-              <h3 className="font-bebasNeue text-lg tracking-wider text-accent leading-none mt-1">
+
+              <h3 className="mt-1 font-bebasNeue text-base leading-none tracking-wider text-accent sm:text-lg">
                 ADVENTURE CLUB
               </h3>
             </div>
           </Link>
 
-          <div className="flex flex-col items-center md:items-end gap-3">
+          <div className="flex flex-col items-center gap-3 md:items-end">
             <h3 className="text-[10px] font-semibold uppercase tracking-[0.25em] text-text-muted">
               Connect With Us
             </h3>
@@ -104,7 +111,7 @@ const Footer = () => {
 
         <div className="my-6 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent" />
 
-        <div className="flex flex-col items-center gap-5 text-center">
+        <div className="flex flex-col items-center gap-5 px-2 text-center">
           <p className="text-[11px] tracking-wide text-text-muted">
             © {currentYear} BRAC University Adventure Club. All rights reserved.
           </p>
@@ -115,13 +122,14 @@ const Footer = () => {
               <span className="text-accent">■</span>
             </p>
 
-            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-text-muted">
-              {giftTeam.map((name, i) => (
-                <span key={name} className="flex items-center gap-3">
-                  <span className="hover:text-accent transition-colors">
+            <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-[11px] text-text-muted sm:gap-x-3">
+              {giftTeam.map((name, index) => (
+                <span key={name} className="flex items-center gap-2.5 sm:gap-3">
+                  <span className="transition-colors hover:text-accent">
                     {name}
                   </span>
-                  {i < giftTeam.length - 1 && (
+
+                  {index < giftTeam.length - 1 && (
                     <span className="text-border">·</span>
                   )}
                 </span>
@@ -129,12 +137,14 @@ const Footer = () => {
             </div>
           </div>
 
-          <div className="flex flex-col items-center gap-2">
-            <div className="flex items-center gap-3 w-full max-w-xs">
+          <div className="flex w-full flex-col items-center gap-2">
+            <div className="flex w-full max-w-xs items-center gap-3">
               <span className="h-px flex-1 bg-border" />
+
               <span className="text-[9px] font-semibold uppercase tracking-[0.25em] text-accent">
                 1st Upgrading Team
               </span>
+
               <span className="h-px flex-1 bg-border" />
             </div>
 
@@ -142,13 +152,14 @@ const Footer = () => {
               {upgradingLead}
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px] text-text-muted">
-              {upgradingTeam.map((name, i) => (
-                <span key={name} className="flex items-center gap-3">
-                  <span className="hover:text-accent transition-colors">
+            <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-[11px] text-text-muted sm:gap-x-3">
+              {upgradingTeam.map((name, index) => (
+                <span key={name} className="flex items-center gap-2.5 sm:gap-3">
+                  <span className="transition-colors hover:text-accent">
                     {name}
                   </span>
-                  {i < upgradingTeam.length - 1 && (
+
+                  {index < upgradingTeam.length - 1 && (
                     <span className="text-border">·</span>
                   )}
                 </span>
