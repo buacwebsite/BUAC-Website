@@ -46,12 +46,12 @@ function slugify(value: string) {
 }
 
 function DestinationCard({
-  loc,
+  location,
   active,
   onSelect,
   index,
 }: {
-  loc: LocationItem;
+  location: LocationItem;
   active: boolean;
   onSelect: () => void;
   index: number;
@@ -60,65 +60,76 @@ function DestinationCard({
     <motion.button
       type="button"
       onClick={onSelect}
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.45, delay: index * 0.05 }}
-      whileHover={{ y: -6 }}
-      className="group relative h-[118px] w-[84px] shrink-0 overflow-hidden rounded-xl text-left transition-all duration-500 sm:h-[210px] sm:w-[136px] sm:rounded-2xl md:h-[240px] md:w-[156px]"
-      style={{
-        marginTop: active ? 0 : index % 2 ? 8 : 3,
-        border: active
-          ? "1px solid rgba(255, 98, 43, 0.85)"
-          : "1px solid rgba(255, 255, 255, 0.08)",
-        boxShadow: active
-          ? "0 0 0 1px rgba(255, 98, 43, 0.5), 0 10px 24px rgba(255, 98, 43, 0.2)"
-          : "0 8px 20px rgba(0,0,0,0.36)",
+      initial={{
+        opacity: 0,
+        y: 20,
       }}
-      aria-label={`Select ${loc.name}`}
+      animate={{
+        opacity: 1,
+        y: 0,
+      }}
+      transition={{
+        duration: 0.4,
+        delay: Math.min(index * 0.05, 0.35),
+      }}
+      whileHover={{
+        y: -5,
+      }}
+      className="group relative h-[116px] w-[82px] shrink-0 overflow-hidden rounded-xl text-left transition-all duration-300 sm:h-[210px] sm:w-[136px] sm:rounded-2xl md:h-[240px] md:w-[156px]"
+      style={{
+        border: active
+          ? "1px solid rgba(255, 98, 43, 0.9)"
+          : "1px solid rgba(255, 255, 255, 0.1)",
+        boxShadow: active
+          ? "0 0 0 1px rgba(255, 98, 43, 0.4), 0 10px 24px rgba(255, 98, 43, 0.2)"
+          : "0 8px 20px rgba(0,0,0,0.35)",
+      }}
+      aria-label={`Select ${location.name}`}
     >
-      {loc.image ? (
+      {location.image ? (
         <Image
-          src={loc.image}
-          alt={loc.name}
+          src={location.image}
+          alt={location.name}
           fill
           loading="lazy"
-          sizes="(max-width: 640px) 84px, (max-width: 1024px) 136px, 156px"
-          className="absolute inset-0 object-cover transition-transform duration-700 group-hover:scale-110"
+          sizes="(max-width: 640px) 82px, (max-width: 1024px) 136px, 156px"
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
       ) : (
-        <div className="absolute inset-0 flex items-center justify-center bg-surface-secondary px-1 text-center text-[8px] text-text-muted sm:text-[10px]">
-          No image
+        <div className="absolute inset-0 flex items-center justify-center bg-surface-secondary px-2 text-center">
+          <span className="text-[8px] text-text-muted">
+            No image
+          </span>
         </div>
       )}
 
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/5" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/5" />
 
       <span
-        className={`absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full shadow-md transition-colors sm:right-2 sm:top-2 sm:h-7 sm:w-7 ${
+        className={`absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full shadow-md sm:right-2 sm:top-2 sm:h-7 sm:w-7 ${
           active
             ? "bg-accent text-white"
-            : "bg-background/90 text-text-secondary"
+            : "bg-black/70 text-white"
         }`}
       >
         <HiBookmark className="h-2 w-2 sm:h-3.5 sm:w-3.5" />
       </span>
 
-      {loc.tag && (
-        <span className="absolute left-1 top-1 max-w-[58px] truncate rounded-full border border-white/15 bg-black/35 px-1.5 py-0.5 text-[6px] font-semibold uppercase tracking-wider text-white/85 backdrop-blur-md sm:left-2 sm:top-2 sm:max-w-[90px] sm:px-2 sm:text-[8px]">
-          {loc.tag}
+      {location.tag && (
+        <span className="absolute left-1 top-1 max-w-[52px] truncate rounded-full border border-white/15 bg-black/40 px-1.5 py-0.5 text-[6px] font-semibold uppercase tracking-wider text-white/85 backdrop-blur-md sm:left-2 sm:top-2 sm:max-w-[90px] sm:px-2 sm:text-[8px]">
+          {location.tag}
         </span>
       )}
 
-      <div className="absolute bottom-0 left-0 w-full p-1.5 sm:p-3">
+      <div className="absolute inset-x-0 bottom-0 p-1.5 sm:p-3">
         <h3 className="line-clamp-2 font-bebasNeue text-[11px] leading-tight tracking-wide text-white sm:text-lg">
-          {loc.name}
+          {location.name}
         </h3>
 
-        {loc.country && (
-          <div className="mt-0.5 line-clamp-1 text-[7px] text-white/75 sm:text-[10px]">
-            {loc.country}
-          </div>
+        {location.country && (
+          <p className="mt-0.5 line-clamp-1 text-[7px] text-white/70 sm:text-[10px]">
+            {location.country}
+          </p>
         )}
       </div>
     </motion.button>
@@ -132,58 +143,87 @@ function RoadMapTimeline({
 }: {
   items: LocationItem[];
   active: number;
-  onChange: (i: number) => void;
+  onChange: (index: number) => void;
 }) {
   const count = items.length;
-  const uid = useId().replace(/:/g, "");
-  const gradientId = `roadGrad-${uid}`;
-  const glowId = `roadGlow-${uid}`;
+  const uniqueId = useId().replace(/:/g, "");
+  const gradientId = `road-gradient-${uniqueId}`;
+  const glowId = `road-glow-${uniqueId}`;
 
   const points = useMemo(() => {
-    return items.map((_, i) => {
-      const t = count === 1 ? 0.5 : i / (count - 1);
-      const x = 10 + t * 80;
-      const y = 50 + Math.sin(t * Math.PI * 2.2) * 15;
-      return { x, y };
+    return items.map((_, index) => {
+      const progress =
+        count === 1 ? 0.5 : index / (count - 1);
+
+      return {
+        x: 10 + progress * 80,
+        y:
+          50 +
+          Math.sin(progress * Math.PI * 2.2) *
+            15,
+      };
     });
   }, [items, count]);
 
-  const pathD = useMemo(() => {
+  const path = useMemo(() => {
     if (points.length < 2) return "";
 
-    let d = `M ${points[0].x} ${points[0].y}`;
+    let value = `M ${points[0].x} ${points[0].y}`;
 
-    for (let i = 0; i < points.length - 1; i++) {
-      const p0 = points[i];
-      const p1 = points[i + 1];
-      const cx = (p0.x + p1.x) / 2;
-      d += ` C ${cx} ${p0.y}, ${cx} ${p1.y}, ${p1.x} ${p1.y}`;
+    for (
+      let index = 0;
+      index < points.length - 1;
+      index += 1
+    ) {
+      const current = points[index];
+      const next = points[index + 1];
+      const controlX =
+        (current.x + next.x) / 2;
+
+      value += ` C ${controlX} ${current.y}, ${controlX} ${next.y}, ${next.x} ${next.y}`;
     }
 
-    return d;
+    return value;
   }, [points]);
 
-  if (!items.length) return null;
+  if (!items.length) {
+    return null;
+  }
 
   return (
-    <div className="relative mt-3 h-24 w-full max-w-xl overflow-hidden sm:mt-8 sm:h-44">
+    <div className="relative h-24 w-full overflow-hidden sm:h-40">
       <svg
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
         className="absolute inset-0 h-full w-full"
       >
         <defs>
-          <linearGradient id={gradientId} x1="0" x2="1" y1="0" y2="0">
+          <linearGradient
+            id={gradientId}
+            x1="0"
+            x2="1"
+            y1="0"
+            y2="0"
+          >
             <stop
               offset="0%"
               stopColor="var(--color-accent)"
               stopOpacity="0.95"
             />
-            <stop offset="100%" stopColor="#ffffff" stopOpacity="0.55" />
+
+            <stop
+              offset="100%"
+              stopColor="#ffffff"
+              stopOpacity="0.55"
+            />
           </linearGradient>
 
           <filter id={glowId}>
-            <feGaussianBlur stdDeviation="0.8" result="blur" />
+            <feGaussianBlur
+              stdDeviation="0.8"
+              result="blur"
+            />
+
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
@@ -192,75 +232,121 @@ function RoadMapTimeline({
         </defs>
 
         <motion.path
-          d={pathD}
+          d={path}
           fill="none"
           stroke="rgba(255, 98, 43, 0.16)"
           strokeWidth="1.2"
           strokeLinecap="round"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 1.5, ease: "easeInOut" }}
+          initial={{
+            pathLength: 0,
+          }}
+          animate={{
+            pathLength: 1,
+          }}
+          transition={{
+            duration: 1.5,
+            ease: "easeInOut",
+          }}
         />
 
         <motion.path
-          d={pathD}
+          d={path}
           fill="none"
           stroke={`url(#${gradientId})`}
           strokeWidth="0.45"
           strokeLinecap="round"
           strokeDasharray="0.45 2.4"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 0.85 }}
-          transition={{ duration: 1.7, ease: "easeInOut" }}
+          initial={{
+            pathLength: 0,
+            opacity: 0,
+          }}
+          animate={{
+            pathLength: 1,
+            opacity: 0.85,
+          }}
+          transition={{
+            duration: 1.7,
+            ease: "easeInOut",
+          }}
         />
 
-        {points.map((p, i) => {
-          const isActive = i === active;
+        {points.map((point, index) => {
+          const isActive = index === active;
 
           return (
             <g
-              key={i}
+              key={index}
               className="cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation();
-                onChange(i);
+              onClick={(event) => {
+                event.stopPropagation();
+                onChange(index);
               }}
             >
-              <circle cx={p.x} cy={p.y} r={8} fill="transparent" />
-
-              <motion.circle
-                cx={p.x}
-                cy={p.y}
-                r={isActive ? 3 : 1.8}
-                fill="none"
-                stroke={
-                  isActive ? "var(--color-accent)" : "rgba(255,255,255,0.6)"
-                }
-                strokeWidth="0.4"
-                animate={{ r: isActive ? 3 : 1.8 }}
-                transition={{ duration: 0.4 }}
+              <circle
+                cx={point.x}
+                cy={point.y}
+                r={8}
+                fill="transparent"
               />
 
               <motion.circle
-                cx={p.x}
-                cy={p.y}
+                cx={point.x}
+                cy={point.y}
+                r={isActive ? 3 : 1.8}
+                fill="none"
+                stroke={
+                  isActive
+                    ? "var(--color-accent)"
+                    : "rgba(255,255,255,0.6)"
+                }
+                strokeWidth="0.4"
+                animate={{
+                  r: isActive ? 3 : 1.8,
+                }}
+                transition={{
+                  duration: 0.3,
+                }}
+              />
+
+              <circle
+                cx={point.x}
+                cy={point.y}
                 r={isActive ? 1.4 : 0.75}
-                fill={isActive ? "var(--color-accent)" : "#ffffff"}
-                filter={isActive ? `url(#${glowId})` : undefined}
+                fill={
+                  isActive
+                    ? "var(--color-accent)"
+                    : "#ffffff"
+                }
+                filter={
+                  isActive
+                    ? `url(#${glowId})`
+                    : undefined
+                }
               />
 
               {isActive && (
                 <motion.circle
-                  cx={p.x}
-                  cy={p.y}
+                  cx={point.x}
+                  cy={point.y}
                   r={3}
                   fill="none"
                   stroke="var(--color-accent)"
                   strokeWidth="0.3"
-                  initial={{ scale: 0.6, opacity: 0.9 }}
-                  animate={{ scale: 2.4, opacity: 0 }}
-                  transition={{ duration: 1.6, repeat: Infinity }}
-                  style={{ transformOrigin: `${p.x}px ${p.y}px` }}
+                  initial={{
+                    scale: 0.6,
+                    opacity: 0.9,
+                  }}
+                  animate={{
+                    scale: 2.4,
+                    opacity: 0,
+                  }}
+                  transition={{
+                    duration: 1.6,
+                    repeat: Infinity,
+                  }}
+                  style={{
+                    transformOrigin: `${point.x}px ${point.y}px`,
+                  }}
                 />
               )}
             </g>
@@ -269,45 +355,41 @@ function RoadMapTimeline({
       </svg>
 
       <div className="pointer-events-none absolute inset-0">
-        {points.map((p, i) => {
-          const isActive = i === active;
-          const placeAbove = p.y >= 50;
+        {points.map((point, index) => {
+          const isActive = index === active;
+          const placeAbove = point.y >= 50;
 
           return (
-            <div
-              key={i}
+            <button
+              key={index}
+              type="button"
               className={`pointer-events-auto absolute -translate-x-1/2 cursor-pointer px-0.5 text-center ${
-                placeAbove ? "-translate-y-full" : ""
+                placeAbove
+                  ? "-translate-y-full"
+                  : ""
               }`}
               style={{
-                left: `${Math.min(Math.max(p.x, 14), 86)}%`,
-                top: placeAbove ? `${p.y - 20}%` : `${p.y + 20}%`,
+                left: `${Math.min(
+                  Math.max(point.x, 14),
+                  86,
+                )}%`,
+                top: placeAbove
+                  ? `${point.y - 20}%`
+                  : `${point.y + 20}%`,
                 maxWidth: "72px",
               }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onChange(i);
-              }}
+              onClick={() => onChange(index)}
             >
-              <motion.div
-                animate={{ scale: isActive ? 1.05 : 1 }}
-                className={`truncate text-[7px] font-semibold uppercase tracking-[0.1em] select-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] sm:text-[10px] sm:tracking-[0.18em] ${
-                  isActive ? "text-accent" : "text-white/70"
+              <span
+                className={`block truncate text-[7px] font-semibold uppercase tracking-[0.1em] drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] sm:text-[9px] ${
+                  isActive
+                    ? "text-accent"
+                    : "text-white/70"
                 }`}
               >
-                {items[i].name}
-              </motion.div>
-
-              {isActive && items[i].country && (
-                <motion.div
-                  initial={{ opacity: 0, y: -2 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="hidden truncate text-[8px] tracking-wider text-white/60 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] sm:block"
-                >
-                  {items[i].country}
-                </motion.div>
-              )}
-            </div>
+                {items[index].name}
+              </span>
+            </button>
           );
         })}
       </div>
@@ -320,10 +402,11 @@ function HeroSkeleton() {
     <section className="relative -mt-16 min-h-[100svh] w-full overflow-hidden bg-black sm:min-h-screen">
       <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-surface-secondary via-background to-surface-secondary" />
 
-      <div className="relative z-10 mx-auto flex min-h-[100svh] max-w-7xl flex-col items-start justify-center gap-4 px-4 pt-24 sm:min-h-screen sm:px-6 sm:pt-32">
-        <div className="h-3 w-32 animate-pulse rounded-full bg-white/10 sm:h-4 sm:w-40" />
-        <div className="h-12 w-3/4 animate-pulse rounded-xl bg-white/10 sm:h-24" />
-        <div className="h-3 w-1/2 animate-pulse rounded-full bg-white/10 sm:h-4" />
+      <div className="relative z-10 mx-auto flex min-h-[100svh] max-w-7xl flex-col justify-center gap-5 px-4 pt-28 pb-10 sm:min-h-screen sm:px-6 sm:pt-32">
+        <div className="h-3 w-32 rounded-full bg-white/10 sm:h-4 sm:w-40" />
+        <div className="h-12 w-3/4 rounded-xl bg-white/10 sm:h-24" />
+        <div className="h-3 w-1/2 rounded-full bg-white/10 sm:h-4" />
+        <div className="aspect-video w-full rounded-2xl bg-white/10 sm:hidden" />
       </div>
     </section>
   );
@@ -333,9 +416,10 @@ function HeroEmptyState() {
   return (
     <section className="relative -mt-16 flex min-h-[100svh] w-full items-center justify-center overflow-hidden bg-black px-4 sm:min-h-screen">
       <div className="text-center">
-        <p className="font-bebasNeue text-3xl tracking-wider text-white sm:text-5xl">
+        <h1 className="font-bebasNeue text-3xl tracking-wider text-white sm:text-5xl">
           No Destinations Yet
-        </p>
+        </h1>
+
         <p className="mt-3 text-xs text-white/60 sm:text-sm">
           Hero content has not been added yet.
         </p>
@@ -353,64 +437,84 @@ export default function HeroComp({
 }) {
   const { auth } = useAuth();
   const { openEditor } = useEditor();
+
   const [active, setActive] = useState(0);
-  const scrollerRef = useRef<HTMLDivElement>(null);
+
+  const cardScrollerRef =
+    useRef<HTMLDivElement>(null);
 
   const locations = useMemo<LocationItem[]>(() => {
-    const usableSlides = (images || []).filter(
-      (slide) => slide?.image && slide?.place,
-    );
+    return (images || [])
+      .filter(
+        (slide) =>
+          Boolean(slide?.image) &&
+          Boolean(slide?.place),
+      )
+      .map((slide, index) => {
+        const name =
+          slide.place.trim() ||
+          `Trail ${index + 1}`;
 
-    return usableSlides.map((slide, index) => {
-      const name = slide.place?.trim() || `Trail ${index + 1}`;
-
-      return {
-        id: slide.id || `${slugify(name)}-${index}`,
-        name,
-        country: slide.country || "",
-        description: slide.description || "",
-        image: slide.image,
-        tag: slide.tag || "",
-      };
-    });
+        return {
+          id:
+            slide.id ||
+            `${slugify(name)}-${index}`,
+          name,
+          country:
+            slide.country?.trim() || "",
+          description:
+            slide.description?.trim() || "",
+          image: slide.image,
+          tag: slide.tag?.trim() || "",
+        };
+      });
   }, [images]);
 
   useEffect(() => {
-    if (active >= locations.length) setActive(0);
+    if (
+      active >= locations.length
+    ) {
+      setActive(0);
+    }
   }, [active, locations.length]);
 
   const current = locations[active];
 
-  const editorSlides = useMemo(
-    () =>
-      locations.map((loc) => ({
-        id: loc.id,
-        place: loc.name,
-        image: loc.image,
-        description: loc.description,
-        country: loc.country,
-        tag: loc.tag,
-      })),
-    [locations],
-  );
+  const editorSlides = useMemo(() => {
+    return locations.map((location) => ({
+      id: location.id,
+      place: location.name,
+      image: location.image,
+      description: location.description,
+      country: location.country,
+      tag: location.tag,
+    }));
+  }, [locations]);
 
   const goTo = useCallback(
     (index: number) => {
       const total = locations.length;
+
       if (!total) return;
-      setActive(((index % total) + total) % total);
+
+      setActive(
+        ((index % total) + total) % total,
+      );
     },
     [locations.length],
   );
 
-  const scrollCards = useCallback((dir: number) => {
-    scrollerRef.current?.scrollBy({
-      left: dir * 120,
-      behavior: "smooth",
-    });
-  }, []);
+  const scrollCards = useCallback(
+    (direction: number) => {
+      cardScrollerRef.current?.scrollBy({
+        left: direction * 120,
+        behavior: "smooth",
+      });
+    },
+    [],
+  );
 
-  const goPrev = () => {
+  const goPrevious = () => {
     goTo(active - 1);
     scrollCards(-1);
   };
@@ -429,10 +533,21 @@ export default function HeroComp({
       <>
         {auth && (
           <motion.button
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            onClick={() => openEditor("landing-hero", editorSlides)}
-            className="absolute right-4 top-24 z-40 flex cursor-pointer items-center justify-center gap-2 rounded-full border-2 border-accent bg-accent px-3 py-2 text-xs font-medium text-white transition-all duration-300 hover:bg-transparent hover:text-accent sm:right-6 sm:px-4 sm:text-sm"
+            initial={{
+              opacity: 0,
+              x: 20,
+            }}
+            animate={{
+              opacity: 1,
+              x: 0,
+            }}
+            onClick={() =>
+              openEditor(
+                "landing-hero",
+                editorSlides,
+              )
+            }
+            className="absolute right-4 top-24 z-40 flex cursor-pointer items-center justify-center gap-2 rounded-full border-2 border-accent bg-accent px-3 py-2 text-xs font-medium text-white transition hover:bg-transparent hover:text-accent sm:right-6 sm:px-4 sm:text-sm"
           >
             <HiOutlinePencilAlt size={18} />
             Add Hero
@@ -448,12 +563,26 @@ export default function HeroComp({
     <>
       {auth && (
         <motion.button
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.4, duration: 0.3 }}
-          onClick={() => openEditor("landing-hero", editorSlides)}
-          className="absolute right-4 top-24 z-40 flex cursor-pointer items-center justify-center gap-2 rounded-full border-2 border-accent bg-accent px-3 py-2 text-xs font-medium text-white transition-all duration-300 hover:bg-transparent hover:text-accent sm:right-6 sm:px-4 sm:text-sm"
-          aria-label="Edit Landing Hero Slides"
+          initial={{
+            opacity: 0,
+            x: 20,
+          }}
+          animate={{
+            opacity: 1,
+            x: 0,
+          }}
+          transition={{
+            delay: 0.4,
+            duration: 0.3,
+          }}
+          onClick={() =>
+            openEditor(
+              "landing-hero",
+              editorSlides,
+            )
+          }
+          className="absolute right-4 top-24 z-40 flex cursor-pointer items-center justify-center gap-2 rounded-full border-2 border-accent bg-accent px-3 py-2 text-xs font-medium text-white transition hover:bg-transparent hover:text-accent sm:right-6 sm:px-4 sm:text-sm"
+          aria-label="Edit landing hero"
         >
           <HiOutlinePencilAlt size={18} />
           Edit
@@ -461,144 +590,336 @@ export default function HeroComp({
       )}
 
       <section className="relative -mt-16 min-h-[100svh] w-full overflow-hidden bg-black sm:min-h-screen">
-        <AnimatePresence mode="popLayout">
-          <motion.div
-            key={current.image}
-            initial={{ opacity: 0, scale: 1.06 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1, ease: [0.4, 0, 0.2, 1] }}
-            className="absolute inset-0"
-          >
-            <Image
-              src={current.image}
-              alt=""
-              fill
-              loading="lazy"
-              sizes="100vw"
-              className="scale-110 object-cover opacity-60 blur-3xl"
-            />
-
-            <div
-              className="absolute inset-0"
-              style={{
-                maskImage:
-                  "linear-gradient(to bottom, transparent 0%, black 12%, black 86%, transparent 100%)",
-                WebkitMaskImage:
-                  "linear-gradient(to bottom, transparent 0%, black 12%, black 86%, transparent 100%)",
+        {/* Desktop background image */}
+        <div className="absolute inset-0 hidden sm:block">
+          <AnimatePresence mode="popLayout">
+            <motion.div
+              key={current.image}
+              initial={{
+                opacity: 0,
+                scale: 1.05,
               }}
+              animate={{
+                opacity: 1,
+                scale: 1,
+              }}
+              exit={{
+                opacity: 0,
+              }}
+              transition={{
+                duration: 0.8,
+              }}
+              className="absolute inset-0"
             >
               <Image
                 src={current.image}
-                alt={current.name}
+                alt=""
                 fill
-                priority
+                loading="lazy"
                 sizes="100vw"
-                className="object-contain object-center"
+                className="scale-110 object-cover opacity-55 blur-3xl"
               />
+
+              <div className="absolute inset-0">
+                <Image
+                  src={current.image}
+                  alt={current.name}
+                  fill
+                  priority
+                  sizes="100vw"
+                  className="object-contain object-center"
+                />
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-r from-black/95 via-black/65 to-black/25 sm:block" />
+        <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-t from-background/90 via-transparent to-transparent sm:block" />
+
+        {/* Mobile layout */}
+        <div className="relative z-20 mx-auto flex min-h-[100svh] w-full flex-col px-4 pt-28 pb-10 sm:hidden">
+          {/* Location */}
+          {current.country && (
+            <motion.div
+              key={`mobile-location-${current.id}`}
+              initial={{
+                opacity: 0,
+                y: 8,
+              }}
+              animate={{
+                opacity: 1,
+                y: 0,
+              }}
+              className="flex items-center gap-2 text-[11px] text-white/80"
+            >
+              <IoLocationSharp className="h-3.5 w-3.5 shrink-0 text-accent" />
+
+              <span>{current.country}</span>
+            </motion.div>
+          )}
+
+          {/* Gap */}
+          <div className="h-4" />
+
+          {/* Name */}
+          <AnimatePresence mode="wait">
+            <motion.h1
+              key={`mobile-title-${current.id}`}
+              initial={{
+                opacity: 0,
+                x: -16,
+              }}
+              animate={{
+                opacity: 1,
+                x: 0,
+              }}
+              exit={{
+                opacity: 0,
+                x: 12,
+              }}
+              transition={{
+                duration: 0.4,
+              }}
+              className="font-bebasNeue text-[clamp(2.35rem,11vw,3.4rem)] leading-[0.88] tracking-wide text-white"
+            >
+              {current.name}
+            </motion.h1>
+          </AnimatePresence>
+
+          {/* Gap */}
+          <div className="h-5" />
+
+          {/* Description */}
+          {current.description && (
+            <motion.p
+              key={`mobile-description-${current.id}`}
+              initial={{
+                opacity: 0,
+                y: 10,
+              }}
+              animate={{
+                opacity: 1,
+                y: 0,
+              }}
+              className="text-[11px] leading-[1.7] text-white/75"
+            >
+              {current.description}
+            </motion.p>
+          )}
+
+          {/* Gap */}
+          <div className="h-6" />
+
+          {/* Full mobile image */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`mobile-image-${current.image}`}
+              initial={{
+                opacity: 0,
+                scale: 0.97,
+              }}
+              animate={{
+                opacity: 1,
+                scale: 1,
+              }}
+              exit={{
+                opacity: 0,
+              }}
+              transition={{
+                duration: 0.45,
+              }}
+              className="w-full overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-xl"
+            >
+              <img
+                src={current.image}
+                alt={current.name}
+                className="block h-auto w-full object-contain"
+                decoding="async"
+              />
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Gap */}
+          <div className="h-7" />
+
+          {/* Road map */}
+          <RoadMapTimeline
+            items={locations}
+            active={active}
+            onChange={goTo}
+          />
+
+          {/* Gap */}
+          <div className="h-6" />
+
+          {/* Destination boxes */}
+          <div
+            ref={cardScrollerRef}
+            className="no-scrollbar flex w-full gap-2 overflow-x-auto pb-2"
+          >
+            {locations.map(
+              (location, index) => (
+                <DestinationCard
+                  key={location.id}
+                  location={location}
+                  active={index === active}
+                  index={index}
+                  onSelect={() => goTo(index)}
+                />
+              ),
+            )}
+          </div>
+
+          {/* Gap */}
+          <div className="h-5" />
+
+          {/* Controls */}
+          {locations.length > 1 && (
+            <div className="flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={goPrevious}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white"
+                aria-label="Previous destination"
+              >
+                <HiChevronLeft className="h-4 w-4" />
+              </button>
+
+              <div className="flex items-center gap-1.5">
+                {locations.map(
+                  (_, index) => (
+                    <button
+                      type="button"
+                      key={index}
+                      onClick={() => goTo(index)}
+                      className={`h-1.5 rounded-full transition-all ${
+                        active === index
+                          ? "w-5 bg-accent"
+                          : "w-1.5 bg-white/35"
+                      }`}
+                      aria-label={`Go to slide ${index + 1}`}
+                    />
+                  ),
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={goNext}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white"
+                aria-label="Next destination"
+              >
+                <HiChevronRight className="h-4 w-4" />
+              </button>
             </div>
+          )}
+        </div>
 
-            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/80 via-black/30 to-transparent sm:h-40" />
-            <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-background via-background/50 to-transparent sm:h-52" />
-          </motion.div>
-        </AnimatePresence>
-
-        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/55 to-black/20 sm:from-black/95 sm:via-black/70 sm:to-black/30" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_35%,rgba(255,98,43,0.24),transparent_34%)]" />
-
-        <div className="relative z-20 mx-auto flex min-h-[100svh] max-w-7xl flex-col items-start justify-center gap-3 px-4 pt-24 pb-6 sm:min-h-screen sm:gap-8 sm:px-6 sm:pt-32 sm:pb-16 md:px-10 lg:px-12">
+        {/* Desktop layout */}
+        <div className="relative z-20 mx-auto hidden min-h-screen max-w-7xl flex-col items-start justify-center gap-8 px-6 pt-32 pb-16 sm:flex md:px-10 lg:px-12">
           <div className="w-full max-w-3xl">
             <AnimatePresence mode="wait">
               <motion.div
                 key={current.id}
-                initial={{ opacity: 0, x: -24 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 16 }}
-                transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
+                initial={{
+                  opacity: 0,
+                  x: -30,
+                }}
+                animate={{
+                  opacity: 1,
+                  x: 0,
+                }}
+                exit={{
+                  opacity: 0,
+                  x: 20,
+                }}
+                transition={{
+                  duration: 0.5,
+                }}
               >
                 {current.country && (
-                  <div className="mb-2 flex items-center gap-1.5 text-[11px] text-white/80 sm:mb-4 sm:gap-2 sm:text-sm">
-                    <IoLocationSharp className="h-3.5 w-3.5 shrink-0 text-accent sm:h-4 sm:w-4" />
-                    <span className="truncate">{current.country}</span>
+                  <div className="mb-4 flex items-center gap-2 text-sm text-white/80">
+                    <IoLocationSharp className="h-4 w-4 text-accent" />
+                    {current.country}
                   </div>
                 )}
 
-                <h1 className="font-bebasNeue text-[clamp(2.4rem,11vw,3.6rem)] leading-[0.88] tracking-wide text-white drop-shadow-2xl sm:text-7xl md:text-8xl lg:text-[10rem]">
+                <h1 className="font-bebasNeue text-7xl leading-[0.9] tracking-wide text-white md:text-8xl lg:text-[10rem]">
                   {current.name}
                 </h1>
 
                 {current.description && (
-                  <p className="mt-3 line-clamp-3 max-w-xl text-[11px] leading-[1.6] text-white/80 sm:mt-6 sm:line-clamp-none sm:text-sm md:text-base">
+                  <p className="mt-6 max-w-xl text-sm leading-relaxed text-white/75 md:text-base">
                     {current.description}
                   </p>
                 )}
               </motion.div>
             </AnimatePresence>
 
-            <RoadMapTimeline
-              items={locations}
-              active={active}
-              onChange={goTo}
-            />
+            <div className="mt-8">
+              <RoadMapTimeline
+                items={locations}
+                active={active}
+                onChange={goTo}
+              />
+            </div>
           </div>
 
-          <div className="relative -mx-4 w-[calc(100%+2rem)] overflow-hidden sm:mx-0 sm:w-full">
+          <div className="w-full">
             <div
-              ref={scrollerRef}
-              className="no-scrollbar flex gap-2 overflow-x-auto px-4 pt-2 pb-3 sm:gap-3 sm:px-1 sm:pt-4 sm:pb-6"
-              style={{
-                WebkitMaskImage:
-                  "linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)",
-                maskImage:
-                  "linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%)",
-              }}
+              ref={cardScrollerRef}
+              className="no-scrollbar flex gap-3 overflow-x-auto px-1 pt-4 pb-5"
             >
-              {locations.map((loc, index) => (
-                <DestinationCard
-                  key={loc.id}
-                  loc={loc}
-                  index={index}
-                  active={index === active}
-                  onSelect={() => goTo(index)}
-                />
-              ))}
+              {locations.map(
+                (location, index) => (
+                  <DestinationCard
+                    key={location.id}
+                    location={location}
+                    active={index === active}
+                    index={index}
+                    onSelect={() => goTo(index)}
+                  />
+                ),
+              )}
             </div>
 
             {locations.length > 1 && (
-              <div className="mt-1 flex items-center justify-center gap-2.5 sm:mt-2 sm:gap-3">
+              <div className="mt-2 flex items-center justify-center gap-3">
                 <button
                   type="button"
-                  onClick={goPrev}
-                  className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur-md transition hover:border-accent hover:bg-accent sm:h-10 sm:w-10"
+                  onClick={goPrevious}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur-md transition hover:border-accent hover:bg-accent"
                   aria-label="Previous destination"
                 >
-                  <HiChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <HiChevronLeft className="h-5 w-5" />
                 </button>
 
                 <div className="flex items-center gap-1.5">
-                  {locations.map((_, index) => (
-                    <button
-                      type="button"
-                      key={index}
-                      onClick={() => goTo(index)}
-                      className={`h-1.5 cursor-pointer rounded-full transition-all ${
-                        index === active
-                          ? "w-5 bg-accent sm:w-6"
-                          : "w-1.5 bg-white/40 hover:bg-white/70"
-                      }`}
-                      aria-label={`Go to slide ${index + 1}`}
-                    />
-                  ))}
+                  {locations.map(
+                    (_, index) => (
+                      <button
+                        type="button"
+                        key={index}
+                        onClick={() => goTo(index)}
+                        className={`h-1.5 rounded-full transition-all ${
+                          active === index
+                            ? "w-6 bg-accent"
+                            : "w-1.5 bg-white/40"
+                        }`}
+                        aria-label={`Go to slide ${index + 1}`}
+                      />
+                    ),
+                  )}
                 </div>
 
                 <button
                   type="button"
                   onClick={goNext}
-                  className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur-md transition hover:border-accent hover:bg-accent sm:h-10 sm:w-10"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur-md transition hover:border-accent hover:bg-accent"
                   aria-label="Next destination"
                 >
-                  <HiChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <HiChevronRight className="h-5 w-5" />
                 </button>
               </div>
             )}
