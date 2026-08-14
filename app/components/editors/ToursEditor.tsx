@@ -1,469 +1,145 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  HiOutlinePencilAlt,
-  HiX,
-  HiPlus,
-  HiTrash,
-  HiArrowUp,
-  HiArrowDown,
-} from "react-icons/hi";
+import { HiOutlinePencilAlt, HiX, HiPlus, HiTrash } from "react-icons/hi";
 import { HiOutlineBars3 } from "react-icons/hi2";
 import axios from "axios";
 import { useScrollLock } from "@/lib/scrollLockHelper";
 
-interface TourImage {
-  type: string;
-  alt: string;
-  url: string;
-}
+interface TourImage { type: string; alt: string; url: string; }
+interface Tour { id: number; name: string; subtitle: string; location: string; icon: string; elevation?: string; description?: string; visitCount: number; latestVisitYear: string; layoutType: "left" | "right"; gridLayout: string; images: TourImage[]; }
+interface ToursEditorProps { data: Tour[]; onClose: () => void; }
 
-interface Tour {
-  id: number;
-  name: string;
-  subtitle: string;
-  location: string;
-  icon: string;
-  elevation?: string;
-  description?: string;
-  visitCount: number;
-  latestVisitYear: string;
-  layoutType: "left" | "right";
-  gridLayout: string;
-  images: TourImage[];
-}
+function CompactReorderList({
+  items,
+  onReorder,
+}: {
+  items: Tour[];
+  onReorder: (newItems: Tour[]) => void;
+}) {
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [overIdx, setOverIdx] = useState<number | null>(null);
 
-interface ToursEditorProps {
-  data: Tour[];
-  onClose: () => void;
+  const handleDrop = (dropIdx: number) => {
+    if (dragIdx === null || dragIdx === dropIdx) { setDragIdx(null); setOverIdx(null); return; }
+    const copy = [...items]; const [moved] = copy.splice(dragIdx, 1); copy.splice(dropIdx, 0, moved);
+    onReorder(copy); setDragIdx(null); setOverIdx(null);
+  };
+
+  return (
+    <div className="mb-6 rounded-2xl border border-border bg-surface p-4">
+      <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-accent">Reorder Tours — drag to rearrange</h3>
+      <div className="space-y-1.5">
+        {items.map((item, idx) => (
+          <div
+            key={`reorder-${item.id}-${idx}`}
+            draggable
+            onDragStart={() => setDragIdx(idx)}
+            onDragOver={(e) => { e.preventDefault(); setOverIdx(idx); }}
+            onDrop={() => handleDrop(idx)}
+            onDragEnd={() => { setDragIdx(null); setOverIdx(null); }}
+            className={`flex cursor-grab items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-all active:cursor-grabbing ${
+              overIdx === idx ? "border-accent bg-accent/10" : dragIdx === idx ? "border-accent opacity-40" : "border-border bg-background hover:border-accent/40"
+            }`}
+          >
+            <HiOutlineBars3 className="h-4 w-4 shrink-0 text-accent" />
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/20 text-[10px] font-bold text-accent">{idx + 1}</span>
+            <span className="min-w-0 flex-1 truncate font-medium text-text-secondary">{item.name || `Tour ${idx + 1}`}{item.subtitle ? ` — ${item.subtitle}` : ""}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function ToursEditor({ data, onClose }: ToursEditorProps) {
   useScrollLock(true);
   const [tours, setTours] = useState<Tour[]>(data);
   const [loading, setLoading] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState<{
-    tourIndex: number;
-    imageIndex: number;
-  } | null>(null);
+  const [uploadingImage, setUploadingImage] = useState<{ tourIndex: number; imageIndex: number } | null>(null);
 
-  // Drag & drop state
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const updateTour = (i: number, field: keyof Tour, value: string | number) => { const c = [...tours]; c[i] = { ...c[i], [field]: value }; setTours(c); };
+  const updateImage = (ti: number, ii: number, field: keyof TourImage, value: string) => { const c = [...tours]; const imgs = [...c[ti].images]; imgs[ii] = { ...imgs[ii], [field]: value }; c[ti] = { ...c[ti], images: imgs }; setTours(c); };
 
-  const updateTour = (
-    index: number,
-    field: keyof Tour,
-    value: string | number,
-  ) => {
-    const copy = [...tours];
-    copy[index] = { ...copy[index], [field]: value };
-    setTours(copy);
-  };
-
-  const updateImage = (
-    tourIndex: number,
-    imageIndex: number,
-    field: keyof TourImage,
-    value: string,
-  ) => {
-    const copy = [...tours];
-    const images = [...copy[tourIndex].images];
-    images[imageIndex] = { ...images[imageIndex], [field]: value };
-    copy[tourIndex] = { ...copy[tourIndex], images };
-    setTours(copy);
-  };
-
-  const handleImageUpload = async (
-    tourIndex: number,
-    imageIndex: number,
-    file: File | null,
-  ) => {
+  const handleImageUpload = async (ti: number, ii: number, file: File | null) => {
     if (!file) return;
-
-    setUploadingImage({ tourIndex, imageIndex });
+    setUploadingImage({ tourIndex: ti, imageIndex: ii });
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await axios.post("/api/content/upload", formData, {
-        withCredentials: true,
-      });
-
-      if (response.data.url) {
-        updateImage(tourIndex, imageIndex, "url", response.data.url);
-      }
-    } catch (error) {
-      console.error("Failed to upload image:", error);
-      alert("Failed to upload image");
-    } finally {
-      setUploadingImage(null);
-    }
+      const fd = new FormData(); fd.append("file", file);
+      const res = await axios.post("/api/content/upload", fd, { withCredentials: true });
+      if (res.data.url) updateImage(ti, ii, "url", res.data.url);
+    } catch { alert("Failed to upload image"); } finally { setUploadingImage(null); }
   };
 
   const addTour = () => {
-    const newTour: Tour = {
-      id: tours.length + 1,
-      name: "NEW TOUR",
-      subtitle: "",
-      location: "Location",
-      icon: "■■",
-      elevation: "1,000 ft",
-      visitCount: 1,
-      latestVisitYear: "2025",
-      layoutType: "left",
-      gridLayout: "standard",
-      images: [
-        { type: "main", alt: "Image 1", url: "" },
-        { type: "small", alt: "Image 2", url: "" },
-        { type: "small", alt: "Image 3", url: "" },
-      ],
-    };
-    setTours([...tours, newTour]);
+    setTours([...tours, { id: tours.length + 1, name: "NEW TOUR", subtitle: "", location: "Location", icon: "", elevation: "", visitCount: 1, latestVisitYear: String(new Date().getFullYear()), layoutType: "left", gridLayout: "standard", images: [{ type: "main", alt: "Image 1", url: "" }, { type: "small", alt: "Image 2", url: "" }, { type: "small", alt: "Image 3", url: "" }] }]);
   };
 
-  const removeTour = (index: number) => {
-    setTours(tours.filter((_, i) => i !== index));
-  };
-
-  // ---------- REORDERING (Arrows) ----------
-  const moveTour = (index: number, direction: "up" | "down") => {
-    const targetIndex = direction === "up" ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= tours.length) return;
-
-    const copy = [...tours];
-    [copy[index], copy[targetIndex]] = [copy[targetIndex], copy[index]];
-    setTours(copy);
-  };
-
-  // ---------- REORDERING (Drag & Drop) ----------
-  const handleDragStart = (index: number) => {
-    setDragIndex(index);
-  };
-
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    setDragOverIndex(index);
-  };
-
-  const handleDrop = (dropIndex: number) => {
-    if (dragIndex === null || dragIndex === dropIndex) {
-      setDragIndex(null);
-      setDragOverIndex(null);
-      return;
-    }
-    const copy = [...tours];
-    const [moved] = copy.splice(dragIndex, 1);
-    copy.splice(dropIndex, 0, moved);
-    setTours(copy);
-    setDragIndex(null);
-    setDragOverIndex(null);
-  };
-
-  const handleDragEnd = () => {
-    setDragIndex(null);
-    setDragOverIndex(null);
-  };
-  // -----------------------------------------
+  const removeTour = (i: number) => { setTours(tours.filter((_, j) => j !== i)); };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
+    e.preventDefault(); setLoading(true);
     try {
-      await axios.put(
-        "/api/content/tours",
-        { tours },
-        {
-          withCredentials: true,
-        },
-      );
-      alert("Tours updated successfully!");
-      window.location.reload();
-    } catch (error) {
-      console.error("Failed to update tours:", error);
-      alert("Failed to update tours");
-    } finally {
-      setLoading(false);
-    }
+      await axios.put("/api/content/tours", { tours }, { withCredentials: true });
+      alert("Tours updated!"); window.location.reload();
+    } catch { alert("Failed to update tours"); } finally { setLoading(false); }
   };
 
   return (
-    <div className="max-h-[90vh] overflow-y-auto">
-      <div className="flex justify-between items-center mb-6 sticky top-0 bg-background pb-4 border-b border-text-muted/20">
-        <h2 className="text-2xl font-bold text-text-secondary flex items-center gap-2">
-          <HiOutlinePencilAlt /> Edit Tours
-        </h2>
-        <button
-          onClick={onClose}
-          className="text-text-muted hover:text-text-secondary transition-colors"
-        >
-          <HiX size={24} />
-        </button>
+    <div className="flex max-h-[85vh] min-h-[60vh] w-full flex-col overflow-hidden rounded-2xl bg-background">
+      <div className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-background px-6 py-4">
+        <h2 className="flex items-center gap-2 text-2xl font-bold text-text-secondary"><HiOutlinePencilAlt className="text-accent" /> Edit Tours</h2>
+        <button type="button" onClick={onClose} className="cursor-pointer text-text-muted hover:text-accent"><HiX size={24} /></button>
       </div>
 
-      <p className="mb-4 text-xs text-text-muted">
-        Drag a tour by the <strong>≡ handle</strong> and drop it onto another
-        tour to swap positions — first place = top of the Tours page. You can
-        also use the Up/Down arrows.
-      </p>
+      <form onSubmit={handleSubmit} className="flex flex-1 flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          <CompactReorderList items={tours} onReorder={setTours} />
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {tours.map((tour, tourIndex) => (
-          <div
-            key={tour.id}
-            onDragOver={(e) => handleDragOver(e, tourIndex)}
-            onDrop={() => handleDrop(tourIndex)}
-            onDragEnd={handleDragEnd}
-            className={`border rounded-lg p-4 space-y-4 transition-all ${
-              dragOverIndex === tourIndex
-                ? "border-accent bg-accent/5 scale-[1.01]"
-                : "border-text-muted/20"
-            } ${dragIndex === tourIndex ? "opacity-40" : "opacity-100"}`}
-          >
-            <div className="flex justify-between items-start">
-              <div className="flex items-center gap-2">
-                <span
-                  draggable
-                  onDragStart={() => handleDragStart(tourIndex)}
-                  className="cursor-grab active:cursor-grabbing rounded-lg border border-accent/30 bg-accent/5 p-2 text-accent hover:bg-accent/15"
-                  title="Drag to reorder"
-                >
-                  <HiOutlineBars3 />
-                </span>
-                <h3 className="text-lg font-semibold text-text-secondary">
-                  Tour #{tourIndex + 1}
-                </h3>
-              </div>
+          <div className="space-y-4 pb-4">
+            {tours.map((tour, tourIndex) => (
+              <div key={tour.id} className="rounded-2xl border border-border bg-surface p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-xs font-bold uppercase tracking-widest text-accent">#{tourIndex + 1} — {tour.name || "Untitled"}</p>
+                  <button type="button" onClick={() => removeTour(tourIndex)} className="cursor-pointer text-red-500 hover:text-red-700"><HiTrash size={18} /></button>
+                </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => moveTour(tourIndex, "up")}
-                  disabled={tourIndex === 0}
-                  title="Move up"
-                  className="inline-flex items-center justify-center rounded-lg border border-accent/30 bg-accent/5 p-2 text-accent hover:bg-accent/15 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  <HiArrowUp size={18} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => moveTour(tourIndex, "down")}
-                  disabled={tourIndex === tours.length - 1}
-                  title="Move down"
-                  className="inline-flex items-center justify-center rounded-lg border border-accent/30 bg-accent/5 p-2 text-accent hover:bg-accent/15 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  <HiArrowDown size={18} />
-                </button>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="mb-1 block text-xs text-text-muted">Name</label><input type="text" value={tour.name} onChange={(e) => updateTour(tourIndex, "name", e.target.value)} className="w-full rounded-xl border border-input-border bg-input-bg px-3 py-2 text-sm text-text-secondary outline-none focus:border-accent" /></div>
+                  <div><label className="mb-1 block text-xs text-text-muted">Subtitle</label><input type="text" value={tour.subtitle} onChange={(e) => updateTour(tourIndex, "subtitle", e.target.value)} className="w-full rounded-xl border border-input-border bg-input-bg px-3 py-2 text-sm text-text-secondary outline-none focus:border-accent" /></div>
+                  <div><label className="mb-1 block text-xs text-text-muted">Location</label><input type="text" value={tour.location} onChange={(e) => updateTour(tourIndex, "location", e.target.value)} className="w-full rounded-xl border border-input-border bg-input-bg px-3 py-2 text-sm text-text-secondary outline-none focus:border-accent" /></div>
+                  <div><label className="mb-1 block text-xs text-text-muted">Elevation</label><input type="text" value={tour.elevation || ""} onChange={(e) => updateTour(tourIndex, "elevation", e.target.value)} className="w-full rounded-xl border border-input-border bg-input-bg px-3 py-2 text-sm text-text-secondary outline-none focus:border-accent" /></div>
+                  <div><label className="mb-1 block text-xs text-text-muted">Description</label><input type="text" value={tour.description || ""} onChange={(e) => updateTour(tourIndex, "description", e.target.value)} className="w-full rounded-xl border border-input-border bg-input-bg px-3 py-2 text-sm text-text-secondary outline-none focus:border-accent" /></div>
+                  <div><label className="mb-1 block text-xs text-text-muted">Visit Count</label><input type="number" value={tour.visitCount} onChange={(e) => updateTour(tourIndex, "visitCount", parseInt(e.target.value))} className="w-full rounded-xl border border-input-border bg-input-bg px-3 py-2 text-sm text-text-secondary outline-none focus:border-accent" /></div>
+                  <div><label className="mb-1 block text-xs text-text-muted">Latest Visit Year</label><input type="text" value={tour.latestVisitYear} onChange={(e) => updateTour(tourIndex, "latestVisitYear", e.target.value)} className="w-full rounded-xl border border-input-border bg-input-bg px-3 py-2 text-sm text-text-secondary outline-none focus:border-accent" /></div>
+                  <div><label className="mb-1 block text-xs text-text-muted">Grid Layout</label><select value={tour.gridLayout} onChange={(e) => updateTour(tourIndex, "gridLayout", e.target.value)} className="w-full rounded-xl border border-input-border bg-input-bg px-3 py-2 text-sm text-text-secondary outline-none focus:border-accent"><option value="standard">Standard</option><option value="reversed">Reversed</option></select></div>
+                </div>
 
-                <button
-                  type="button"
-                  onClick={() => removeTour(tourIndex)}
-                  className="text-red-500 hover:text-red-700 transition-colors cursor-pointer"
-                >
-                  <HiTrash size={20} />
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm text-text-muted mb-1">
-                  Name
-                </label>
-                <input
-                  type="text"
-                  value={tour.name}
-                  onChange={(e) =>
-                    updateTour(tourIndex, "name", e.target.value)
-                  }
-                  className="w-full px-3 py-2 bg-background border border-text-muted/30 rounded text-text-secondary focus:outline-none focus:border-accent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-text-muted mb-1">
-                  Subtitle
-                </label>
-                <input
-                  type="text"
-                  value={tour.subtitle}
-                  onChange={(e) =>
-                    updateTour(tourIndex, "subtitle", e.target.value)
-                  }
-                  className="w-full px-3 py-2 bg-background border border-text-muted/30 rounded text-text-secondary focus:outline-none focus:border-accent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-text-muted mb-1">
-                  Location
-                </label>
-                <input
-                  type="text"
-                  value={tour.location}
-                  onChange={(e) =>
-                    updateTour(tourIndex, "location", e.target.value)
-                  }
-                  className="w-full px-3 py-2 bg-background border border-text-muted/30 rounded text-text-secondary focus:outline-none focus:border-accent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-text-muted mb-1">
-                  Elevation
-                </label>
-                <input
-                  type="text"
-                  value={tour.elevation || ""}
-                  onChange={(e) =>
-                    updateTour(tourIndex, "elevation", e.target.value)
-                  }
-                  className="w-full px-3 py-2 bg-background border border-text-muted/30 rounded text-text-secondary focus:outline-none focus:border-accent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-text-muted mb-1">
-                  Description
-                </label>
-                <input
-                  type="text"
-                  value={tour.description || ""}
-                  onChange={(e) =>
-                    updateTour(tourIndex, "description", e.target.value)
-                  }
-                  className="w-full px-3 py-2 bg-background border border-text-muted/30 rounded text-text-secondary focus:outline-none focus:border-accent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-text-muted mb-1">
-                  Visit Count
-                </label>
-                <input
-                  type="number"
-                  value={tour.visitCount}
-                  onChange={(e) =>
-                    updateTour(
-                      tourIndex,
-                      "visitCount",
-                      parseInt(e.target.value),
-                    )
-                  }
-                  className="w-full px-3 py-2 bg-background border border-text-muted/30 rounded text-text-secondary focus:outline-none focus:border-accent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-text-muted mb-1">
-                  Latest Visit Year
-                </label>
-                <input
-                  type="text"
-                  value={tour.latestVisitYear}
-                  onChange={(e) =>
-                    updateTour(tourIndex, "latestVisitYear", e.target.value)
-                  }
-                  className="w-full px-3 py-2 bg-background border border-text-muted/30 rounded text-text-secondary focus:outline-none focus:border-accent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-text-muted mb-1">
-                  Grid Layout
-                </label>
-                <select
-                  value={tour.gridLayout}
-                  onChange={(e) =>
-                    updateTour(tourIndex, "gridLayout", e.target.value)
-                  }
-                  className="w-full px-3 py-2 bg-background border border-text-muted/30 rounded text-text-secondary focus:outline-none focus:border-accent"
-                >
-                  <option value="standard">Standard</option>
-                  <option value="reversed">Reversed</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <label className="block text-sm text-text-muted mb-2">
-                Images (exactly 3)
-              </label>
-              <div className="space-y-2">
-                {tour.images.slice(0, 3).map((img, imgIndex) => (
-                  <div
-                    key={imgIndex}
-                    className="flex gap-2 items-center bg-background/50 p-2 rounded border border-text-muted/10"
-                  >
-                    <span className="text-xs text-text-muted w-8">
-                      #{imgIndex + 1}
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="Alt text"
-                      value={img.alt}
-                      onChange={(e) =>
-                        updateImage(tourIndex, imgIndex, "alt", e.target.value)
-                      }
-                      className="flex-1 px-2 py-1 bg-background border border-text-muted/30 rounded text-text-secondary text-sm focus:outline-none focus:border-accent"
-                    />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) =>
-                        handleImageUpload(
-                          tourIndex,
-                          imgIndex,
-                          e.target.files?.[0] || null,
-                        )
-                      }
-                      disabled={
-                        uploadingImage?.tourIndex === tourIndex &&
-                        uploadingImage?.imageIndex === imgIndex
-                      }
-                      className="text-xs text-text-muted"
-                    />
-                    {uploadingImage?.tourIndex === tourIndex &&
-                    uploadingImage?.imageIndex === imgIndex ? (
-                      <span className="text-xs text-accent">Uploading...</span>
-                    ) : img.url ? (
-                      <span className="text-xs text-green-500">✓</span>
-                    ) : (
-                      <span className="text-xs text-text-muted">No image</span>
-                    )}
+                <div className="mt-3">
+                  <label className="mb-1 block text-xs text-text-muted">Images (3)</label>
+                  <div className="space-y-2">
+                    {tour.images.slice(0, 3).map((img, imgIndex) => (
+                      <div key={imgIndex} className="flex items-center gap-2 rounded-lg border border-border bg-background/50 p-2">
+                        <span className="w-6 text-center text-xs text-text-muted">#{imgIndex + 1}</span>
+                        <input type="text" placeholder="Alt text" value={img.alt} onChange={(e) => updateImage(tourIndex, imgIndex, "alt", e.target.value)} className="flex-1 rounded border border-input-border bg-input-bg px-2 py-1 text-xs text-text-secondary outline-none focus:border-accent" />
+                        <input type="file" accept="image/*" onChange={(e) => handleImageUpload(tourIndex, imgIndex, e.target.files?.[0] || null)} disabled={uploadingImage?.tourIndex === tourIndex && uploadingImage?.imageIndex === imgIndex} className="text-xs text-text-muted" />
+                        {uploadingImage?.tourIndex === tourIndex && uploadingImage?.imageIndex === imgIndex ? <span className="text-xs text-accent">Uploading...</span> : img.url ? <span className="text-xs text-green-500">✓</span> : <span className="text-xs text-text-muted">—</span>}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
+            ))}
+
+            <button type="button" onClick={addTour} className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-accent/40 py-3 text-sm font-semibold text-accent hover:bg-accent/10"><HiPlus size={20} /> Add New Tour</button>
           </div>
-        ))}
+        </div>
 
-        <button
-          type="button"
-          onClick={addTour}
-          className="w-full py-2 border-2 border-dashed border-text-muted/30 rounded-lg text-text-muted hover:text-text-secondary hover:border-accent/50 transition-colors flex
-          items-center justify-center gap-2 cursor-pointer"
-        >
-          <HiPlus size={20} /> Add New Tour
-        </button>
-
-        <div className="flex gap-3 pt-4 border-t border-text-muted/20">
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex-1 bg-accent text-white py-2 rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-          >
-            {loading ? "Saving..." : "Save Changes"}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-6 py-2 border border-text-muted/30 text-text-muted rounded-lg hover:bg-text-muted/10 transition-colors cursor-pointer"
-          >
-            Cancel
-          </button>
+        <div className="sticky bottom-0 z-20 border-t border-border bg-background px-6 py-4">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <button type="button" onClick={onClose} className="cursor-pointer rounded-xl border border-border px-6 py-3 text-sm font-semibold text-text-muted transition hover:text-accent">Cancel</button>
+            <button type="submit" disabled={loading} className="cursor-pointer rounded-xl bg-accent px-6 py-3 text-sm font-semibold text-white transition hover:bg-accent/90 disabled:opacity-50">{loading ? "Saving..." : "Save Changes"}</button>
+          </div>
         </div>
       </form>
     </div>

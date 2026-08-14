@@ -25,7 +25,7 @@ export default function CampfireComp() {
         drift: (Math.random() - 0.5) * 40,
         delay: Math.random() * 1.2,
         size: 1 + Math.random() * 2,
-      }))
+      })),
     );
   }, []);
 
@@ -49,6 +49,7 @@ export default function CampfireComp() {
       x: torchRect.left + torchRect.width / 2 - sectionRect.left,
       y: torchRect.top + torchRect.height / 2 - sectionRect.top,
     };
+
     center.current = initialCenter;
 
     const updateSpotlightPosition = () => {
@@ -57,6 +58,7 @@ export default function CampfireComp() {
 
       spotlight.style.setProperty("--x", `${spotX}px`);
       spotlight.style.setProperty("--y", `${spotY}px`);
+
       glow.style.setProperty("--x", `${spotX}px`);
       glow.style.setProperty("--y", `${spotY}px`);
 
@@ -73,10 +75,15 @@ export default function CampfireComp() {
     };
 
     updateSpotlightPosition();
+
     spotlight.style.setProperty("--size", "600px");
     glow.style.setProperty("--size", "650px");
 
-    const ticker = gsap.ticker.add(updateSpotlightPosition);
+    const updateTicker = () => {
+      updateSpotlightPosition();
+    };
+
+    gsap.ticker.add(updateTicker);
 
     const isTouchDevice =
       typeof window !== "undefined" &&
@@ -85,24 +92,30 @@ export default function CampfireComp() {
         window.innerWidth < 768);
 
     let rafId: number | null = null;
-    let pendingEvent: MouseEvent | null = null;
+    let pendingEvent: MouseEvent | PointerEvent | null = null;
 
     const processMove = () => {
       rafId = null;
       if (!pendingEvent) return;
-      const e = pendingEvent;
+
+      const event = pendingEvent;
       pendingEvent = null;
 
-      const s = section.getBoundingClientRect();
+      const sectionBounds = section.getBoundingClientRect();
 
       const inside =
-        e.clientX >= s.left &&
-        e.clientX <= s.right &&
-        e.clientY >= s.top &&
-        e.clientY <= s.bottom;
+        event.clientX >= sectionBounds.left &&
+        event.clientX <= sectionBounds.right &&
+        event.clientY >= sectionBounds.top &&
+        event.clientY <= sectionBounds.bottom;
 
-      const targetX = inside ? e.clientX - s.left - initialCenter.x : 0;
-      const targetY = inside ? e.clientY - s.top - initialCenter.y : 0;
+      const targetX = inside
+        ? event.clientX - sectionBounds.left - initialCenter.x
+        : 0;
+
+      const targetY = inside
+        ? event.clientY - sectionBounds.top - initialCenter.y
+        : 0;
 
       velocity.current = {
         x: targetX - torchPosition.current.x,
@@ -132,31 +145,67 @@ export default function CampfireComp() {
       } else {
         spotlight.style.setProperty("--size", "800px");
         glow.style.setProperty("--size", "700px");
-        shadow.classList.add("animate-[shadow_1s_linear_infinite_alternate]");
+        shadow.classList.add(
+          "animate-[shadow_1s_linear_infinite_alternate]",
+        );
       }
     };
 
-    const onMoveBatched = (e: MouseEvent) => {
-      pendingEvent = e;
-      if (rafId == null) rafId = window.requestAnimationFrame(processMove);
+    const queueMove = (event: MouseEvent | PointerEvent) => {
+      pendingEvent = event;
+      if (rafId == null) {
+        rafId = window.requestAnimationFrame(processMove);
+      }
+    };
+
+    const handleTouchMove = (event: PointerEvent) => {
+      queueMove(event);
     };
 
     if (isTouchDevice) {
-      spotlight.style.setProperty("--size", "1200px");
-      glow.style.setProperty("--size", "1200px");
+      spotlight.style.setProperty("--size", "1000px");
+      glow.style.setProperty("--size", "900px");
       shadow.style.animationPlayState = "paused";
-      if (sparksContainerRef.current) {
-        sparksContainerRef.current.style.display = "none";
-      }
+
+      section.addEventListener("pointerdown", handleTouchMove, {
+        passive: true,
+      });
+      section.addEventListener("pointermove", handleTouchMove, {
+        passive: true,
+      });
+      section.addEventListener(
+        "pointerleave",
+        () => {
+          pendingEvent = null;
+          gsap.to(torchPosition.current, {
+            x: 0,
+            y: 0,
+            duration: 0.6,
+            ease: "power2.out",
+            onUpdate: () => {
+              gsap.set(torch, {
+                x: torchPosition.current.x,
+                y: torchPosition.current.y,
+              });
+            },
+          });
+        },
+        { passive: true },
+      );
     } else {
-      window.addEventListener("mousemove", onMoveBatched);
+      window.addEventListener("mousemove", queueMove);
     }
 
     return () => {
-      if (!isTouchDevice)
-        window.removeEventListener("mousemove", onMoveBatched);
+      if (isTouchDevice) {
+        section.removeEventListener("pointerdown", handleTouchMove);
+        section.removeEventListener("pointermove", handleTouchMove);
+      } else {
+        window.removeEventListener("mousemove", queueMove);
+      }
+
       if (rafId) cancelAnimationFrame(rafId);
-      gsap.ticker.remove(ticker);
+      gsap.ticker.remove(updateTicker);
     };
   }, []);
 
@@ -164,70 +213,70 @@ export default function CampfireComp() {
     <section
       id="campfireSection"
       ref={sectionRef}
-      className="snap-section relative w-full h-screen bg-black flex items-center justify-center overflow-hidden cursor-none"
+      className="snap-section relative h-screen w-full overflow-hidden bg-black flex items-center justify-center cursor-none"
     >
-      <div className="absolute inset-0 bg-black/85 z-5" />
+      <div className="absolute inset-0 z-5 bg-black/85" />
 
-      {/* Dark text layer (revealed parts) */}
-      <div className="relative z-10 text-zinc-700 select-none py-12 px-4 md:py-8 md:px-12 w-full h-full flex items-center justify-center">
-        <div className="grid grid-cols-12 gap-4 max-w-8xl w-full items-center">
-          <h1 className="col-span-8 text-4xl lg:text-7xl font-bebasNeue leading-tight">
+      {/* Dark text */}
+      <div className="relative z-10 flex h-full w-full items-center justify-center px-4 py-12 text-zinc-700 select-none md:px-12 md:py-8">
+        <div className="grid w-full max-w-8xl grid-cols-12 gap-4 items-center">
+          <h1 className="col-span-8 text-4xl font-bebasNeue leading-tight lg:text-7xl">
             The best views come after the hardest climb
           </h1>
-          <h2 className="col-span-4 text-xl lg:text-6xl font-bebasNeue leading-tight">
+          <h2 className="col-span-4 text-xl font-bebasNeue leading-tight lg:text-6xl">
             Embrace the unknown
           </h2>
-          <h3 className="col-span-6 text-2xl lg:text-6xl font-bebasNeue leading-tight">
+          <h3 className="col-span-6 text-2xl font-bebasNeue leading-tight lg:text-6xl">
             Every step forward is a victory earned
           </h3>
-          <h2 className="col-span-6 text-3xl lg:text-5xl font-bebasNeue leading-tight">
+          <h2 className="col-span-6 text-3xl font-bebasNeue leading-tight lg:text-5xl">
             Built by challenges, driven by purpose
           </h2>
-          <h1 className="col-span-4 text-3xl lg:text-7xl font-bebasNeue leading-tight">
+          <h1 className="col-span-4 text-3xl font-bebasNeue leading-tight lg:text-7xl">
             Where limits end,
             <br />
             growth begins
           </h1>
-          <h3 className="col-span-4 text-center text-xl lg:text-4xl font-bebasNeue leading-tight">
+          <h3 className="col-span-4 text-center text-xl font-bebasNeue leading-tight lg:text-4xl">
             Driven by courage
           </h3>
-          <h2 className="col-span-4 text-2xl lg:text-5xl font-bebasNeue leading-tight">
+          <h2 className="col-span-4 text-2xl font-bebasNeue leading-tight lg:text-5xl">
             Comfort zones were never meant to last
           </h2>
-          <h1 className="col-span-12 text-center text-3xl lg:text-6xl font-bebasNeue leading-tight">
+          <h1 className="col-span-12 text-center text-3xl font-bebasNeue leading-tight lg:text-6xl">
             Winner of all barriers
           </h1>
         </div>
       </div>
 
-      {/* Light text layer (torch-revealed parts) */}
-      <div className="absolute inset-0 z-15 flex items-center justify-center pointer-events-none">
-        <div className="text-amber-100 select-none py-12 px-4 md:py-8 md:px-12 w-full h-full flex items-center justify-center">
-          <div className="grid grid-cols-12 gap-4 max-w-8xl w-full items-center">
-            <h1 className="col-span-8 text-4xl lg:text-7xl font-bebasNeue leading-tight drop-shadow-[0_0_15px_rgba(255,200,100,0.6)]">
+      {/* Light text */}
+      <div className="pointer-events-none absolute inset-0 z-15 flex items-center justify-center">
+        <div className="flex h-full w-full items-center justify-center px-4 py-12 text-amber-100 select-none md:px-12 md:py-8">
+          <div className="grid w-full max-w-8xl grid-cols-12 gap-4 items-center">
+            <h1 className="col-span-8 text-4xl font-bebasNeue leading-tight drop-shadow-[0_0_15px_rgba(255,200,100,0.6)] lg:text-7xl">
               The best views come after the hardest climb
             </h1>
-            <h2 className="col-span-4 text-xl lg:text-6xl font-bebasNeue leading-tight drop-shadow-[0_0_12px_rgba(255,200,100,0.5)]">
+            <h2 className="col-span-4 text-xl font-bebasNeue leading-tight drop-shadow-[0_0_12px_rgba(255,200,100,0.5)] lg:text-6xl">
               Embrace the unknown
             </h2>
-            <h3 className="col-span-6 text-2xl lg:text-6xl font-bebasNeue leading-tight drop-shadow-[0_0_15px_rgba(255,200,100,0.6)]">
+            <h3 className="col-span-6 text-2xl font-bebasNeue leading-tight drop-shadow-[0_0_15px_rgba(255,200,100,0.6)] lg:text-6xl">
               Every step forward is a victory earned
             </h3>
-            <h2 className="col-span-6 text-3xl lg:text-5xl font-bebasNeue leading-tight drop-shadow-[0_0_12px_rgba(255,200,100,0.5)]">
+            <h2 className="col-span-6 text-3xl font-bebasNeue leading-tight drop-shadow-[0_0_12px_rgba(255,200,100,0.5)] lg:text-5xl">
               Built by challenges, driven by purpose
             </h2>
-            <h1 className="col-span-4 text-3xl lg:text-7xl font-bebasNeue leading-tight drop-shadow-[0_0_15px_rgba(255,200,100,0.6)]">
+            <h1 className="col-span-4 text-3xl font-bebasNeue leading-tight drop-shadow-[0_0_15px_rgba(255,200,100,0.6)] lg:text-7xl">
               Where limits end,
               <br />
               growth begins
             </h1>
-            <h3 className="col-span-4 text-center text-xl lg:text-4xl font-bebasNeue leading-tight drop-shadow-[0_0_15px_rgba(255,200,100,0.6)]">
+            <h3 className="col-span-4 text-center text-xl font-bebasNeue leading-tight drop-shadow-[0_0_15px_rgba(255,200,100,0.6)] lg:text-4xl">
               Driven by courage
             </h3>
-            <h2 className="col-span-4 text-2xl lg:text-5xl font-bebasNeue leading-tight drop-shadow-[0_0_12px_rgba(255,200,100,0.5)]">
+            <h2 className="col-span-4 text-2xl font-bebasNeue leading-tight drop-shadow-[0_0_12px_rgba(255,200,100,0.5)] lg:text-5xl">
               Comfort zones were never meant to last
             </h2>
-            <h1 className="col-span-12 text-center text-3xl lg:text-6xl font-bebasNeue leading-tight drop-shadow-[0_0_15px_rgba(255,200,100,0.6)]">
+            <h1 className="col-span-12 text-center text-3xl font-bebasNeue leading-tight drop-shadow-[0_0_15px_rgba(255,200,100,0.6)] lg:text-6xl">
               Winner of all barriers
             </h1>
           </div>
@@ -236,7 +285,7 @@ export default function CampfireComp() {
 
       <div
         ref={spotlightRef}
-        className="absolute inset-0 pointer-events-none transition-all duration-700 ease-out z-20"
+        className="pointer-events-none absolute inset-0 z-20 transition-all duration-700 ease-out"
         style={
           {
             "--size": "800px",
@@ -249,7 +298,7 @@ export default function CampfireComp() {
 
       <div
         ref={glowRef}
-        className="absolute inset-0 pointer-events-none transition-all duration-700 ease-out z-12"
+        className="pointer-events-none absolute inset-0 z-12 transition-all duration-700 ease-out"
         style={
           {
             "--size": "700px",
@@ -261,14 +310,13 @@ export default function CampfireComp() {
 
       <div
         ref={torchRef}
-        className="absolute bottom-20 size-32 pointer-events-none z-30"
+        className="pointer-events-none absolute bottom-20 z-30 size-32"
       >
-        <Lottie animationData={torchFire} loop className="w-full h-full" />
-        <div className="absolute top-1/2 left-1/2 inset-0 bg-red-500 blur-2xl animate-firepulse opacity-95" />
-
+        <Lottie animationData={torchFire} loop className="h-full w-full" />
+        <div className="absolute inset-0 top-1/2 left-1/2 bg-red-500 blur-2xl animate-firepulse opacity-95" />
         <div
           ref={sparksContainerRef}
-          className="absolute inset-0 pointer-events-none"
+          className="pointer-events-none absolute inset-0"
           style={
             {
               "--pushX": "0px",
@@ -282,8 +330,8 @@ export default function CampfireComp() {
               className="absolute bottom-1/3 rounded-full bg-orange-300 blur-[1px] animate-[spark_1s_ease-out_infinite]"
               style={
                 {
-                  width: s.size + "px",
-                  height: s.size + "px",
+                  width: `${s.size}px`,
+                  height: `${s.size}px`,
                   left: `calc(50% + ${s.x}px)`,
                   animationDelay: `${s.delay}s`,
                   "--drift": `${s.drift}px`,
@@ -300,13 +348,13 @@ export default function CampfireComp() {
           alt="Campfire Glow"
           width={240}
           height={180}
-          className=" pointer-events-none z-15"
+          className="pointer-events-none z-15"
         />
-        <div className="absolute z-15 translate-y-2 w-full h-full inset-0 bg-red-500 blur-2xl animate-fireGlow mask-[url('/assets/campfiremask.svg')] mask-luminance pointer-events-none" />
+        <div className="absolute inset-0 z-15 h-full w-full translate-y-2 bg-red-500 blur-2xl animate-fireGlow mask-[url('/assets/campfiremask.svg')] mask-luminance pointer-events-none" />
         <div
           ref={shadowRef}
-          className="absolute z-5 w-full h-full inset-0 bg-zinc-800 animate-[shadow_1s_linear_infinite_alternate] mask-[url('/assets/camp.svg')] mix-blend-color pointer-events-none"
-        ></div>
+          className="absolute inset-0 z-5 h-full w-full bg-zinc-800 animate-[shadow_1s_linear_infinite_alternate] mask-[url('/assets/camp.svg')] mix-blend-color pointer-events-none"
+        />
       </div>
     </section>
   );

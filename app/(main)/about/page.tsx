@@ -507,6 +507,14 @@ function RadialDepartmentTimeline({
   );
 }
 
+interface Department {
+  id: string;
+  name: string;
+  description: string;
+  image: string;
+  number: string;
+}
+
 interface DepartmentsResponse {
   departments?: Department[];
   error?: string;
@@ -523,10 +531,19 @@ const About = () => {
   );
 
   const scrollToSection = useCallback((sectionId: string) => {
-    const section = document.getElementById(sectionId);
-    if (section) {
-      section.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    requestAnimationFrame(() => {
+      const section = document.getElementById(sectionId);
+      if (!section) return;
+
+      const navOffset = 96;
+      const top =
+        section.getBoundingClientRect().top + window.scrollY - navOffset;
+
+      window.scrollTo({
+        top,
+        behavior: "smooth",
+      });
+    });
   }, []);
 
   if (loading) {

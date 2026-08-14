@@ -1,11 +1,20 @@
 import nodemailer from "nodemailer";
 
-function getEmailConfig() {
+interface MailPayload {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}
+
+function getConfig() {
   return {
-    user: process.env.EMAIL_USER || "",
-    service: process.env.EMAIL_SERVICE || "gmail",
-    appPassword:
-      process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD || "",
+    emailUser: process.env.EMAIL_USER || "",
+    emailPass:
+      process.env.EMAIL_PASS ||
+      process.env.GMAIL_APP_PASSWORD ||
+      "",
+    emailService: process.env.EMAIL_SERVICE || "gmail",
     clientId: process.env.GMAIL_CLIENT_ID || "",
     clientSecret: process.env.GMAIL_CLIENT_SECRET || "",
     refreshToken: process.env.GMAIL_REFRESH_TOKEN || "",
@@ -13,146 +22,155 @@ function getEmailConfig() {
   };
 }
 
-function createOAuthTransporter() {
-  const cfg = getEmailConfig();
-
-  return nodemailer.createTransport({
-    service: cfg.service,
-    auth: {
-      type: "OAuth2",
-      user: cfg.user,
-      clientId: cfg.clientId,
-      clientSecret: cfg.clientSecret,
-      refreshToken: cfg.refreshToken,
-      accessToken: cfg.accessToken || undefined,
-    },
-  });
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
-function createAppPasswordTransporter() {
-  const cfg = getEmailConfig();
+function getAppPasswordTransporter() {
+  const config = getConfig();
 
   return nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
     auth: {
-      user: cfg.user,
-      pass: cfg.appPassword,
+      user: config.emailUser,
+      pass: config.emailPass,
     },
   });
 }
 
-interface EmailPayload {
-  to: string;
-  subject: string;
-  html: string;
-  text: string;
-  replyTo?: string;
+function getOAuthTransporter() {
+  const config = getConfig();
+
+  return nodemailer.createTransport({
+    service: config.emailService,
+    auth: {
+      type: "OAuth2",
+      user: config.emailUser,
+      clientId: config.clientId,
+      clientSecret: config.clientSecret,
+      refreshToken: config.refreshToken,
+      accessToken: config.accessToken || undefined,
+    },
+  });
 }
 
-export async function sendMail(payload: EmailPayload) {
-  const cfg = getEmailConfig();
+export async function sendMail(payload: MailPayload) {
+  const config = getConfig();
 
-  if (!cfg.user) {
-    console.error("[EMAIL] EMAIL_USER is not configured. Email not sent.");
-    return { success: false, error: "EMAIL_USER missing" };
+  if (!config.emailUser) {
+    console.error("[EMAIL] EMAIL_USER is missing.");
+    return { success: false, error: "EMAIL_USER is missing" };
   }
 
   if (!payload.to) {
-    console.error("[EMAIL] No recipient address provided.");
-    return { success: false, error: "No recipient" };
+    console.error("[EMAIL] Recipient email is missing.");
+    return { success: false, error: "Recipient email is missing" };
   }
 
   const mailOptions = {
-    from: `"BRAC University Adventure Club" <${cfg.user}>`,
+    from: `"BRAC University Adventure Club" <${config.emailUser}>`,
     to: payload.to,
     subject: payload.subject,
     html: payload.html,
     text: payload.text,
-    replyTo: payload.replyTo || cfg.user,
+    replyTo: config.emailUser,
   };
 
+  /**
+   * Gmail App Password is preferred.
+   * It avoids the OAuth unauthorized_client issue.
+   */
+  if (config.emailPass) {
+    try {
+      const transporter = getAppPasswordTransporter();
+      await transporter.verify();
+
+      const result = await transporter.sendMail(mailOptions);
+
+      console.log(
+        `[EMAIL] App Password email sent to ${payload.to}. Message ID: ${result.messageId}`,
+      );
+
+      return {
+        success: true,
+        method: "gmail-app-password",
+        messageId: result.messageId,
+      };
+    } catch (error) {
+      console.error("[EMAIL] Gmail App Password failed:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Gmail App Password failed",
+      };
+    }
+  }
+
   const hasOAuth =
-    Boolean(cfg.clientId) &&
-    Boolean(cfg.clientSecret) &&
-    Boolean(cfg.refreshToken);
+    config.clientId &&
+    config.clientSecret &&
+    config.refreshToken;
 
   if (hasOAuth) {
     try {
-      const transporter = createOAuthTransporter();
-      const info = await transporter.sendMail(mailOptions);
-      console.log(`[EMAIL] OAuth2 sent to ${payload.to} (${info.messageId})`);
-      return { success: true, messageId: info.messageId, method: "oauth2" };
-    } catch (oauthError) {
-      console.error("[EMAIL] OAuth2 send failed:", oauthError);
-    }
-  }
+      const transporter = getOAuthTransporter();
+      const result = await transporter.sendMail(mailOptions);
 
-  if (cfg.appPassword) {
-    try {
-      const transporter = createAppPasswordTransporter();
-      const info = await transporter.sendMail(mailOptions);
       console.log(
-        `[EMAIL] App Password sent to ${payload.to} (${info.messageId})`,
+        `[EMAIL] OAuth email sent to ${payload.to}. Message ID: ${result.messageId}`,
       );
+
       return {
         success: true,
-        messageId: info.messageId,
-        method: "app-password",
+        method: "gmail-oauth",
+        messageId: result.messageId,
       };
-    } catch (smtpError) {
-      console.error("[EMAIL] App Password send failed:", smtpError);
-      return { success: false, error: smtpError };
+    } catch (error) {
+      console.error("[EMAIL] Gmail OAuth failed:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Gmail OAuth failed",
+      };
     }
   }
 
-  console.error(
-    "[EMAIL] No working transport. Set GMAIL_CLIENT_ID/SECRET/REFRESH_TOKEN or EMAIL_PASS.",
-  );
-
-  return { success: false, error: "No email transport configured" };
+  return {
+    success: false,
+    error:
+      "No email configuration found. Add EMAIL_PASS or valid Gmail OAuth credentials.",
+  };
 }
 
-interface BuacEmailWrapperOptions {
-  title: string;
-  bodyHtml: string;
-}
-
-export function buildEmailHtml({
-  title,
-  bodyHtml,
-}: BuacEmailWrapperOptions) {
+function buildEmailLayout(title: string, body: string) {
   return `
-<!DOCTYPE html>
+<!doctype html>
 <html>
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>${title}</title>
-  </head>
-  <body style="margin:0;padding:0;background-color:#08090d;font-family:Arial,Helvetica,sans-serif;color:#f3f4f8;">
-    <div style="max-width:600px;margin:0 auto;padding:16px;">
-      <div style="background-color:#11131a;border:1px solid rgba(255,255,255,0.12);border-radius:18px;overflow:hidden;">
-        <div style="background:linear-gradient(135deg,#ff622b 0%,#ff8a5b 100%);color:#ffffff;padding:32px 24px;text-align:center;">
-          <h1 style="margin:0;font-weight:700;letter-spacing:1px;font-size:26px;">BUAC</h1>
-          <p style="margin:6px 0 0 0;font-size:12px;opacity:0.95;letter-spacing:2px;text-transform:uppercase;">
-            BRAC University Adventure Club
+  <body style="margin:0;padding:0;background:#08090d;font-family:Arial,Helvetica,sans-serif;color:#f3f4f8;">
+    <div style="max-width:600px;margin:0 auto;padding:24px 16px;">
+      <div style="overflow:hidden;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:#11131a;">
+        <div style="padding:30px 24px;text-align:center;background:linear-gradient(135deg,#ff622b,#ff8a5b);">
+          <h1 style="margin:0;color:#fff;font-size:27px;letter-spacing:2px;">BUAC</h1>
+          <p style="margin:8px 0 0;color:#fff;font-size:12px;letter-spacing:1.5px;">
+            BRAC UNIVERSITY ADVENTURE CLUB
           </p>
         </div>
-
         <div style="padding:28px 24px;line-height:1.7;color:#dedfe8;font-size:15px;">
-          ${bodyHtml}
+          <h2 style="margin-top:0;color:#fff;font-size:21px;">${title}</h2>
+          ${body}
         </div>
       </div>
-
-      <div style="text-align:center;padding:20px;color:#969baa;font-size:12px;">
-        <p style="margin:0 0 8px 0;">
-          BRAC University Adventure Club<br />
-          Kha 224 Pragati Sarani, Merul Badda, Dhaka 1212, Bangladesh
-        </p>
-        <p style="margin:0;">© ${new Date().getFullYear()} BUAC. All rights reserved.</p>
-      </div>
+      <p style="margin:18px 0 0;text-align:center;color:#969baa;font-size:11px;">
+        BRAC University Adventure Club<br />
+        Kha 224 Pragati Sarani, Merul Badda, Dhaka 1212, Bangladesh
+      </p>
     </div>
   </body>
 </html>
@@ -160,38 +178,26 @@ export function buildEmailHtml({
 }
 
 export function buildMemberWelcomeEmail(name: string) {
-  const bodyHtml = `
-    <h2 style="font-size:20px;color:#ffffff;margin-top:0;">Welcome to BUAC, ${name}!</h2>
-
-    <p style="margin:0 0 16px 0;">
-      Congratulations on becoming an official member of the
-      <strong style="color:#ffffff;">BRAC University Adventure Club</strong>.
-      You are now part of a community driven by exploration, courage, and teamwork.
-    </p>
-
-    <div style="background:rgba(255,98,43,0.12);border-left:4px solid #ff622b;padding:14px 18px;border-radius:8px;margin:20px 0;color:#ffffff;">
-      Your adventure starts now. Get ready for expeditions, workshops, campfires,
-      and lifelong memories with fellow adventurers.
-    </div>
-
-    <p style="margin:0 0 16px 0;">
-      Keep an eye on your inbox and our social channels for upcoming events and tours.
-    </p>
-
-    <p style="margin:24px 0 0 0;">
-      Warm regards,<br />
-      <strong style="color:#ffffff;">BUAC Executive Team</strong>
-    </p>
-  `;
+  const safeName = escapeHtml(name);
 
   return {
     subject: "Welcome to BRAC University Adventure Club",
-    html: buildEmailHtml({ title: "Welcome to BUAC", bodyHtml }),
+    html: buildEmailLayout(
+      `Welcome to BUAC, ${safeName}!`,
+      `
+        <p>Congratulations on becoming a member of <strong>BRAC University Adventure Club</strong>.</p>
+        <p style="padding:14px 16px;border-left:4px solid #ff622b;border-radius:8px;background:rgba(255,98,43,.12);">
+          Your adventure begins here. Get ready for workshops, tours, training, and lifelong memories.
+        </p>
+        <p>Keep an eye on your email and BUAC social media channels for upcoming announcements.</p>
+        <p>Warm regards,<br /><strong>BUAC Executive Team</strong></p>
+      `,
+    ),
     text: `Welcome to BUAC, ${name}!
 
-Congratulations on becoming an official member of the BRAC University Adventure Club.
+Congratulations on becoming a member of BRAC University Adventure Club.
 
-Get ready for expeditions, workshops, and lifelong memories with fellow adventurers.
+Your adventure begins here. Keep an eye on your email and BUAC social media channels for announcements.
 
 Warm regards,
 BUAC Executive Team`,
@@ -199,36 +205,26 @@ BUAC Executive Team`,
 }
 
 export function buildAlumniWelcomeEmail(name: string) {
-  const bodyHtml = `
-    <h2 style="font-size:20px;color:#ffffff;margin-top:0;">Welcome Back, ${name}!</h2>
-
-    <p style="margin:0 0 16px 0;">
-      We are delighted to welcome you back to the
-      <strong style="color:#ffffff;">BRAC University Adventure Club</strong> alumni network.
-    </p>
-
-    <div style="background:rgba(255,98,43,0.12);border-left:4px solid #ff622b;padding:14px 18px;border-radius:8px;margin:20px 0;color:#ffffff;">
-      Once a BUAC-ian, always a BUAC-ian. Your legacy continues to inspire new adventurers.
-    </div>
-
-    <p style="margin:0 0 16px 0;">
-      You will now receive updates on alumni reunions, mentorship programs, and exclusive events.
-    </p>
-
-    <p style="margin:24px 0 0 0;">
-      Warm regards,<br />
-      <strong style="color:#ffffff;">BUAC Executive Team</strong>
-    </p>
-  `;
+  const safeName = escapeHtml(name);
 
   return {
     subject: "Welcome Back to the BUAC Alumni Network",
-    html: buildEmailHtml({ title: "Welcome Back to BUAC", bodyHtml }),
-    text: `Welcome back, ${name}!
+    html: buildEmailLayout(
+      `Welcome Back, ${safeName}!`,
+      `
+        <p>We are delighted to welcome you back to the <strong>BUAC Alumni Network</strong>.</p>
+        <p style="padding:14px 16px;border-left:4px solid #ff622b;border-radius:8px;background:rgba(255,98,43,.12);">
+          Once a BUAC-ian, always a BUAC-ian. Your experience and legacy continue to inspire new adventurers.
+        </p>
+        <p>You will receive updates about alumni gatherings, mentorship opportunities, and special events.</p>
+        <p>Warm regards,<br /><strong>BUAC Executive Team</strong></p>
+      `,
+    ),
+    text: `Welcome back to BUAC, ${name}!
 
-We are delighted to welcome you back to the BRAC University Adventure Club alumni network.
+Once a BUAC-ian, always a BUAC-ian.
 
-You will receive updates on alumni reunions, mentorship programs, and exclusive events.
+You will receive future updates about alumni gatherings and BUAC events.
 
 Warm regards,
 BUAC Executive Team`,
@@ -236,37 +232,26 @@ BUAC Executive Team`,
 }
 
 export function buildClubFairThankYouEmail(name: string) {
-  const bodyHtml = `
-    <h2 style="font-size:20px;color:#ffffff;margin-top:0;">Thank You for Registering, ${name}!</h2>
-
-    <p style="margin:0 0 16px 0;">
-      Thank you for submitting your application for the
-      <strong style="color:#ffffff;">BUAC Club Fair</strong>. We have received your details successfully.
-    </p>
-
-    <div style="background:rgba(255,98,43,0.12);border-left:4px solid #ff622b;padding:14px 18px;border-radius:8px;margin:20px 0;color:#ffffff;">
-      <strong>Next Steps:</strong> Please wait for our next instruction email.
-      We will send you another email with detailed instructions and further guidance very soon.
-    </div>
-
-    <p style="margin:0 0 16px 0;">
-      In the meantime, follow our social channels to stay updated on upcoming events.
-    </p>
-
-    <p style="margin:24px 0 0 0;">
-      Warm regards,<br />
-      <strong style="color:#ffffff;">BUAC Executive Team</strong>
-    </p>
-  `;
+  const safeName = escapeHtml(name);
 
   return {
-    subject: "Registration Received — BUAC Club Fair",
-    html: buildEmailHtml({ title: "Club Fair Registration", bodyHtml }),
+    subject: "BUAC Club Fair Registration Received",
+    html: buildEmailLayout(
+      `Thank You, ${safeName}!`,
+      `
+        <p>We have successfully received your BUAC Club Fair registration.</p>
+        <p style="padding:14px 16px;border-left:4px solid #ff622b;border-radius:8px;background:rgba(255,98,43,.12);">
+          Please wait for our next instruction email. We will send you another email with the next steps and further guidance.
+        </p>
+        <p>Thank you for showing interest in BRAC University Adventure Club.</p>
+        <p>Warm regards,<br /><strong>BUAC Executive Team</strong></p>
+      `,
+    ),
     text: `Thank you for registering, ${name}!
 
-We have received your BUAC Club Fair registration.
+We received your BUAC Club Fair registration.
 
-Next Steps: Please wait for our next instruction email. We will send you another email with detailed instructions and further guidance very soon.
+Please wait for our next instruction email. We will send you another email with next steps and further guidance.
 
 Warm regards,
 BUAC Executive Team`,
