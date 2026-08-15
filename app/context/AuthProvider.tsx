@@ -1,21 +1,25 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+} from "react";
 import axios from "axios";
 
-interface User {
+interface AdminUser {
   email: string;
   name: string;
-  role: "admin" | "member" | "alumni";
+  role: "admin";
 }
 
 interface AuthContextType {
   auth: boolean;
-  user: User | null;
+  user: AdminUser | null;
   isAdmin: boolean;
   isLoggedIn: boolean;
   setAuth: (value: boolean) => void;
-  setUser: (user: User | null) => void;
+  setUser: (user: AdminUser | null) => void;
   logout: () => Promise<void>;
 }
 
@@ -34,26 +38,34 @@ export function AuthProvider({
   initialAuth,
   initialUser,
 }: {
-  children: ReactNode;
+  children: React.ReactNode;
   initialAuth: boolean;
-  initialUser: User | null;
+  initialUser: AdminUser | null;
 }) {
   const [auth, setAuth] = useState(initialAuth);
-  const [user, setUser] = useState<User | null>(initialUser);
-
-  const isAdmin = auth || user?.role === "admin";
-  const isLoggedIn = !!user || auth;
+  const [user, setUser] = useState<AdminUser | null>(initialUser);
 
   const logout = async () => {
-    await axios.get("/api/auth/logout");
-    setAuth(false);
-    setUser(null);
-    window.location.href = "/";
+    try {
+      await axios.get("/api/admin/logout");
+    } finally {
+      setAuth(false);
+      setUser(null);
+      window.location.href = "/";
+    }
   };
 
   return (
     <AuthContext.Provider
-      value={{ auth, user, isAdmin, isLoggedIn, setAuth, setUser, logout }}
+      value={{
+        auth,
+        user,
+        isAdmin: auth,
+        isLoggedIn: auth,
+        setAuth,
+        setUser,
+        logout,
+      }}
     >
       {children}
     </AuthContext.Provider>

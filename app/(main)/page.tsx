@@ -4,12 +4,14 @@ import { useAuth } from "../context/AuthProvider";
 import { useEditor } from "../context/EditorContext";
 import HeroComp from "../components/HeroComp";
 import axios from "axios";
-import { useCallback, useEffect, useState } from "react";
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import CampfireComp from "../components/CampfireComp";
 import { HiOutlinePencilAlt } from "react-icons/hi";
 import { HiOutlineBars3 } from "react-icons/hi2";
 import Image from "next/image";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import HomeOrderEditor from "../components/editors/HomeOrderEditor";
 import {
@@ -22,6 +24,8 @@ import {
   scaleIn,
   staggerContainer,
 } from "@/lib/animations";
+
+gsap.registerPlugin(ScrollTrigger);
 
 interface Quote {
   name: string;
@@ -51,22 +55,85 @@ interface HeroImage {
 
 const defaultSectionOrder = ["about", "campfire", "vision"];
 
+function normalizeQuote(input: unknown): Quote | null {
+  if (!input || typeof input !== "object") return null;
+
+  const item = input as Record<string, unknown>;
+
+  const name =
+    typeof item.name === "string"
+      ? item.name.trim()
+      : typeof item.title === "string"
+        ? (item.title as string).trim()
+        : "";
+
+  const designation =
+    typeof item.designation === "string"
+      ? item.designation.trim()
+      : typeof item.subtitle === "string"
+        ? (item.subtitle as string).trim()
+        : "";
+
+  const quote =
+    typeof item.quote === "string"
+      ? item.quote.trim()
+      : typeof item.description === "string"
+        ? (item.description as string).trim()
+        : "";
+
+  const image =
+    typeof item.image === "string"
+      ? item.image.trim()
+      : typeof item.imageUrl === "string"
+        ? (item.imageUrl as string).trim()
+        : typeof item.img === "string"
+          ? (item.img as string).trim()
+          : "";
+
+  if (!name && !designation && !quote && !image) return null;
+
+  return { name, designation, quote, image };
+}
+
+function normalizeQuotes(input: unknown): Quote[] {
+  if (!input) return [];
+
+  if (Array.isArray(input)) {
+    return input
+      .map((item) => normalizeQuote(item))
+      .filter((item): item is Quote => Boolean(item));
+  }
+
+  if (typeof input === "object") {
+    const obj = input as Record<string, unknown>;
+
+    if (Array.isArray(obj.quotes)) return normalizeQuotes(obj.quotes);
+    if (Array.isArray(obj.items)) return normalizeQuotes(obj.items);
+    if (Array.isArray(obj.data)) return normalizeQuotes(obj.data);
+
+    const single = normalizeQuote(input);
+    return single ? [single] : [];
+  }
+
+  return [];
+}
+
 export default function Home() {
-  const { auth, logout, isLoggedIn, user } = useAuth();
+  const { auth } = useAuth();
   const { openEditor } = useEditor();
 
-  /* ---------------- Hero (independent) ---------------- */
+  /* ---------------- Hero ---------------- */
   const [heroImages, setHeroImages] = useState<HeroImage[]>([]);
   const [heroLoading, setHeroLoading] = useState(true);
 
-  /* ---------------- About (independent, never waits for Hero) ---------------- */
+  /* ---------------- About ---------------- */
   const [aboutLoading, setAboutLoading] = useState(true);
   const [aboutError, setAboutError] = useState(false);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [aboutText, setAboutText] = useState<string>("");
   const [stats, setStats] = useState<Stat[]>([]);
 
-  /* ---------------- Vision (independent) ---------------- */
+  /* ---------------- Vision ---------------- */
   const [visionLoading, setVisionLoading] = useState(true);
   const [visionError, setVisionError] = useState(false);
   const [visionText, setVisionText] = useState<string>("");
@@ -94,7 +161,6 @@ export default function Home() {
     fetchOrder();
   }, []);
 
-  // Hero fetch — fully independent, does not block About/Vision.
   useEffect(() => {
     const fetchHeroImages = async () => {
       try {
@@ -111,7 +177,6 @@ export default function Home() {
     fetchHeroImages();
   }, []);
 
-  // About fetch — fully independent, renders as soon as it resolves.
   useEffect(() => {
     const fetchAboutContent = async () => {
       try {
@@ -133,7 +198,6 @@ export default function Home() {
     fetchAboutContent();
   }, []);
 
-  // Vision fetch — fully independent.
   useEffect(() => {
     const fetchVisionContent = async () => {
       try {
@@ -158,15 +222,42 @@ export default function Home() {
     fetchVisionContent();
   }, []);
 
-  const scrollToTop = useCallback(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
+  useGSAP(
+    () => {
+      const sections = gsap.utils.toArray(".snap-section");
+
+      sections.forEach((section) => {
+        ScrollTrigger.create({
+          trigger: section as Element,
+          start: "top top",
+          end: "bottom top",
+          snap: {
+            snapTo: 1,
+            duration: { min: 0.6, max: 1.2 },
+            delay: 0.1,
+            ease: "power2.inOut",
+          },
+        });
+      });
+
+      return () => {
+        ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
+      };
+    },
+    { dependencies: [sectionOrder] },
+  );
+
+  const safeQuotes = useMemo(() => normalizeQuotes(quotes), [quotes]);
 
   const openAboutEditor = () =>
-    openEditor("aboutSection", { quotes, aboutText, stats });
+    openEditor("aboutSection", { quotes: safeQuotes, aboutText, stats });
 
   const openVisionEditor = () =>
     openEditor("vision", { visionText, objectives });
+
+  const scrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
 
   const renderAboutSection = () => (
     <MotionSection
@@ -240,9 +331,9 @@ export default function Home() {
               />
             ))}
           </div>
-        ) : quotes.length > 0 ? (
+        ) : safeQuotes.length > 0 ? (
           <StaggerGrid className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10 mb-14 relative z-10">
-            {quotes.map((quote, index) => (
+            {safeQuotes.map((quote, index) => (
               <StaggerItem key={`${quote.name}-${index}`}>
                 <motion.div
                   whileHover={{ y: -8, scale: 1.02 }}
@@ -297,7 +388,7 @@ export default function Home() {
         ) : (
           <div className="mb-14 rounded-3xl border-2 border-dashed border-accent/30 bg-accent/5 p-10 text-center">
             <p className="font-bebasNeue text-3xl tracking-wide text-text-secondary">
-              No Words of Wisdom Yet
+              No Words of Wisdom Added Yet
             </p>
             <p className="mt-2 text-sm text-text-muted">
               {auth
@@ -500,133 +591,6 @@ export default function Home() {
       )}
 
       {sectionOrder.map((key) => sectionRenderers[key]?.())}
-
-      {!isLoggedIn && (
-        <MotionSection className="snap-section relative min-h-[55vh] bg-background py-16 px-6 lg:px-12 font-poppins overflow-hidden flex items-center justify-center">
-          <div className="absolute inset-0 opacity-10 pointer-events-none">
-            <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-accent rounded-full blur-3xl" />
-            <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-orange-500 rounded-full blur-3xl" />
-          </div>
-
-          <div className="relative z-10 max-w-4xl mx-auto text-center">
-            <motion.h2
-              initial={{ opacity: 0, y: -30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
-              className="text-6xl md:text-7xl lg:text-8xl font-bebasNeue text-accent leading-none mb-10"
-            >
-              Be an Adventurer
-            </motion.h2>
-
-            <motion.div
-              initial={{ opacity: 0, y: 25 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.15, duration: 0.4 }}
-              className="flex flex-col sm:flex-row gap-5 justify-center items-center"
-            >
-              <Link
-                href="/register"
-                className="inline-flex min-w-[210px] items-center justify-center rounded-full bg-accent px-10 py-4 font-bebasNeue text-2xl tracking-wider text-white shadow-xl shadow-accent/25 transition-all duration-300 hover:-translate-y-1 hover:bg-accent/90 hover:shadow-accent/40"
-              >
-                Create Account
-              </Link>
-
-              <Link
-                href="/login"
-                className="inline-flex min-w-[170px] items-center justify-center rounded-full border-2 border-accent px-10 py-4 font-bebasNeue text-2xl tracking-wider text-accent transition-all duration-300 hover:-translate-y-1 hover:bg-accent hover:text-white"
-              >
-                Sign In
-              </Link>
-            </motion.div>
-          </div>
-        </MotionSection>
-      )}
-
-      {isLoggedIn && user && (
-        <MotionSection className="snap-section relative min-h-[50vh] bg-background py-16 px-6 lg:px-12 font-poppins overflow-hidden flex items-center justify-center">
-          <div className="absolute inset-0 opacity-10 pointer-events-none">
-            <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-accent rounded-full blur-3xl" />
-          </div>
-
-          <div className="relative z-10 max-w-4xl mx-auto text-center">
-            <motion.h2
-              initial={{ opacity: 0, scale: 0.8 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-              className="text-5xl md:text-6xl lg:text-7xl font-bebasNeue text-accent leading-none mb-4"
-            >
-              Welcome Back, {user.name}!
-            </motion.h2>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2, duration: 0.4 }}
-              className="inline-block mb-8"
-            >
-              <span
-                className={`px-4 py-2 text-sm font-bold rounded-full border ${
-                  user.role === "admin"
-                    ? "bg-red-500/20 text-red-400 border-red-500/30"
-                    : user.role === "alumni"
-                      ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
-                      : "bg-accent/20 text-accent border-accent/30"
-                }`}
-              >
-                {user.role.toUpperCase()}
-              </span>
-            </motion.div>
-
-            {user.role !== "admin" && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.3, duration: 0.4 }}
-                className="text-text-muted text-lg max-w-2xl mx-auto mb-8"
-              >
-                {user.role === "alumni"
-                  ? "Great to see you back! Stay connected with the adventure family."
-                  : "Ready for your next adventure? Check out our upcoming tours and activities."}
-              </motion.p>
-            )}
-
-            <motion.div
-              initial={{ opacity: 0, y: 25 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2, duration: 0.4 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center items-center"
-            >
-              <Link
-                href="/tours"
-                className="inline-flex min-w-[170px] items-center justify-center rounded-full bg-accent px-8 py-4 font-bebasNeue text-xl tracking-wider text-white shadow-xl shadow-accent/25 transition-all duration-300 hover:-translate-y-1 hover:bg-accent/90"
-              >
-                Explore Tours
-              </Link>
-
-              <Link
-                href="/activities"
-                className="inline-flex min-w-[180px] items-center justify-center rounded-full border-2 border-accent px-8 py-4 font-bebasNeue text-xl tracking-wider text-accent transition-all duration-300 hover:-translate-y-1 hover:bg-accent hover:text-white"
-              >
-                View Activities
-              </Link>
-
-              <button
-                type="button"
-                onClick={logout}
-                className="inline-flex min-w-[150px] items-center justify-center rounded-full border-2 border-red-500 px-8 py-4 font-bebasNeue text-xl tracking-wider text-red-400 transition-all duration-300 hover:-translate-y-1 hover:bg-red-500 hover:text-white"
-              >
-                Sign Out
-              </button>
-            </motion.div>
-          </div>
-        </MotionSection>
-      )}
     </>
   );
 }

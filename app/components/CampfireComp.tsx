@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Lottie from "lottie-react";
 import { gsap } from "gsap";
-import torchFire from "@/public/assets/fire.json";
+import torchFire from "../../public/assets/fire.json";
 
 export default function CampfireComp() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -242,7 +242,6 @@ export default function CampfireComp() {
     >
       <div className="absolute inset-0 z-[5] bg-black/85" />
 
-      {/* Single clean text layer — no duplicated shadow text */}
       <div className="relative z-10 flex h-full w-full items-center justify-center px-4 py-12 text-zinc-500 select-none md:px-12 md:py-8">
         <div className="grid w-full max-w-8xl grid-cols-12 items-center gap-4">
           <h1 className="col-span-8 text-4xl font-bebasNeue leading-tight lg:text-7xl">

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import axios from "axios";
-import { kv } from "@/lib/kv";
-import { sendMail, buildClubFairThankYouEmail } from "@/lib/email";
+import { kv } from "../../../../lib/kv";
+import { sendMail, buildClubFairThankYouEmail } from "../../../../lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,13 @@ interface SemesterSettings {
   updatedAt: string;
 }
 
-const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL || "";
+const DEFAULT_GOOGLE_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbyO1YvRhGT92uK_n8XG7rsUz2zbQnqcvGgOgBIR27RUiAH0_0cR-XlEpROOtqi3M0J_/exec";
+
+const CLUB_FAIR_SCRIPT_URL =
+  process.env.GOOGLE_SCRIPT_CLUB_FAIR_URL ||
+  process.env.GOOGLE_SCRIPT_URL ||
+  DEFAULT_GOOGLE_SCRIPT_URL;
 
 function getDefaultSemesterSettings(): SemesterSettings {
   const now = new Date();
@@ -57,9 +63,9 @@ export async function POST(request: Request) {
       timestamp: new Date().toISOString(),
     };
 
-    if (GOOGLE_SCRIPT_URL) {
+    if (CLUB_FAIR_SCRIPT_URL) {
       try {
-        await axios.post(GOOGLE_SCRIPT_URL, payload);
+        await axios.post(CLUB_FAIR_SCRIPT_URL, payload);
       } catch (sheetErr) {
         console.error(
           "Failed to forward payload to Google Apps Script:",

@@ -6,13 +6,8 @@ import Footer from "../components/Footer";
 import { AuthProvider } from "../context/AuthProvider";
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
-import { env } from "../../env";
 import { ReactLenis } from "lenis/react";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { EditorProvider } from "../context/EditorContext";
-
-gsap.registerPlugin(ScrollTrigger);
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -27,16 +22,14 @@ const bebasNeue = Bebas_Neue({
 });
 
 export const metadata: Metadata = {
-  title: "BUAC",
-  description: "BUAC - BRAC University Adventure Club",
+  title: "BUAC - BRAC University Adventure Club",
+  description: "BRAC University Adventure Club Official Website",
 };
 
 interface TokenPayload {
   sub: string;
   role: string;
   name: string;
-  iat: number;
-  exp: number;
 }
 
 export default async function MainLayout({
@@ -45,40 +38,29 @@ export default async function MainLayout({
   children: React.ReactNode;
 }>) {
   const cookieStore = await cookies();
-
-  // Check admin token
   const adminToken = cookieStore.get("admin-token")?.value ?? "";
   let authenticated = false;
+  let initialUser = null;
 
-  try {
-    const payload = jwt.verify(adminToken, env.adminJwtSecret) as TokenPayload;
-    authenticated = payload?.role === "admin";
-  } catch {
-    authenticated = false;
-  }
+  const jwtSecret = process.env.adminJwtSecret || "buac_secret_key_2026";
+  const adminMail = process.env.adminMail || "admin@gmail.com";
 
-  // Check user token
-  const userToken = cookieStore.get("user-token")?.value ?? "";
-  let initialUser: {
-    email: string;
-    name: string;
-    role: "admin" | "member" | "alumni";
-  } | null = null;
+  if (adminToken) {
+    try {
+      const payload = jwt.verify(adminToken, jwtSecret) as TokenPayload;
 
-  try {
-    const payload = jwt.verify(userToken, env.adminJwtSecret) as TokenPayload;
-    if (payload?.sub) {
-      initialUser = {
-        email: payload.sub,
-        name: payload.name || "User",
-        role: payload.role as "admin" | "member" | "alumni",
-      };
-      if (payload.role === "admin") {
+      if (payload?.role === "admin") {
         authenticated = true;
+        initialUser = {
+          email: payload.sub || adminMail,
+          name: payload.name || "Admin",
+          role: "admin" as const,
+        };
       }
+    } catch {
+      authenticated = false;
+      initialUser = null;
     }
-  } catch {
-    initialUser = null;
   }
 
   return (

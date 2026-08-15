@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sendMail, buildMemberWelcomeEmail } from "@/lib/email";
+import { sendMail, buildClubFairThankYouEmail } from "@/lib/email";
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 
@@ -7,10 +7,7 @@ export const dynamic = "force-dynamic";
 
 async function getLoggedInEmail(): Promise<string | null> {
   const cookieStore = await cookies();
-
-  const token =
-    cookieStore.get("user-token")?.value ||
-    cookieStore.get("admin-token")?.value;
+  const token = cookieStore.get("admin-token")?.value;
 
   if (!token) return null;
 
@@ -32,8 +29,8 @@ export async function GET(request: NextRequest) {
   if (!loggedInEmail) {
     return NextResponse.json(
       {
-        error: "You must be logged in first.",
-        hint: "Go to /login, sign in as any user, then visit this URL again.",
+        error: "You must be logged in as admin to test email configurations.",
+        hint: "Log in as admin at /secure/admin/login first.",
       },
       { status: 401 },
     );
@@ -48,13 +45,9 @@ export async function GET(request: NextRequest) {
     EMAIL_USER: process.env.EMAIL_USER ? "set" : "missing",
     EMAIL_SERVICE: process.env.EMAIL_SERVICE || "gmail",
     EMAIL_PASS: process.env.EMAIL_PASS ? "set" : "missing",
-    GMAIL_APP_PASSWORD: process.env.GMAIL_APP_PASSWORD ? "set" : "missing",
-    GMAIL_CLIENT_ID: process.env.GMAIL_CLIENT_ID ? "set" : "missing",
-    GMAIL_CLIENT_SECRET: process.env.GMAIL_CLIENT_SECRET ? "set" : "missing",
-    GMAIL_REFRESH_TOKEN: process.env.GMAIL_REFRESH_TOKEN ? "set" : "missing",
   };
 
-  const mail = buildMemberWelcomeEmail("Test User");
+  const mail = buildClubFairThankYouEmail("Test Candidate");
 
   const result = await sendMail({
     to,

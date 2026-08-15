@@ -1,21 +1,14 @@
 "use client";
 
-import { motion, type Variants, type HTMLMotionProps } from "framer-motion";
 import React, { forwardRef } from "react";
-
-/* ============================================================
-   UI/UX Pro Max Guidelines Applied:
-   - Duration: 150-300ms for micro-interactions
-   - Transform/opacity only (GPU-friendly)
-   - Respects prefers-reduced-motion
-   - Consistent easing: [0.4, 0, 0.2, 1] (power2.inOut equivalent)
-   ============================================================ */
-
-// ─── Reusable Variants ───────────────────────────────────────
+import { motion, type Variants, type HTMLMotionProps } from "framer-motion";
 
 export const fadeIn: Variants = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: 0.4 } },
+  visible: {
+    opacity: 1,
+    transition: { duration: 0.4 },
+  },
 };
 
 export const fadeInUp: Variants = {
@@ -72,19 +65,6 @@ export const staggerContainer: Variants = {
     },
   },
 };
-
-export const cardHover = {
-  rest: { scale: 1, boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" },
-  hover: {
-    scale: 1.03,
-    boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.15)",
-    transition: { duration: 0.25, ease: [0.4, 0, 0.2, 1] },
-  },
-};
-
-export const buttonTap = { scale: 0.96 };
-
-// ─── Reusable Motion Components ──────────────────────────────
 
 type SectionProps = HTMLMotionProps<"section"> & {
   children: React.ReactNode;
@@ -180,16 +160,19 @@ export function AnimatedCounter({
   const [count, setCount] = React.useState(0);
 
   React.useEffect(() => {
-    if (isNaN(parsed)) {
+    if (Number.isNaN(parsed)) {
       setCount(0);
       return;
     }
+
     const duration = 2000;
     const steps = 30;
     const increment = parsed / steps;
     let current = 0;
+
     const timer = setInterval(() => {
       current += increment;
+
       if (current >= parsed) {
         setCount(parsed);
         clearInterval(timer);
@@ -197,8 +180,8 @@ export function AnimatedCounter({
         setCount(Math.floor(current));
       }
     }, duration / steps);
+
     return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parsed]);
 
   return (
@@ -209,7 +192,7 @@ export function AnimatedCounter({
       transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
       className={className}
     >
-      {isNaN(parsed) ? value : `${count}${suffix}`}
+      {Number.isNaN(parsed) ? value : `${count}${suffix}`}
     </motion.div>
   );
 }
