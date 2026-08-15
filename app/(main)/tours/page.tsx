@@ -3,11 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import Image from "next/image";
+import Link from "next/link";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { useLenis } from "lenis/react";
-import { HiOutlinePencilAlt } from "react-icons/hi";
+import { HiOutlinePencilAlt, HiOutlineArrowRight } from "react-icons/hi";
 import { IoLocationSharp } from "react-icons/io5";
 import { FaMountain, FaLeaf } from "react-icons/fa";
 import { useAuth } from "@/app/context/AuthProvider";
@@ -42,6 +43,9 @@ interface Tour {
   gridLayout: string;
   images: TourImage[];
 }
+
+const FOOTPRINT_PATH =
+  "M651 7.61816C-196.496 -145.906 -151.104 2428.54 961 1818.23C2241 1064.31 2241 4456.92 961 3703C-319 2949.09 -319 6341.7 961 5587.79C2241 4833.87 2241 8226.48 961 7472.56C-319 6718.65 -319 10111.3 961 9357.34C2241 8603.43 2241 11996 961 11242.1C-319 10488.2 -319 13880.8 961 13126.9C2241 12373 2241 15765.6 961 15011.7C-319 14257.8 -319 17650.4 961 16896.5C2241 16142.5 2241 19535.1 961 18781.2C-319 18027.3 -319 21419.9 961 20666C2241 19912.1 2241 23304.7 961 22550.8C-319 21796.9 -319 25189.5 961 24435.6C2241 23681.7 2241 27074.3 961 26320.4C-319 25566.4 -319 28959 961 28205.1C2241 27451.2 2241 30843.8 961 30089.9";
 
 const Tours = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -84,16 +88,16 @@ const Tours = () => {
       lenis.on("scroll", handleScroll);
       gsap.ticker.lagSmoothing(0);
 
-      const maskPath = maskPathRef.current;
+      const path = maskPathRef.current;
       const container = containerRef.current;
 
-      if (maskPath && container) {
-        const length = maskPath.getTotalLength();
+      if (path && container) {
+        const pathLength = path.getTotalLength();
 
-        maskPath.style.strokeDasharray = String(length);
-        maskPath.style.strokeDashoffset = String(length);
+        path.style.strokeDasharray = String(pathLength);
+        path.style.strokeDashoffset = String(pathLength);
 
-        gsap.to(maskPath, {
+        gsap.to(path, {
           strokeDashoffset: 0,
           ease: "none",
           scrollTrigger: {
@@ -123,38 +127,47 @@ const Tours = () => {
     },
   );
 
-  const renderTourImage = (image: TourImage, index: number) => {
-    return (
-      <motion.div
-        key={`${image.alt}-${index}`}
-        initial={{ opacity: 0, scale: 0.96 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        viewport={{ once: true, margin: "-40px" }}
-        transition={{
-          duration: 0.4,
-          delay: index * 0.05,
-          ease: [0.4, 0, 0.2, 1],
-        }}
-        className="group relative aspect-[4/3] cursor-pointer overflow-hidden rounded-lg border border-border bg-surface sm:rounded-xl"
-      >
-        {image.url ? (
-          <Image
-            src={image.url}
-            alt={image.alt}
-            fill
-            sizes="(max-width: 640px) 42vw, (max-width: 1024px) 26vw, 220px"
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-surface-secondary px-2 text-center">
-            <span className="text-[9px] text-text-muted sm:text-xs">
-              {image.alt || "No image"}
-            </span>
-          </div>
-        )}
-      </motion.div>
-    );
-  };
+  const renderTourImage = (
+    image: TourImage,
+    index: number,
+  ) => (
+    <motion.div
+      key={`${image.alt}-${index}`}
+      initial={{
+        opacity: 0,
+        scale: 0.96,
+      }}
+      whileInView={{
+        opacity: 1,
+        scale: 1,
+      }}
+      viewport={{
+        once: true,
+        margin: "-40px",
+      }}
+      transition={{
+        duration: 0.4,
+        delay: index * 0.05,
+      }}
+      className="group relative aspect-[4/3] cursor-pointer overflow-hidden rounded-lg border border-border bg-surface sm:rounded-xl"
+    >
+      {image.url ? (
+        <Image
+          src={image.url}
+          alt={image.alt}
+          fill
+          sizes="(max-width: 640px) 42vw, (max-width: 1024px) 26vw, 220px"
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center bg-surface-secondary px-2 text-center">
+          <span className="text-[9px] text-text-muted sm:text-xs">
+            {image.alt || "No image"}
+          </span>
+        </div>
+      )}
+    </motion.div>
+  );
 
   const renderTour = (tour: Tour) => {
     const isReversed = tour.gridLayout === "reversed";
@@ -220,10 +233,21 @@ const Tours = () => {
             }`}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.96 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ duration: 0.45 }}
+              initial={{
+                opacity: 0,
+                scale: 0.96,
+              }}
+              whileInView={{
+                opacity: 1,
+                scale: 1,
+              }}
+              viewport={{
+                once: true,
+                margin: "-40px",
+              }}
+              transition={{
+                duration: 0.45,
+              }}
               className="group relative col-span-2 aspect-video cursor-pointer overflow-hidden rounded-lg border border-border bg-surface sm:row-span-2 sm:min-h-[210px] sm:rounded-xl md:min-h-[250px] lg:min-h-[280px] sm:[direction:ltr]"
             >
               <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/65 via-transparent to-transparent opacity-60 transition-opacity duration-500 group-hover:opacity-80" />
@@ -254,8 +278,24 @@ const Tours = () => {
             <div className="contents sm:[direction:ltr]">
               {tour.images
                 .slice(1, 3)
-                .map((image, index) => renderTourImage(image, index))}
+                .map((image, index) =>
+                  renderTourImage(image, index),
+                )}
             </div>
+          </div>
+
+          <div
+            className={`mt-6 flex ${
+              isReversed ? "sm:justify-end" : ""
+            }`}
+          >
+            <Link
+              href="/gallery?category=pictures"
+              className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-2.5 text-xs font-semibold text-white shadow-lg shadow-accent/15 transition-colors hover:bg-accent-hover"
+            >
+              View More
+              <HiOutlineArrowRight className="h-4 w-4" />
+            </Link>
           </div>
         </motion.div>
       </section>
@@ -270,12 +310,21 @@ const Tours = () => {
     <>
       {auth && (
         <motion.button
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.5, type: "spring" }}
+          initial={{
+            opacity: 0,
+            scale: 0,
+          }}
+          animate={{
+            opacity: 1,
+            scale: 1,
+          }}
+          transition={{
+            delay: 0.5,
+            type: "spring",
+          }}
           onClick={handleEdit}
-          className="fixed bottom-6 right-4 z-50 flex cursor-pointer items-center gap-2 rounded-full bg-accent p-3 text-white shadow-lg transition-colors hover:bg-accent/90 sm:bottom-8 sm:right-8 sm:p-4"
-          title="Edit Tours"
+          className="fixed right-4 bottom-6 z-50 flex cursor-pointer items-center gap-2 rounded-full bg-accent p-3 text-white shadow-lg transition-colors hover:bg-accent-hover sm:right-8 sm:bottom-8 sm:p-4"
+          title="Edit tours"
         >
           <HiOutlinePencilAlt size={21} />
         </motion.button>
@@ -286,39 +335,43 @@ const Tours = () => {
           ref={containerRef}
           className="relative w-full overflow-x-hidden bg-background"
         >
-          <div className="pointer-events-none absolute inset-0 z-0 hidden opacity-15 sm:block">
+          <div className="pointer-events-none absolute inset-0 z-0 hidden opacity-20 sm:block">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 1920 6000"
-              preserveAspectRatio="none"
+              viewBox="0 0 1920 30000"
+              preserveAspectRatio="xMidYMid meet"
               className="h-full w-full"
             >
               <defs>
-                <mask id="tours-path-mask">
+                <mask id="tour-footprint-mask">
                   <path
                     ref={maskPathRef}
                     fill="none"
                     stroke="#ffffff"
-                    strokeWidth="8"
+                    strokeWidth="10"
                     strokeLinecap="round"
-                    d="M960 0 C 400 800, 1500 1600, 960 2400 C 400 3200, 1500 4000, 960 4800 C 400 5400, 1200 5800, 960 6000"
+                    d={FOOTPRINT_PATH}
                   />
                 </mask>
               </defs>
 
-              <path
-                fill="none"
-                stroke="var(--color-text-muted)"
-                strokeWidth="8"
-                strokeLinecap="round"
-                strokeDasharray="18 18"
-                mask="url(#tours-path-mask)"
-                d="M960 0 C 400 800, 1500 1600, 960 2400 C 400 3200, 1500 4000, 960 4800 C 400 5400, 1200 5800, 960 6000"
-              />
+              <g>
+                <path
+                  fill="none"
+                  stroke="var(--color-text-muted)"
+                  strokeWidth="10"
+                  strokeLinecap="round"
+                  strokeDasharray="20 20"
+                  mask="url(#tour-footprint-mask)"
+                  d={FOOTPRINT_PATH}
+                />
+              </g>
             </svg>
           </div>
 
-          <div className="relative w-full">{tours.map(renderTour)}</div>
+          <div className="relative w-full">
+            {tours.map(renderTour)}
+          </div>
         </div>
       ) : (
         <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6 text-center">
@@ -329,17 +382,26 @@ const Tours = () => {
           </h1>
 
           <p className="mt-3 max-w-xl text-sm text-text-muted">
-            There are currently no tours to display. Please check again later.
+            There are currently no tours to display.
+            Please check again later.
           </p>
         </div>
       )}
 
       {tours.length > 0 && (
         <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
+          initial={{
+            opacity: 0,
+          }}
+          whileInView={{
+            opacity: 1,
+          }}
+          viewport={{
+            once: true,
+          }}
+          transition={{
+            duration: 0.5,
+          }}
           className="flex h-[30vh] items-center justify-center border-t border-border bg-background px-4 sm:h-[36vh]"
         >
           <h2 className="text-center font-bebasNeue text-3xl tracking-wider text-text-secondary sm:text-4xl">

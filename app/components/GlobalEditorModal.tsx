@@ -1,6 +1,9 @@
 "use client";
 
-import type { WheelEvent, TouchEvent } from "react";
+import type {
+  TouchEvent,
+  WheelEvent,
+} from "react";
 import { useEditor } from "../context/EditorContext";
 import LandingHeroEditor from "./editors/LandingHeroEditor";
 import DepartmentsEditor from "./editors/DepartmentsEditor";
@@ -13,31 +16,38 @@ import VisionEditor from "./editors/VisionEditor";
 import ActivitiesEditor from "./editors/ActivitiesEditor";
 import GalleryEditor from "./editors/GalleryEditor";
 import HomeOrderEditor from "./editors/HomeOrderEditor";
+import BlogEditor from "./editors/BlogEditor";
 
 export default function GlobalEditorModal() {
-  const context = useEditor();
+  const { editor, closeEditor } =
+    useEditor();
 
   if (
-    !context ||
-    !context.editor.isOpen
+    !editor.isOpen ||
+    !editor.type
   ) {
     return null;
   }
 
-  const {
-    editor,
-    closeEditor,
-  } = context;
-
-  const homeOrder = Array.isArray(
-    editor.data,
-  )
-    ? editor.data
-    : editor.data &&
-        typeof editor.data === "object" &&
-        Array.isArray(editor.data.order)
-      ? editor.data.order
-      : [];
+  const homeOrder =
+    Array.isArray(editor.data)
+      ? editor.data
+      : editor.data &&
+          typeof editor.data === "object" &&
+          "order" in editor.data &&
+          Array.isArray(
+            (
+              editor.data as {
+                order?: unknown;
+              }
+            ).order,
+          )
+        ? (
+            editor.data as {
+              order: string[];
+            }
+          ).order
+        : [];
 
   const stopWheelPropagation = (
     event: WheelEvent<HTMLDivElement>,
@@ -52,7 +62,11 @@ export default function GlobalEditorModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] overflow-hidden bg-black/70 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-[100] overflow-hidden bg-black/70 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+    >
       <div className="flex h-full w-full items-center justify-center p-2 sm:p-4 md:p-6">
         <div
           className="flex max-h-[96dvh] min-h-0 w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
@@ -63,7 +77,11 @@ export default function GlobalEditorModal() {
           {editor.type ===
             "landing-hero" && (
             <LandingHeroEditor
-              data={editor.data}
+              data={
+                editor.data as Parameters<
+                  typeof LandingHeroEditor
+                >[0]["data"]
+              }
               onClose={closeEditor}
             />
           )}
@@ -71,23 +89,33 @@ export default function GlobalEditorModal() {
           {editor.type ===
             "departments" && (
             <DepartmentsEditor
-              data={editor.data}
+              data={
+                editor.data as Parameters<
+                  typeof DepartmentsEditor
+                >[0]["data"]
+              }
               onClose={closeEditor}
             />
           )}
 
-          {editor.type ===
-            "contact" && (
+          {editor.type === "contact" && (
             <ContactEditor
-              data={editor.data}
+              data={
+                editor.data as Parameters<
+                  typeof ContactEditor
+                >[0]["data"]
+              }
               onClose={closeEditor}
             />
           )}
 
-          {editor.type ===
-            "joinus" && (
+          {editor.type === "joinus" && (
             <JoinUsEditor
-              data={editor.data}
+              data={
+                editor.data as Parameters<
+                  typeof JoinUsEditor
+                >[0]["data"]
+              }
               onClose={closeEditor}
             />
           )}
@@ -95,15 +123,22 @@ export default function GlobalEditorModal() {
           {editor.type ===
             "panelmembers" && (
             <PanelMembersEditor
-              data={editor.data}
+              data={
+                editor.data as Parameters<
+                  typeof PanelMembersEditor
+                >[0]["data"]
+              }
               onClose={closeEditor}
             />
           )}
 
-          {editor.type ===
-            "tours" && (
+          {editor.type === "tours" && (
             <ToursEditor
-              data={editor.data}
+              data={
+                editor.data as Parameters<
+                  typeof ToursEditor
+                >[0]["data"]
+              }
               onClose={closeEditor}
             />
           )}
@@ -111,16 +146,21 @@ export default function GlobalEditorModal() {
           {editor.type ===
             "aboutSection" && (
             <AboutSectionEditor
-              data={editor.data}
+              data={
+                editor.data as Parameters<
+                  typeof AboutSectionEditor
+                >[0]["data"]
+              }
               onClose={closeEditor}
             />
           )}
 
-          {editor.type ===
-            "vision" && (
+          {editor.type === "vision" && (
             <VisionEditor
               initialData={
-                editor.data
+                editor.data as Parameters<
+                  typeof VisionEditor
+                >[0]["initialData"]
               }
               onClose={closeEditor}
             />
@@ -129,15 +169,22 @@ export default function GlobalEditorModal() {
           {editor.type ===
             "activities" && (
             <ActivitiesEditor
-              data={editor.data}
+              data={
+                editor.data as Parameters<
+                  typeof ActivitiesEditor
+                >[0]["data"]
+              }
               onClose={closeEditor}
             />
           )}
 
-          {editor.type ===
-            "gallery" && (
+          {editor.type === "gallery" && (
             <GalleryEditor
-              data={editor.data}
+              data={
+                editor.data as Parameters<
+                  typeof GalleryEditor
+                >[0]["data"]
+              }
               onClose={closeEditor}
             />
           )}
@@ -146,6 +193,17 @@ export default function GlobalEditorModal() {
             "home-order" && (
             <HomeOrderEditor
               order={homeOrder}
+              onClose={closeEditor}
+            />
+          )}
+
+          {editor.type === "blog" && (
+            <BlogEditor
+              data={
+                editor.data as Parameters<
+                  typeof BlogEditor
+                >[0]["data"]
+              }
               onClose={closeEditor}
             />
           )}
