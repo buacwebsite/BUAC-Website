@@ -5,6 +5,7 @@ interface MailPayload {
   subject: string;
   html: string;
   text: string;
+  replyTo?: string;
 }
 
 function getConfig() {
@@ -66,12 +67,18 @@ export async function sendMail(payload: MailPayload) {
 
   if (!config.emailUser) {
     console.error("[EMAIL] EMAIL_USER is missing.");
-    return { success: false, error: "EMAIL_USER is missing" };
+    return {
+      success: false,
+      error: "EMAIL_USER is missing",
+    };
   }
 
   if (!payload.to) {
     console.error("[EMAIL] Recipient email is missing.");
-    return { success: false, error: "Recipient email is missing" };
+    return {
+      success: false,
+      error: "Recipient email is missing",
+    };
   }
 
   const mailOptions = {
@@ -80,12 +87,12 @@ export async function sendMail(payload: MailPayload) {
     subject: payload.subject,
     html: payload.html,
     text: payload.text,
-    replyTo: config.emailUser,
+    replyTo: payload.replyTo || config.emailUser,
   };
 
-  /**
-   * Gmail App Password is preferred.
-   * It avoids the OAuth unauthorized_client issue.
+  /*
+   * Prefer Gmail App Password.
+   * OAuth2 in this project is currently unauthorized.
    */
   if (config.emailPass) {
     try {
@@ -105,18 +112,21 @@ export async function sendMail(payload: MailPayload) {
       };
     } catch (error) {
       console.error("[EMAIL] Gmail App Password failed:", error);
+
       return {
         success: false,
         error:
-          error instanceof Error ? error.message : "Gmail App Password failed",
+          error instanceof Error
+            ? error.message
+            : "Gmail App Password failed",
       };
     }
   }
 
   const hasOAuth =
-    config.clientId &&
-    config.clientSecret &&
-    config.refreshToken;
+    Boolean(config.clientId) &&
+    Boolean(config.clientSecret) &&
+    Boolean(config.refreshToken);
 
   if (hasOAuth) {
     try {
@@ -134,10 +144,13 @@ export async function sendMail(payload: MailPayload) {
       };
     } catch (error) {
       console.error("[EMAIL] Gmail OAuth failed:", error);
+
       return {
         success: false,
         error:
-          error instanceof Error ? error.message : "Gmail OAuth failed",
+          error instanceof Error
+            ? error.message
+            : "Gmail OAuth failed",
       };
     }
   }
@@ -252,6 +265,49 @@ export function buildClubFairThankYouEmail(name: string) {
 We received your BUAC Club Fair registration.
 
 Please wait for our next instruction email. We will send you another email with next steps and further guidance.
+
+Warm regards,
+BUAC Executive Team`,
+  };
+}
+
+export function buildPasswordResetEmail(
+  name: string,
+  resetUrl: string,
+) {
+  const safeName = escapeHtml(name || "Adventurer");
+  const safeUrl = escapeHtml(resetUrl);
+
+  return {
+    subject: "Reset Your BUAC Password",
+    html: buildEmailLayout(
+      "Reset Your Password",
+      `
+        <p>Hello ${safeName},</p>
+        <p>We received a request to reset the password for your BUAC account.</p>
+        <p style="padding:14px 16px;border-left:4px solid #ff622b;border-radius:8px;background:rgba(255,98,43,.12);">
+          This reset link is valid for <strong>1 hour</strong>. If you did not request this, you can ignore this email.
+        </p>
+        <p style="margin:24px 0;">
+          <a href="${safeUrl}" style="display:inline-block;background:#ff622b;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:700;">
+            Reset Password
+          </a>
+        </p>
+        <p style="word-break:break-all;font-size:12px;color:#b8bcc8;">
+          If the button does not work, copy and paste this link:<br />
+          ${safeUrl}
+        </p>
+        <p>Warm regards,<br /><strong>BUAC Executive Team</strong></p>
+      `,
+    ),
+    text: `Hello ${name || "Adventurer"},
+
+We received a request to reset the password for your BUAC account.
+
+This reset link is valid for 1 hour. If you did not request this, you can ignore this email.
+
+Reset your password:
+${resetUrl}
 
 Warm regards,
 BUAC Executive Team`,
