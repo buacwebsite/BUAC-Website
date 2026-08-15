@@ -90,10 +90,6 @@ export async function sendMail(payload: MailPayload) {
     replyTo: payload.replyTo || config.emailUser,
   };
 
-  /*
-   * Prefer Gmail App Password.
-   * OAuth2 in this project is currently unauthorized.
-   */
   if (config.emailPass) {
     try {
       const transporter = getAppPasswordTransporter();
@@ -175,7 +171,7 @@ function buildEmailLayout(title: string, body: string) {
             BRAC UNIVERSITY ADVENTURE CLUB
           </p>
         </div>
-        <div style="padding:28px 24px;line-height:1.7;color:#dedfe8;font-size:15px;">
+        <div style="padding:28px 24px;line-height:1.75;color:#dedfe8;font-size:15px;">
           <h2 style="margin-top:0;color:#fff;font-size:21px;">${title}</h2>
           ${body}
         </div>
@@ -191,26 +187,40 @@ function buildEmailLayout(title: string, body: string) {
 }
 
 export function buildMemberWelcomeEmail(name: string) {
-  const safeName = escapeHtml(name);
+  const safeName = escapeHtml(name || "Adventurer");
 
   return {
     subject: "Welcome to BRAC University Adventure Club",
     html: buildEmailLayout(
-      `Welcome to BUAC, ${safeName}!`,
+      "Welcome to BUAC",
       `
-        <p>Congratulations on becoming a member of <strong>BRAC University Adventure Club</strong>.</p>
-        <p style="padding:14px 16px;border-left:4px solid #ff622b;border-radius:8px;background:rgba(255,98,43,.12);">
-          Your adventure begins here. Get ready for workshops, tours, training, and lifelong memories.
+        <p>Dear Adventurers,</p>
+        <p>
+          Welcome to <strong>BRAC University Adventure Club (BUAC)</strong>,
+          a place where adventure never disappoints!
         </p>
-        <p>Keep an eye on your email and BUAC social media channels for upcoming announcements.</p>
-        <p>Warm regards,<br /><strong>BUAC Executive Team</strong></p>
+        <p>
+          We are delighted to welcome you, ${safeName}, to our community of
+          passionate and adventurous individuals. Your BUAC journey is already
+          filled with exciting experiences, friendships and opportunities to grow,
+          and hopefully it will remain the same or even grow more!
+        </p>
+        <p>
+          We look forward to having you with us on this exciting journey!
+        </p>
+        <p>
+          Warm regards,<br />
+          <strong>BUAC Executive Team</strong>
+        </p>
       `,
     ),
-    text: `Welcome to BUAC, ${name}!
+    text: `Dear Adventurers,
 
-Congratulations on becoming a member of BRAC University Adventure Club.
+Welcome to BRAC University Adventure Club (BUAC), a place where adventure never disappoints!
 
-Your adventure begins here. Keep an eye on your email and BUAC social media channels for announcements.
+We are delighted to welcome you, ${name || "Adventurer"}, to our community of passionate and adventurous individuals. Your BUAC journey is already filled with exciting experiences, friendships and opportunities to grow, and hopefully it will remain the same or even grow more!
+
+We look forward to having you with us on this exciting journey!
 
 Warm regards,
 BUAC Executive Team`,
@@ -218,26 +228,49 @@ BUAC Executive Team`,
 }
 
 export function buildAlumniWelcomeEmail(name: string) {
-  const safeName = escapeHtml(name);
+  const safeName = escapeHtml(name || "Adventurer");
 
   return {
     subject: "Welcome Back to the BUAC Alumni Network",
     html: buildEmailLayout(
-      `Welcome Back, ${safeName}!`,
+      "Once a BUAC-ian, Always a BUAC-ian",
       `
-        <p>We are delighted to welcome you back to the <strong>BUAC Alumni Network</strong>.</p>
-        <p style="padding:14px 16px;border-left:4px solid #ff622b;border-radius:8px;background:rgba(255,98,43,.12);">
-          Once a BUAC-ian, always a BUAC-ian. Your experience and legacy continue to inspire new adventurers.
+        <p>Dear Adventurers,</p>
+        <p>
+          Once a BUAC-ian, always a BUAC-ian.
         </p>
-        <p>You will receive updates about alumni gatherings, mentorship opportunities, and special events.</p>
-        <p>Warm regards,<br /><strong>BUAC Executive Team</strong></p>
+        <p>
+          Although your active journey with the club may have come to an end,
+          your connection with the BUAC family will always remain. We are grateful
+          for the memories, contributions, laughter and experiences you shared
+          with us during your time in the club.
+        </p>
+        <p>
+          Through this website, you will get to revisit the beautiful moments we
+          created together through pictures and memories from our previous events,
+          along with glimpses of the exciting adventures and events yet to come.
+          We hope these moments bring back the feelings, friendships and memories
+          that made your time with BUAC so special.
+        </p>
+        <p>
+          No matter where life takes you, a part of the BUAC journey will always
+          belong to you, and you will always be a part of ours.
+        </p>
+        <p>
+          Warm regards,<br />
+          <strong>BUAC Executive Team</strong>
+        </p>
       `,
     ),
-    text: `Welcome back to BUAC, ${name}!
+    text: `Dear Adventurers,
 
 Once a BUAC-ian, always a BUAC-ian.
 
-You will receive future updates about alumni gatherings and BUAC events.
+Although your active journey with the club may have come to an end, your connection with the BUAC family will always remain. We are grateful for the memories, contributions, laughter and experiences you shared with us during your time in the club.
+
+Through this website, you will get to revisit the beautiful moments we created together through pictures and memories from our previous events, along with glimpses of the exciting adventures and events yet to come. We hope these moments bring back the feelings, friendships and memories that made your time with BUAC so special.
+
+No matter where life takes you, a part of the BUAC journey will always belong to you, and you will always be a part of ours.
 
 Warm regards,
 BUAC Executive Team`,
@@ -245,26 +278,40 @@ BUAC Executive Team`,
 }
 
 export function buildClubFairThankYouEmail(name: string) {
-  const safeName = escapeHtml(name);
+  const safeName = escapeHtml(name || "Student");
 
   return {
     subject: "BUAC Club Fair Registration Received",
     html: buildEmailLayout(
-      `Thank You, ${safeName}!`,
+      "Registration Received",
       `
-        <p>We have successfully received your BUAC Club Fair registration.</p>
-        <p style="padding:14px 16px;border-left:4px solid #ff622b;border-radius:8px;background:rgba(255,98,43,.12);">
-          Please wait for our next instruction email. We will send you another email with the next steps and further guidance.
+        <p>Dear Student,</p>
+        <p>
+          We are pleased to inform you that we have successfully received your
+          registration for the <strong>BRAC University Adventure Club (BUAC)</strong>.
         </p>
-        <p>Thank you for showing interest in BRAC University Adventure Club.</p>
-        <p>Warm regards,<br /><strong>BUAC Executive Team</strong></p>
+        <p>
+          Please wait for our next instruction email, where we will provide you
+          with the next steps, important information and further guidance regarding
+          your registration. For the interview, time and room details will be
+          emailed to you soon!
+        </p>
+        <p>
+          Until then, please keep an eye on your email for updates from BUAC.
+        </p>
+        <p>
+          Warm regards,<br />
+          <strong>BUAC Executive Team</strong>
+        </p>
       `,
     ),
-    text: `Thank you for registering, ${name}!
+    text: `Dear Student,
 
-We received your BUAC Club Fair registration.
+We are pleased to inform you that we have successfully received your registration for the BRAC University Adventure Club (BUAC).
 
-Please wait for our next instruction email. We will send you another email with next steps and further guidance.
+Please wait for our next instruction email, where we will provide you with the next steps, important information and further guidance regarding your registration. For the interview, time and room details will be emailed to you soon!
+
+Until then, please keep an eye on your email for updates from BUAC.
 
 Warm regards,
 BUAC Executive Team`,
