@@ -1,35 +1,135 @@
 import { NextRequest, NextResponse } from "next/server";
-import { env } from "../../../../env";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { env } from "@/env";
 
-export async function POST(request: NextRequest) {
+function isBcryptHash(value: string) {
+  return /^\$2[aby]\$\d{2}\$/.test(value);
+}
+
+function getPossiblePasswordHashes(
+  configuredPassword: string,
+) {
+  const hashes: string[] = [];
+
+  const rawValue = configuredPassword.trim();
+
+  if (isBcryptHash(rawValue)) {
+    hashes.push(rawValue);
+  }
+
   try {
-    const { adminMail, adminPassword } = await request.json();
+    const decoded = Buffer.from(
+      rawValue,
+      "base64",
+    ).toString("utf8");
+
+    if (
+      decoded &&
+      isBcryptHash(decoded)
+    ) {
+      hashes.push(decoded);
+    }
+  } catch {
+    // Invalid base64 is ignored.
+  }
+
+  return Array.from(new Set(hashes));
+}
+
+export async function POST(
+  request: NextRequest,
+) {
+  try {
+    const body = await request.json();
+
+    const adminMail = String(
+      body.adminMail || "",
+    )
+      .trim()
+      .toLowerCase();
+
+    const adminPassword = String(
+      body.adminPassword || "",
+    );
 
     if (!adminMail || !adminPassword) {
       return NextResponse.json(
-        { message: "Email and password are required" },
-        { status: 400 },
+        {
+          message:
+            "Email and password are required.",
+        },
+        {
+          status: 400,
+        },
       );
     }
 
-    if (adminMail !== env.adminMail) {
+    const configuredAdminMail =
+      env.adminMail.trim().toLowerCase();
+
+    if (
+      adminMail !== configuredAdminMail
+    ) {
       return NextResponse.json(
-        { message: "Invalid email or password" },
-        { status: 401 },
+        {
+          message:
+            "Invalid email or password.",
+        },
+        {
+          status: 401,
+        },
       );
     }
 
-    const decodedHash = Buffer.from(env.adminPassword, "base64").toString();
-    const isPasswordValid = await bcrypt.compare(adminPassword, decodedHash);
+    const possibleHashes =
+      getPossiblePasswordHashes(
+        env.adminPassword,
+      );
 
-    if (!isPasswordValid) {
+    if (!possibleHashes.length) {
+      console.error(
+        "Admin password is not a valid bcrypt or base64 bcrypt hash.",
+      );
+
       return NextResponse.json(
-        { message: "Invalid email or password" },
-        { status: 401 },
+        {
+          message:
+            "Admin password configuration is invalid.",
+        },
+        {
+          status: 500,
+        },
       );
     }
+
+    let passwordValid = false;
+
+    for (const hash of possibleHashes) {
+      const matches = await bcrypt.compare(
+        adminPassword,
+        hash,
+      );
+
+      if (matches) {
+        passwordValid = true;
+        break;
+      }
+    }
+
+    if (!passwordValid) {
+      return NextResponse.json(
+        {
+          message:
+            "Invalid email or password.",
+        },
+        {
+          status: 401,
+        },
+      );
+    }
+
+    const secret = env.adminJwtSecret;
 
     const token = jwt.sign(
       {
@@ -37,42 +137,50 @@ export async function POST(request: NextRequest) {
         role: "admin",
         name: "Admin",
       },
-      env.adminJwtSecret,
-      { expiresIn: "1d" },
+      secret,
+      {
+        expiresIn: "1d",
+      },
     );
 
-    const res = NextResponse.json(
-      { message: "Login successful" },
-      { status: 200 },
+    const response = NextResponse.json(
+      {
+        message: "Admin login successful.",
+        user: {
+          email: adminMail,
+          name: "Admin",
+          role: "admin",
+        },
+      },
+      {
+        status: 200,
+      },
     );
 
-    res.cookies.set({
+    response.cookies.set({
       name: "admin-token",
       value: token,
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: 60 * 60 * 6,
+      maxAge: 60 * 60 * 24,
       path: "/",
     });
 
-    res.cookies.set({
-      name: "user-token",
-      value: token,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 60 * 60 * 6,
-      path: "/",
-    });
+    response.cookies.delete("user-token");
 
-    return res;
+    return response;
   } catch (error) {
     console.error("Admin login error:", error);
 
     return NextResponse.json(
-      { message: "Something went wrong" },
-      { status: 500 },
+      {
+        message:
+          "Something went wrong during admin login.",
+      },
+      {
+        status: 500,
+      },
     );
   }
 }

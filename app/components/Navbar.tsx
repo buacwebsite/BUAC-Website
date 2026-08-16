@@ -32,11 +32,15 @@ export default function Navbar() {
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
+  const [mobileAdminMenuOpen, setMobileAdminMenuOpen] =
+    useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    document.body.style.overflow = mobileOpen
+      ? "hidden"
+      : "";
 
     return () => {
       document.body.style.overflow = "";
@@ -62,6 +66,7 @@ export default function Navbar() {
   useEffect(() => {
     setMobileOpen(false);
     setAdminMenuOpen(false);
+    setMobileAdminMenuOpen(false);
   }, [pathname]);
 
   const isActive = (href: string) => {
@@ -69,14 +74,19 @@ export default function Navbar() {
       return pathname === "/";
     }
 
-    return pathname === href || pathname.startsWith(`${href}/`);
+    return (
+      pathname === href ||
+      pathname.startsWith(`${href}/`)
+    );
   };
 
   const handleLogout = async () => {
     try {
       setLoggingOut(true);
       setAdminMenuOpen(false);
+      setMobileAdminMenuOpen(false);
       setMobileOpen(false);
+
       await logout();
     } finally {
       setLoggingOut(false);
@@ -98,7 +108,7 @@ export default function Navbar() {
           <div className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-white/5" />
 
           <div className="relative flex h-14 items-center gap-2 sm:h-16 sm:gap-3">
-            {/* Logo and one-line mobile title */}
+            {/* Logo and brand name */}
             <Link
               href="/"
               aria-label="BRAC University Adventure Club"
@@ -117,13 +127,7 @@ export default function Navbar() {
                 <div className="absolute inset-0 -z-10 bg-accent/30 opacity-0 blur-xl transition-opacity duration-300 group-hover:opacity-100" />
               </div>
 
-              {/* Mobile: one line */}
-              <span className="block whitespace-nowrap font-bebasNeue text-[clamp(0.62rem,3.8vw,0.95rem)] leading-none tracking-[0.04em] text-white sm:hidden">
-                BRAC UNIVERSITY ADVENTURE CLUB
-              </span>
-
-              {/* Desktop: one line */}
-              <span className="hidden whitespace-nowrap font-bebasNeue text-lg tracking-wider text-white sm:block xl:text-xl">
+              <span className="block whitespace-nowrap font-bebasNeue text-[clamp(0.62rem,3.8vw,0.95rem)] leading-none tracking-[0.04em] text-white sm:text-lg sm:tracking-wider xl:text-xl">
                 BRAC UNIVERSITY ADVENTURE CLUB
               </span>
             </Link>
@@ -170,7 +174,7 @@ export default function Navbar() {
               </div>
             </div>
 
-            {/* Desktop admin controls */}
+            {/* Desktop controls */}
             <div className="hidden shrink-0 items-center gap-2 lg:flex">
               <ThemeToggle />
 
@@ -186,12 +190,12 @@ export default function Navbar() {
                       );
                     }}
                     className="flex cursor-pointer items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-2 text-[11px] font-bold text-accent transition hover:bg-accent/20 xl:px-4"
+                    aria-expanded={adminMenuOpen}
+                    aria-haspopup="menu"
                   >
                     <FaShieldAlt className="text-xs" />
 
-                    <span className="hidden xl:inline">
-                      Admin
-                    </span>
+                    <span>Admin</span>
 
                     <FaChevronDown
                       className={`text-[9px] transition-transform ${
@@ -225,22 +229,14 @@ export default function Navbar() {
                           event.stopPropagation()
                         }
                         className="absolute right-0 top-[calc(100%+0.75rem)] z-[999] w-48 rounded-2xl border border-white/10 bg-black/95 p-2 shadow-2xl"
+                        role="menu"
                       >
-                        <Link
-                          href="/secure/admin"
-                          onClick={() =>
-                            setAdminMenuOpen(false)
-                          }
-                          className="block rounded-xl px-4 py-3 text-sm text-white/75 transition hover:bg-white/10 hover:text-accent"
-                        >
-                          Admin Dashboard
-                        </Link>
-
                         <button
                           type="button"
                           onClick={handleLogout}
                           disabled={loggingOut}
-                          className="mt-1 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-red-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-red-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                          role="menuitem"
                         >
                           <FaSignOutAlt />
 
@@ -343,7 +339,6 @@ export default function Navbar() {
                 <ThemeToggle />
               </div>
 
-              {/* One-line title inside drawer */}
               <div className="mb-7 w-full overflow-x-auto text-center">
                 <p className="whitespace-nowrap font-bebasNeue text-lg tracking-wider text-white">
                   BRAC UNIVERSITY ADVENTURE CLUB
@@ -384,28 +379,64 @@ export default function Navbar() {
                 ))}
               </ul>
 
+              {/* Mobile admin dropdown: only Sign Out */}
               {auth && (
-                <div className="mt-7 flex flex-col gap-3 border-t border-white/10 pt-6">
-                  <Link
-                    href="/secure/admin"
-                    onClick={() =>
-                      setMobileOpen(false)
-                    }
-                    className="rounded-full border-2 border-accent px-8 py-3 text-center text-sm font-bold uppercase tracking-wider text-accent transition hover:bg-accent hover:text-white"
-                  >
-                    Admin Dashboard
-                  </Link>
-
+                <div className="relative mt-7 flex flex-col items-center gap-3 border-t border-white/10 pt-6">
                   <button
                     type="button"
-                    onClick={handleLogout}
-                    disabled={loggingOut}
-                    className="rounded-full bg-red-500 px-8 py-3 text-sm font-bold uppercase tracking-wider text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={() =>
+                      setAdminMenuOpen(
+                        (previous) => !previous,
+                      )
+                    }
+                    className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-5 py-2.5 text-sm font-bold text-accent"
+                    aria-expanded={adminMenuOpen}
+                    aria-haspopup="menu"
                   >
-                    {loggingOut
-                      ? "Signing Out..."
-                      : "Sign Out"}
+                    <FaShieldAlt />
+                    Admin
+
+                    <FaChevronDown
+                      className={`text-[10px] transition-transform ${
+                        adminMenuOpen ? "rotate-180" : ""
+                      }`}
+                    />
                   </button>
+
+                  <AnimatePresence>
+                    {adminMenuOpen && (
+                      <motion.div
+                        initial={{
+                          opacity: 0,
+                          y: -6,
+                        }}
+                        animate={{
+                          opacity: 1,
+                          y: 0,
+                        }}
+                        exit={{
+                          opacity: 0,
+                          y: -6,
+                        }}
+                        className="w-48 rounded-2xl border border-white/10 bg-black/90 p-2"
+                        role="menu"
+                      >
+                        <button
+                          type="button"
+                          onClick={handleLogout}
+                          disabled={loggingOut}
+                          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-red-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                          role="menuitem"
+                        >
+                          <FaSignOutAlt />
+
+                          {loggingOut
+                            ? "Signing Out..."
+                            : "Sign Out"}
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )}
             </div>

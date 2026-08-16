@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 import axios from "axios";
-import { kv } from "../../../../lib/kv";
-import { sendMail, buildClubFairThankYouEmail } from "../../../../lib/email";
+import { kv } from "@/lib/kv";
+import {
+  buildClubFairThankYouEmail,
+  sendMail,
+} from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
-type SemesterName = "Spring" | "Summer" | "Fall";
+type SemesterName =
+  | "Spring"
+  | "Summer"
+  | "Fall";
 
 interface SemesterSettings {
   semester: SemesterName;
@@ -14,13 +20,68 @@ interface SemesterSettings {
   updatedAt: string;
 }
 
-const DEFAULT_GOOGLE_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbyO1YvRhGT92uK_n8XG7rsUz2zbQnqcvGgOgBIR27RUiAH0_0cR-XlEpROOtqi3M0J_/exec";
+interface ClubFairSubmission {
+  Name?: string;
+  StudentID?: string;
+  Address?: string;
+  Gender?: string;
+  Religion?: string;
+  Contact?: string;
+  Facebook?: string;
+  Department?: string;
+  Semester?: string;
+  BloodGroup?: string;
+  BloodDonation?: string;
+  Email?: string;
+}
 
-const CLUB_FAIR_SCRIPT_URL =
-  process.env.GOOGLE_SCRIPT_CLUB_FAIR_URL ||
-  process.env.GOOGLE_SCRIPT_URL ||
-  DEFAULT_GOOGLE_SCRIPT_URL;
+const GOOGLE_SCRIPT_URL =
+  process.env.GOOGLE_SCRIPT_URL || "";
+
+function clean(value: unknown): string {
+  return typeof value === "string"
+    ? value.trim()
+    : "";
+}
+
+function normalizeFacebookUrl(
+  value: string,
+): string {
+  const input = String(value || "").trim();
+
+  if (!input) {
+    return "";
+  }
+
+  const valueWithProtocol =
+    /^https?:\/\//i.test(input)
+      ? input
+      : `https://${input}`;
+
+  try {
+    const parsedUrl = new URL(
+      valueWithProtocol,
+    );
+
+    const hostname = parsedUrl.hostname
+      .toLowerCase()
+      .replace(/^www\./, "");
+
+    const validHostname =
+      hostname === "facebook.com" ||
+      hostname === "m.facebook.com" ||
+      hostname === "fb.com" ||
+      hostname.endsWith(".facebook.com");
+
+    if (!validHostname) {
+      return "";
+    }
+
+    return parsedUrl.toString();
+  } catch {
+    return "";
+  }
+}
 
 function getDefaultSemesterSettings(): SemesterSettings {
   const now = new Date();
@@ -39,87 +100,202 @@ function getDefaultSemesterSettings(): SemesterSettings {
     semester,
     year,
     label: `${semester} ${year}`,
-    updatedAt: new Date().toISOString(),
+    updatedAt: now.toISOString(),
   };
 }
 
-async function getActiveSemesterSettings() {
-  const settings = await kv.get<SemesterSettings>("semester:settings");
-  return settings || getDefaultSemesterSettings();
+async function getActiveSemesterSettings(): Promise<SemesterSettings> {
+  const saved =
+    await kv.get<SemesterSettings>(
+      "semester:settings",
+    );
+
+  return (
+    saved ||
+    getDefaultSemesterSettings()
+  );
 }
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const settings = await getActiveSemesterSettings();
+    const body =
+      (await request.json()) as ClubFairSubmission;
 
-    const payload = {
-      ...body,
+    const settings =
+      await getActiveSemesterSettings();
+
+    const name =
+      clean(body.Name) || "Student";
+
+    const email =
+      clean(body.Email).toLowerCase();
+
+    const facebook =
+      normalizeFacebookUrl(
+        clean(body.Facebook),
+      );
+
+    if (!email) {
+      return NextResponse.json(
+        {
+          error: "Email is required.",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    if (!facebook) {
+      return NextResponse.json(
+        {
+          error:
+            "Please enter a valid Facebook profile link, such as facebook.com/username.",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    const sequence =
+      await kv.incr(
+        "club-fair:database:sequence",
+      );
+
+    const submissionId =
+      `club-fair-${settings.year}-${settings.semester.toLowerCase()}-${sequence}`;
+
+    const timestamp =
+      new Date().toISOString();
+
+    const submission = {
+      id: submissionId,
       formType: "club-fair",
       semester: settings.semester,
       year: settings.year,
-      activeSemesterLabel: settings.label,
-      tabName: `Club Fair ${settings.semester} ${settings.year}`,
-      timestamp: new Date().toISOString(),
+      semesterLabel: settings.label,
+      submittedAt: timestamp,
+      name,
+      email,
+      studentId: clean(body.StudentID),
+      address: clean(body.Address),
+      gender: clean(body.Gender),
+      religion: clean(body.Religion),
+      contact: clean(body.Contact),
+      facebook,
+      department: clean(body.Department),
+      studentSemester: clean(body.Semester),
+      bloodGroup: clean(body.BloodGroup),
+      bloodDonation: clean(body.BloodDonation),
     };
 
-    if (CLUB_FAIR_SCRIPT_URL) {
+    await kv.set(
+      `club-fair:database:${settings.year}:${settings.semester}:${submissionId}`,
+      submission,
+    );
+
+    const indexKey =
+      `club-fair:database:index:${settings.year}:${settings.semester}`;
+
+    const previousIndex =
+      (await kv.get<string[]>(indexKey)) ||
+      [];
+
+    await kv.set(indexKey, [
+      submissionId,
+      ...previousIndex,
+    ]);
+
+    await kv.incr("club-fair:count");
+
+    await kv.incr(
+      `club-fair:count:${settings.semester}:${settings.year}`,
+    );
+
+    if (GOOGLE_SCRIPT_URL) {
       try {
-        await axios.post(CLUB_FAIR_SCRIPT_URL, payload);
-      } catch (sheetErr) {
+        await axios.post(
+          GOOGLE_SCRIPT_URL,
+          {
+            formType: "club-fair",
+            tabName: `Club Fair ${settings.semester} ${settings.year}`,
+            semester: settings.semester,
+            year: settings.year,
+            activeSemesterLabel: settings.label,
+            submissionId,
+            timestamp,
+            Name: submission.name,
+            StudentID: submission.studentId,
+            Address: submission.address,
+            Gender: submission.gender,
+            Religion: submission.religion,
+            Contact: submission.contact,
+            Facebook: submission.facebook,
+            Department: submission.department,
+            Semester: submission.studentSemester,
+            BloodGroup: submission.bloodGroup,
+            BloodDonation: submission.bloodDonation,
+            Email: submission.email,
+          },
+          {
+            timeout: 15000,
+          },
+        );
+      } catch (sheetError) {
         console.error(
-          "Failed to forward payload to Google Apps Script:",
-          sheetErr,
+          "Google Sheet submission failed:",
+          sheetError,
         );
       }
     }
 
-    try {
-      await kv.incr("club-fair:count");
+    const emailTemplate =
+      buildClubFairThankYouEmail(name);
 
-      const semesterKey = `club-fair:count:${settings.semester}:${settings.year}`;
-      await kv.incr(semesterKey);
-    } catch (countError) {
-      console.error("Failed to increment club fair count in Redis:", countError);
-    }
+    const emailResult = await sendMail({
+      to: email,
+      subject: emailTemplate.subject,
+      html: emailTemplate.html,
+      text: emailTemplate.text,
+    });
 
-    // Send thank-you email to the applicant
-    try {
-      const applicantName =
-        String(body.Name || body.name || "").trim() || "Adventurer";
-
-      const applicantEmail = String(
-        body.Email || body.email || "",
-      )
-        .trim()
-        .toLowerCase();
-
-      if (applicantEmail) {
-        const thankYouEmail =
-          buildClubFairThankYouEmail(applicantName);
-
-        await sendMail({
-          to: applicantEmail,
-          subject: thankYouEmail.subject,
-          html: thankYouEmail.html,
-          text: thankYouEmail.text,
-        });
-      }
-    } catch (emailError) {
-      console.error("Failed to send club fair thank-you email:", emailError);
+    if (!emailResult.success) {
+      console.error(
+        "Club Fair email failed:",
+        emailResult.error,
+      );
     }
 
     return NextResponse.json(
       {
         result: "success",
+        message: emailResult.success
+          ? "Application submitted and confirmation email sent."
+          : "Application submitted, but the confirmation email could not be sent.",
+        emailSent: emailResult.success,
+        submissionId,
         semester: settings.semester,
         year: settings.year,
       },
-      { status: 200 },
+      {
+        status: 200,
+      },
     );
-  } catch (err) {
-    console.error("Club fair submission error:", err);
+  } catch (error) {
+    console.error(
+      "Club Fair submission error:",
+      error,
+    );
 
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json(
+      {
+        error:
+          "Failed to save Club Fair application.",
+      },
+      {
+        status: 500,
+      },
+    );
   }
 }

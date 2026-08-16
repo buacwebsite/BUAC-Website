@@ -19,9 +19,9 @@ interface EmailLayoutOptions {
   bodyHtml: string;
 }
 
-interface SendMailResult {
+export interface EmailSendResult {
   success: boolean;
-  method?: "gmail-app-password" | "gmail-oauth2";
+  method?: "gmail-app-password";
   messageId?: string;
   error?: string;
 }
@@ -29,45 +29,24 @@ interface SendMailResult {
 function getEmailConfig() {
   return {
     service:
-      process.env.EMAIL_SERVICE?.trim() ||
-      "gmail",
+      process.env.EMAIL_SERVICE?.trim() || "gmail",
 
     user:
-      process.env.EMAIL_USER?.trim() ||
-      "",
+      process.env.EMAIL_USER?.trim() || "",
 
     /*
-     * Gmail App Passwords are often displayed
-     * with spaces. Remove all whitespace before use.
+     * Gmail app passwords may contain spaces when copied.
+     * Remove all whitespace before using the password.
      */
-    appPassword: (
+    password: (
       process.env.EMAIL_PASS ||
       process.env.GMAIL_APP_PASSWORD ||
       ""
     ).replace(/\s+/g, ""),
-
-    /*
-     * Optional OAuth2 fallback.
-     */
-    clientId:
-      process.env.GMAIL_CLIENT_ID?.trim() ||
-      "",
-
-    clientSecret:
-      process.env.GMAIL_CLIENT_SECRET?.trim() ||
-      "",
-
-    refreshToken:
-      process.env.GMAIL_REFRESH_TOKEN?.trim() ||
-      "",
-
-    accessToken:
-      process.env.GMAIL_ACCESS_TOKEN?.trim() ||
-      "",
   };
 }
 
-function createAppPasswordTransporter() {
+function createTransporter() {
   const config = getEmailConfig();
 
   return nodemailer.createTransport({
@@ -76,37 +55,18 @@ function createAppPasswordTransporter() {
     secure: true,
     auth: {
       user: config.user,
-      pass: config.appPassword,
-    },
-  });
-}
-
-function createOAuthTransporter() {
-  const config = getEmailConfig();
-
-  return nodemailer.createTransport({
-    service: config.service,
-    auth: {
-      type: "OAuth2",
-      user: config.user,
-      clientId: config.clientId,
-      clientSecret: config.clientSecret,
-      refreshToken: config.refreshToken,
-      accessToken:
-        config.accessToken || undefined,
+      pass: config.password,
     },
   });
 }
 
 export async function sendMail(
   payload: MailPayload,
-): Promise<SendMailResult> {
+): Promise<EmailSendResult> {
   const config = getEmailConfig();
 
   if (!config.user) {
-    console.error(
-      "[EMAIL] EMAIL_USER is missing.",
-    );
+    console.error("[EMAIL] EMAIL_USER is missing.");
 
     return {
       success: false,
@@ -114,14 +74,20 @@ export async function sendMail(
     };
   }
 
-  const recipient = payload.to
-    ?.trim()
-    .toLowerCase();
-
-  if (!recipient) {
+  if (!config.password) {
     console.error(
-      "[EMAIL] Recipient email is missing.",
+      "[EMAIL] EMAIL_PASS or GMAIL_APP_PASSWORD is missing.",
     );
+
+    return {
+      success: false,
+      error:
+        "EMAIL_PASS or GMAIL_APP_PASSWORD is missing.",
+    };
+  }
+
+  if (!payload.to?.trim()) {
+    console.error("[EMAIL] Recipient is missing.");
 
     return {
       success: false,
@@ -131,105 +97,40 @@ export async function sendMail(
 
   const mailOptions = {
     from: `"BRAC University Adventure Club" <${config.user}>`,
-    to: recipient,
+    to: payload.to.trim().toLowerCase(),
     subject: payload.subject,
     html: payload.html,
     text: payload.text,
-    replyTo:
-      payload.replyTo?.trim() ||
-      config.user,
+    replyTo: payload.replyTo?.trim() || config.user,
   };
 
-  /*
-   * Prefer Gmail App Password because it is
-   * generally more reliable on Vercel.
-   */
-  if (config.appPassword) {
-    try {
-      const transporter =
-        createAppPasswordTransporter();
+  try {
+    const transporter = createTransporter();
 
-      await transporter.verify();
+    await transporter.verify();
 
-      const result =
-        await transporter.sendMail(
-          mailOptions,
-        );
+    const result = await transporter.sendMail(mailOptions);
 
-      console.log(
-        `[EMAIL] Email sent to ${recipient} with Gmail App Password. Message ID: ${result.messageId}`,
-      );
+    console.log(
+      `[EMAIL] Sent successfully to ${payload.to}. Message ID: ${result.messageId}`,
+    );
 
-      return {
-        success: true,
-        method: "gmail-app-password",
-        messageId: result.messageId,
-      };
-    } catch (error) {
-      console.error(
-        "[EMAIL] Gmail App Password failed:",
-        error,
-      );
+    return {
+      success: true,
+      method: "gmail-app-password",
+      messageId: result.messageId,
+    };
+  } catch (error) {
+    console.error("[EMAIL] Gmail SMTP failed:", error);
 
-      return {
-        success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Gmail App Password failed.",
-      };
-    }
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Gmail SMTP failed.",
+    };
   }
-
-  const hasOAuthConfiguration =
-    Boolean(config.clientId) &&
-    Boolean(config.clientSecret) &&
-    Boolean(config.refreshToken);
-
-  if (hasOAuthConfiguration) {
-    try {
-      const transporter =
-        createOAuthTransporter();
-
-      const result =
-        await transporter.sendMail(
-          mailOptions,
-        );
-
-      console.log(
-        `[EMAIL] Email sent to ${recipient} with Gmail OAuth2. Message ID: ${result.messageId}`,
-      );
-
-      return {
-        success: true,
-        method: "gmail-oauth2",
-        messageId: result.messageId,
-      };
-    } catch (error) {
-      console.error(
-        "[EMAIL] Gmail OAuth2 failed:",
-        error,
-      );
-
-      return {
-        success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Gmail OAuth2 failed.",
-      };
-    }
-  }
-
-  console.error(
-    "[EMAIL] No email transport is configured.",
-  );
-
-  return {
-    success: false,
-    error:
-      "No email transport configured. Set EMAIL_USER and EMAIL_PASS.",
-  };
 }
 
 function escapeHtml(value: string) {
@@ -252,51 +153,49 @@ export function buildEmailHtml({
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0"
     />
-
     <title>${safeTitle}</title>
   </head>
 
   <body
     style="
-      margin: 0;
-      padding: 0;
-      background-color: #08090d;
-      color: #f3f4f8;
-      font-family: Arial, Helvetica, sans-serif;
+      margin:0;
+      padding:0;
+      background:#08090d;
+      color:#f3f4f8;
+      font-family:Arial,Helvetica,sans-serif;
     "
   >
     <div
       style="
-        width: 100%;
-        background-color: #08090d;
-        padding: 24px 0;
+        width:100%;
+        padding:24px 0;
+        background:#08090d;
       "
     >
       <div
         style="
-          width: calc(100% - 32px);
-          max-width: 600px;
-          margin: 0 auto;
+          width:calc(100% - 32px);
+          max-width:600px;
+          margin:0 auto;
         "
       >
         <div
           style="
-            overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.12);
-            border-radius: 18px;
-            background-color: #11131a;
+            overflow:hidden;
+            border:1px solid rgba(255,255,255,.12);
+            border-radius:18px;
+            background:#11131a;
           "
         >
           <div
             style="
-              padding: 30px 24px;
-              text-align: center;
-              background: linear-gradient(
+              padding:30px 24px;
+              text-align:center;
+              background:linear-gradient(
                 135deg,
                 #ff622b 0%,
                 #ff8a5b 100%
@@ -305,11 +204,11 @@ export function buildEmailHtml({
           >
             <h1
               style="
-                margin: 0;
-                color: #ffffff;
-                font-size: 28px;
-                font-weight: 700;
-                letter-spacing: 2px;
+                margin:0;
+                color:#ffffff;
+                font-size:28px;
+                font-weight:700;
+                letter-spacing:2px;
               "
             >
               BUAC
@@ -317,12 +216,12 @@ export function buildEmailHtml({
 
             <p
               style="
-                margin: 8px 0 0;
-                color: #ffffff;
-                font-size: 12px;
-                font-weight: 600;
-                letter-spacing: 1.5px;
-                text-transform: uppercase;
+                margin:8px 0 0;
+                color:#ffffff;
+                font-size:12px;
+                font-weight:600;
+                letter-spacing:1.5px;
+                text-transform:uppercase;
               "
             >
               BRAC University Adventure Club
@@ -331,10 +230,10 @@ export function buildEmailHtml({
 
           <div
             style="
-              padding: 30px 24px;
-              color: #dedfe8;
-              font-size: 15px;
-              line-height: 1.8;
+              padding:30px 24px;
+              color:#dedfe8;
+              font-size:15px;
+              line-height:1.8;
             "
           >
             ${bodyHtml}
@@ -343,19 +242,16 @@ export function buildEmailHtml({
 
         <div
           style="
-            padding: 18px 12px 0;
-            color: #969baa;
-            font-size: 11px;
-            line-height: 1.6;
-            text-align: center;
+            padding:18px 12px 0;
+            color:#969baa;
+            font-size:11px;
+            line-height:1.6;
+            text-align:center;
           "
         >
-          BRAC University Adventure Club
-          <br />
-
+          BRAC University Adventure Club<br />
           Kha 224 Pragati Sarani,
-          Merul Badda, Dhaka 1212,
-          Bangladesh
+          Merul Badda, Dhaka 1212, Bangladesh
         </div>
       </div>
     </div>
@@ -364,18 +260,10 @@ export function buildEmailHtml({
   `;
 }
 
-/*
- * Member and alumni welcome email functions
- * have been removed.
- *
- * Only the Club Fair confirmation email remains.
- */
 export function buildClubFairThankYouEmail(
   name: string,
 ): EmailTemplate {
-  const safeName = escapeHtml(
-    name || "Student",
-  );
+  const safeName = escapeHtml(name || "Student");
 
   const bodyHtml = `
     <p style="margin:0 0 18px;">
@@ -383,31 +271,26 @@ export function buildClubFairThankYouEmail(
     </p>
 
     <p style="margin:0 0 18px;">
-      We are pleased to inform you that
-      we have successfully received your
-      registration for the BRAC University
-      Adventure Club (BUAC).
+      We are pleased to inform you that we have
+      successfully received your registration for the
+      BRAC University Adventure Club (BUAC).
     </p>
 
     <p style="margin:0 0 18px;">
-      Please wait for our next instruction
-      email, where we will provide you with
-      the next steps, important information
-      and further guidance regarding your
-      registration. For the interview, time
-      and room details will be emailed to
-      you soon!
+      Please wait for our next instruction email, where
+      we will provide you with the next steps, important
+      information and further guidance regarding your
+      registration. For the interview, time and room
+      details will be emailed to you soon!
     </p>
 
     <p style="margin:0 0 18px;">
-      Until then, please keep an eye on your
-      email for updates from BUAC.
+      Until then, please keep an eye on your email for
+      updates from BUAC.
     </p>
 
     <p style="margin:28px 0 0;">
-      Warm regards,
-      <br />
-
+      Warm regards,<br />
       <strong style="color:#ffffff;">
         BUAC Executive Team
       </strong>
@@ -415,8 +298,7 @@ export function buildClubFairThankYouEmail(
   `;
 
   return {
-    subject:
-      "BUAC Club Fair Registration Received",
+    subject: "BUAC Club Fair Registration Received",
 
     html: buildEmailHtml({
       title: `Thank You, ${safeName}!`,
