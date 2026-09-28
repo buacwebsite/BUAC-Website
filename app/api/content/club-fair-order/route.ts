@@ -6,14 +6,12 @@ export const dynamic = "force-dynamic";
 
 export type ClubFairSectionId =
   | "counter"
-  | "looking"
   | "application"
   | "whyJoin"
   | "cta";
 
 const validSectionIds: ClubFairSectionId[] = [
   "counter",
-  "looking",
   "application",
   "whyJoin",
   "cta",
@@ -21,22 +19,27 @@ const validSectionIds: ClubFairSectionId[] = [
 
 const defaultOrder: ClubFairSectionId[] = [
   "counter",
-  "looking",
   "application",
   "whyJoin",
   "cta",
 ];
 
 function normalizeOrder(input: unknown): ClubFairSectionId[] {
-  const incoming = Array.isArray(input) ? input : [];
+  const incoming = Array.isArray(input)
+    ? input
+    : [];
 
   const validItems = incoming.filter(
     (item): item is ClubFairSectionId =>
       typeof item === "string" &&
-      validSectionIds.includes(item as ClubFairSectionId),
+      validSectionIds.includes(
+        item as ClubFairSectionId,
+      ),
   );
 
-  const uniqueItems = Array.from(new Set(validItems));
+  const uniqueItems = Array.from(
+    new Set(validItems),
+  );
 
   validSectionIds.forEach((sectionId) => {
     if (!uniqueItems.includes(sectionId)) {
@@ -44,14 +47,17 @@ function normalizeOrder(input: unknown): ClubFairSectionId[] {
     }
   });
 
-  return uniqueItems.length > 0 ? uniqueItems : [...defaultOrder];
+  return uniqueItems.length > 0
+    ? uniqueItems
+    : [...defaultOrder];
 }
 
 export async function GET() {
   try {
-    const storedOrder = await kv.get<unknown>(
-      "club-fair:section-order",
-    );
+    const storedOrder =
+      await kv.get<unknown>(
+        "club-fair:section-order",
+      );
 
     return NextResponse.json(
       {
@@ -60,7 +66,10 @@ export async function GET() {
       { status: 200 },
     );
   } catch (error) {
-    console.error("Club Fair order GET error:", error);
+    console.error(
+      "Club Fair order GET error:",
+      error,
+    );
 
     return NextResponse.json(
       {
@@ -71,8 +80,11 @@ export async function GET() {
   }
 }
 
-export async function PUT(request: NextRequest) {
-  const isAdmin = await authenticateAdmin();
+export async function PUT(
+  request: NextRequest,
+) {
+  const isAdmin =
+    await authenticateAdmin();
 
   if (!isAdmin) {
     return NextResponse.json(
@@ -97,7 +109,10 @@ export async function PUT(request: NextRequest) {
 
     const order = normalizeOrder(body.order);
 
-    await kv.set("club-fair:section-order", order);
+    await kv.set(
+      "club-fair:section-order",
+      order,
+    );
 
     return NextResponse.json(
       {
@@ -107,11 +122,15 @@ export async function PUT(request: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    console.error("Club Fair order PUT error:", error);
+    console.error(
+      "Club Fair order PUT error:",
+      error,
+    );
 
     return NextResponse.json(
       {
-        error: "Failed to save Club Fair section order.",
+        error:
+          "Failed to save Club Fair section order.",
       },
       { status: 500 },
     );

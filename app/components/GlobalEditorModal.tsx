@@ -1,10 +1,7 @@
 "use client";
 
-import type {
-  TouchEvent,
-  WheelEvent,
-} from "react";
 import { useEditor } from "../context/EditorContext";
+import ClubFairOrderEditor from "./editors/ClubFairOrderEditor";
 import LandingHeroEditor from "./editors/LandingHeroEditor";
 import DepartmentsEditor from "./editors/DepartmentsEditor";
 import ContactEditor from "./editors/ContactEditor";
@@ -19,178 +16,107 @@ import HomeOrderEditor from "./editors/HomeOrderEditor";
 import BlogEditor from "./editors/BlogEditor";
 
 export default function GlobalEditorModal() {
-  const { editor, closeEditor } =
-    useEditor();
+  const {
+    editor,
+    closeEditor,
+  } = useEditor();
 
-  if (
-    !editor.isOpen ||
-    !editor.type
-  ) {
+  if (!editor.isOpen || !editor.type) {
     return null;
   }
 
-  const homeOrder =
-    Array.isArray(editor.data)
-      ? editor.data
-      : editor.data &&
-          typeof editor.data === "object" &&
-          "order" in editor.data &&
-          Array.isArray(
-            (
-              editor.data as {
-                order?: unknown;
-              }
-            ).order,
-          )
-        ? (
-            editor.data as {
-              order: string[];
-            }
-          ).order
-        : [];
+  const homeOrder = Array.isArray(editor.data)
+    ? editor.data
+    : [];
 
-  const stopWheelPropagation = (
-    event: WheelEvent<HTMLDivElement>,
-  ) => {
-    event.stopPropagation();
-  };
-
-  const stopTouchPropagation = (
-    event: TouchEvent<HTMLDivElement>,
-  ) => {
-    event.stopPropagation();
-  };
+  const clubFairOrder = Array.isArray(editor.data)
+    ? editor.data
+    : [];
 
   return (
-    <div
-      className="fixed inset-0 z-[100] overflow-hidden bg-black/70 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="flex h-full w-full items-center justify-center p-2 sm:p-4 md:p-6">
+    <div className="fixed inset-0 z-[100] overflow-hidden bg-black/70 p-2 backdrop-blur-sm sm:p-5">
+      <div className="flex h-full w-full items-center justify-center">
         <div
           className="flex max-h-[96dvh] min-h-0 w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
           data-lenis-prevent
-          onWheel={stopWheelPropagation}
-          onTouchMove={stopTouchPropagation}
+          onWheel={(event) =>
+            event.stopPropagation()
+          }
+          onTouchMove={(event) =>
+            event.stopPropagation()
+          }
         >
-          {editor.type ===
-            "landing-hero" && (
+          {editor.type === "landing-hero" && (
             <LandingHeroEditor
-              data={
-                editor.data as Parameters<
-                  typeof LandingHeroEditor
-                >[0]["data"]
-              }
+              data={editor.data}
               onClose={closeEditor}
             />
           )}
 
-          {editor.type ===
-            "departments" && (
+          {editor.type === "departments" && (
             <DepartmentsEditor
-              data={
-                editor.data as Parameters<
-                  typeof DepartmentsEditor
-                >[0]["data"]
-              }
+              data={editor.data}
               onClose={closeEditor}
             />
           )}
 
           {editor.type === "contact" && (
             <ContactEditor
-              data={
-                editor.data as Parameters<
-                  typeof ContactEditor
-                >[0]["data"]
-              }
+              data={editor.data}
               onClose={closeEditor}
             />
           )}
 
           {editor.type === "joinus" && (
             <JoinUsEditor
-              data={
-                editor.data as Parameters<
-                  typeof JoinUsEditor
-                >[0]["data"]
-              }
+              data={editor.data}
               onClose={closeEditor}
             />
           )}
 
-          {editor.type ===
-            "panelmembers" && (
+          {editor.type === "panelmembers" && (
             <PanelMembersEditor
-              data={
-                editor.data as Parameters<
-                  typeof PanelMembersEditor
-                >[0]["data"]
-              }
+              data={editor.data}
               onClose={closeEditor}
             />
           )}
 
           {editor.type === "tours" && (
             <ToursEditor
-              data={
-                editor.data as Parameters<
-                  typeof ToursEditor
-                >[0]["data"]
-              }
+              data={editor.data}
               onClose={closeEditor}
             />
           )}
 
-          {editor.type ===
-            "aboutSection" && (
+          {editor.type === "aboutSection" && (
             <AboutSectionEditor
-              data={
-                editor.data as Parameters<
-                  typeof AboutSectionEditor
-                >[0]["data"]
-              }
+              data={editor.data}
               onClose={closeEditor}
             />
           )}
 
           {editor.type === "vision" && (
             <VisionEditor
-              initialData={
-                editor.data as Parameters<
-                  typeof VisionEditor
-                >[0]["initialData"]
-              }
+              initialData={editor.data}
               onClose={closeEditor}
             />
           )}
 
-          {editor.type ===
-            "activities" && (
+          {editor.type === "activities" && (
             <ActivitiesEditor
-              data={
-                editor.data as Parameters<
-                  typeof ActivitiesEditor
-                >[0]["data"]
-              }
+              data={editor.data}
               onClose={closeEditor}
             />
           )}
 
           {editor.type === "gallery" && (
             <GalleryEditor
-              data={
-                editor.data as Parameters<
-                  typeof GalleryEditor
-                >[0]["data"]
-              }
+              data={editor.data}
               onClose={closeEditor}
             />
           )}
 
-          {editor.type ===
-            "home-order" && (
+          {editor.type === "home-order" && (
             <HomeOrderEditor
               order={homeOrder}
               onClose={closeEditor}
@@ -199,12 +125,18 @@ export default function GlobalEditorModal() {
 
           {editor.type === "blog" && (
             <BlogEditor
-              data={
-                editor.data as Parameters<
-                  typeof BlogEditor
-                >[0]["data"]
-              }
+              data={editor.data}
               onClose={closeEditor}
+            />
+          )}
+
+          {editor.type === "club-fair-order" && (
+            <ClubFairOrderEditor
+              order={clubFairOrder}
+              onClose={closeEditor}
+              onSaved={() => {
+                window.location.reload();
+              }}
             />
           )}
         </div>
