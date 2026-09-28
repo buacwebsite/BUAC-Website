@@ -24,9 +24,7 @@ const Footer = () => {
   const upgradingTeam = [
     "Mahmuda Aktar Mridula",
     "Md. Sadab Zahin Apurbo",
-    "Ahnaf Atif Prapon",
-    "Tahir Kawser Provat",
-    "Sadman Sakib Saad",
+    "Wasi Al Masud",
   ];
 
   return (
