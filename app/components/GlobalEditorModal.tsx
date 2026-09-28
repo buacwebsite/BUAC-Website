@@ -39,12 +39,12 @@ export default function GlobalEditorModal() {
         <div
           className="flex max-h-[96dvh] min-h-0 w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
           data-lenis-prevent
-          onWheel={(event) =>
-            event.stopPropagation()
-          }
-          onTouchMove={(event) =>
-            event.stopPropagation()
-          }
+          onWheel={(event) => {
+            event.stopPropagation();
+          }}
+          onTouchMove={(event) => {
+            event.stopPropagation();
+          }}
         >
           {editor.type === "landing-hero" && (
             <LandingHeroEditor

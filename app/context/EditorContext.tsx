@@ -21,25 +21,31 @@ export type EditorType =
   | "aboutSection"
   | "vision"
   | "home-order"
-  | "blog";
+  | "blog"
+  | "club-fair-order";
 
 interface EditorState {
   isOpen: boolean;
   type: EditorType;
-  data: unknown;
+  /*
+   * Different editors receive different data shapes:
+   * hero arrays, department arrays, contact objects,
+   * activity arrays, order arrays, etc.
+   */
+  data: any;
 }
 
-interface EditorContextType {
+interface EditorContextValue {
   editor: EditorState;
   openEditor: (
     type: Exclude<EditorType, null>,
-    data: unknown,
+    data: any,
   ) => void;
   closeEditor: () => void;
 }
 
 const EditorContext =
-  createContext<EditorContextType | null>(null);
+  createContext<EditorContextValue | null>(null);
 
 export function EditorProvider({
   children,
@@ -55,7 +61,7 @@ export function EditorProvider({
 
   const openEditor = (
     type: Exclude<EditorType, null>,
-    data: unknown,
+    data: any,
   ) => {
     setEditor({
       isOpen: true,
