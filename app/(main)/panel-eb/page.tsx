@@ -31,7 +31,8 @@ interface ExecutiveDepartment {
 interface PanelEbContent {
   panel: PersonImage[];
   executiveBody: ExecutiveDepartment[];
-  featuredVideoUrl: string;
+  panelVideoUrl: string;
+  executiveVideoUrl: string;
 }
 
 function createEmptyPerson(id: string): PersonImage {
@@ -43,8 +44,14 @@ function createEmptyPerson(id: string): PersonImage {
   };
 }
 
+/* A person counts only if an image is actually uploaded */
+function hasImage(person: PersonImage) {
+  return Boolean(person?.image && person.image.trim());
+}
+
 const defaultContent: PanelEbContent = {
-  featuredVideoUrl: "",
+  panelVideoUrl: "",
+  executiveVideoUrl: "",
   panel: [
     createEmptyPerson("panel-1"),
     createEmptyPerson("panel-2"),
@@ -90,8 +97,32 @@ const defaultContent: PanelEbContent = {
   ],
 };
 
+/* Makes sure old saved data (featuredVideoUrl) still works */
+function normalizeContent(input: unknown): PanelEbContent {
+  if (!input || typeof input !== "object") return defaultContent;
+
+  const data = input as Partial<PanelEbContent> & {
+    featuredVideoUrl?: string;
+  };
+
+  return {
+    panel: Array.isArray(data.panel) ? data.panel : defaultContent.panel,
+    executiveBody: Array.isArray(data.executiveBody)
+      ? data.executiveBody
+      : defaultContent.executiveBody,
+    panelVideoUrl:
+      typeof data.panelVideoUrl === "string"
+        ? data.panelVideoUrl
+        : typeof data.featuredVideoUrl === "string"
+          ? data.featuredVideoUrl
+          : "",
+    executiveVideoUrl:
+      typeof data.executiveVideoUrl === "string" ? data.executiveVideoUrl : "",
+  };
+}
+
 function getYouTubeId(value: string) {
-  const input = value.trim();
+  const input = (value || "").trim();
   if (!input) return "";
 
   const directId = input.match(/^[a-zA-Z0-9_-]{11}$/);
@@ -104,40 +135,91 @@ function getYouTubeId(value: string) {
   return match?.[1] || "";
 }
 
-function FeaturedVideo({ videoUrl }: { videoUrl: string }) {
+/* ------------------------------------------------------------
+   VIDEO PLAYER (shown to everyone if a valid URL exists)
+   ------------------------------------------------------------ */
+function SectionVideo({
+  videoUrl,
+  label,
+}: {
+  videoUrl: string;
+  label: string;
+}) {
   const videoId = getYouTubeId(videoUrl);
 
   if (!videoId) return null;
 
   return (
-    <motion.section
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
       transition={{ duration: 0.6 }}
-      className="mb-16"
+      className="mb-10"
     >
-      <div className="mb-6 text-center">
-        <div className="mx-auto mb-3 inline-flex items-center gap-2 rounded-full bg-red-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.3em] text-red-500">
-          <FaYoutube className="h-4 w-4" />
-          Featured Video
-        </div>
-        <h2 className="font-bebasNeue text-4xl tracking-wider text-text-secondary md:text-5xl">
-          Meet the Team
-        </h2>
+      <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-red-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.3em] text-red-500">
+        <FaYoutube className="h-4 w-4" />
+        {label}
       </div>
 
       <div className="mx-auto max-w-5xl overflow-hidden rounded-3xl border border-border bg-black shadow-2xl">
         <div className="relative aspect-video w-full">
           <iframe
             src={`https://www.youtube.com/embed/${videoId}?rel=0`}
-            title="BUAC Featured Video"
+            title={label}
             allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             className="absolute inset-0 h-full w-full"
           />
         </div>
       </div>
-    </motion.section>
+    </motion.div>
+  );
+}
+
+/* ------------------------------------------------------------
+   VIDEO URL INPUT (admin edit mode only)
+   ------------------------------------------------------------ */
+function VideoUrlEditor({
+  title,
+  value,
+  onChange,
+}: {
+  title: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="mb-8 rounded-3xl border border-red-500/30 bg-surface p-5 shadow-xl sm:p-6">
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500 text-white">
+          <FaYoutube className="h-5 w-5" />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <h3 className="font-bebasNeue text-2xl tracking-wide text-text-secondary">
+            {title}
+          </h3>
+          <p className="mt-1 mb-4 text-xs text-text-muted">
+            Paste any YouTube video URL. Leave empty to hide this video.
+          </p>
+
+          <input
+            type="url"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="https://www.youtube.com/watch?v=..."
+            className="w-full rounded-xl border border-input-border bg-input-bg px-4 py-3 text-text-secondary outline-none placeholder:text-text-muted focus:border-accent"
+          />
+
+          {value && !getYouTubeId(value) && (
+            <p className="mt-2 text-xs text-red-500">
+              That does not look like a valid YouTube URL.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -236,8 +318,9 @@ export default function PanelEbPage() {
       try {
         const res = await axios.get("/api/content/panel-eb");
         if (res.data?.content) {
-          setContent(res.data.content);
-          setOriginalContent(res.data.content);
+          const normalized = normalizeContent(res.data.content);
+          setContent(normalized);
+          setOriginalContent(normalized);
         }
       } catch (err) {
         console.error("Failed to fetch Panel & EB content:", err);
@@ -261,10 +344,16 @@ export default function PanelEbPage() {
     return res.data.url as string;
   };
 
-  const updateFeaturedVideoUrl = (value: string) => {
-    setContent({ ...content, featuredVideoUrl: value });
+  /* ---------------- Videos ---------------- */
+  const updatePanelVideoUrl = (value: string) => {
+    setContent({ ...content, panelVideoUrl: value });
   };
 
+  const updateExecutiveVideoUrl = (value: string) => {
+    setContent({ ...content, executiveVideoUrl: value });
+  };
+
+  /* ---------------- Panel ---------------- */
   const updatePanelPersonImage = (index: number, image: string) => {
     const panel = [...content.panel];
     panel[index] = { ...panel[index], image };
@@ -300,6 +389,7 @@ export default function PanelEbPage() {
     }
   };
 
+  /* ---------------- Executive Body ---------------- */
   const updateExecutivePersonImage = (
     departmentIndex: number,
     imageIndex: number,
@@ -361,6 +451,7 @@ export default function PanelEbPage() {
     }
   };
 
+  /* ---------------- Edit controls ---------------- */
   const startEditing = () => {
     setOriginalContent(JSON.parse(JSON.stringify(content)));
     setIsEditing(true);
@@ -408,9 +499,42 @@ export default function PanelEbPage() {
     return <PageLoader label="Loading panel and executive body" />;
   }
 
+  /* ------------------------------------------------------------
+     VISIBILITY LOGIC
+     - Admin in edit mode: show everything (so content can be added)
+     - Everyone else: only show what actually exists
+     ------------------------------------------------------------ */
+  const showAll = auth && isEditing;
+
+  const hasPanelVideo = Boolean(getYouTubeId(content.panelVideoUrl));
+  const hasExecutiveVideo = Boolean(getYouTubeId(content.executiveVideoUrl));
+
+  const visiblePanel = content.panel
+    .map((person, index) => ({ person, index }))
+    .filter(({ person }) => showAll || hasImage(person));
+
+  const visibleDepartments = content.executiveBody
+    .map((department, departmentIndex) => ({
+      department,
+      departmentIndex,
+      images: department.images
+        .map((person, imageIndex) => ({ person, imageIndex }))
+        .filter(({ person }) => showAll || hasImage(person)),
+    }))
+    .filter((item) => showAll || item.images.length > 0);
+
+  const showPanelSection =
+    showAll || hasPanelVideo || visiblePanel.length > 0;
+
+  const showExecutiveSection =
+    showAll || hasExecutiveVideo || visibleDepartments.length > 0;
+
+  const nothingToShow = !showPanelSection && !showExecutiveSection;
+
   return (
     <main className="min-h-screen bg-background px-4 py-24 font-poppins text-text-secondary md:px-8">
       <div className="mx-auto max-w-7xl">
+        {/* ===================== PAGE HEADER ===================== */}
         <div className="mb-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>
             <motion.p
@@ -480,142 +604,165 @@ export default function PanelEbPage() {
           </div>
         )}
 
-        {auth && isEditing && (
-          <div className="mb-10 rounded-3xl border border-red-500/30 bg-surface p-6 shadow-xl">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500 text-white">
-                <FaYoutube className="h-5 w-5" />
-              </div>
+        {/* =====================================================
+            1) PANEL  ->  YouTube video first, then pictures
+            ===================================================== */}
+        {showPanelSection && (
+          <section className="mb-24">
+            <div className="mb-7 flex items-center justify-between">
+              <h2 className="font-bebasNeue text-6xl tracking-wider text-text-secondary md:text-7xl">
+                Panel
+              </h2>
 
-              <div className="flex-1">
-                <h3 className="font-bebasNeue text-2xl tracking-wide text-text-secondary">
-                  Featured YouTube Video
-                </h3>
-                <p className="mt-1 mb-4 text-xs text-text-muted">
-                  Paste any YouTube video URL. It will appear at the top of the
-                  Panel & EB page. Leave empty to hide the video section.
-                </p>
-
-                <input
-                  type="url"
-                  value={content.featuredVideoUrl}
-                  onChange={(e) => updateFeaturedVideoUrl(e.target.value)}
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  className="w-full rounded-xl border border-input-border bg-input-bg px-4 py-3 text-text-secondary outline-none placeholder:text-text-muted focus:border-accent"
-                />
-
-                {content.featuredVideoUrl &&
-                  !getYouTubeId(content.featuredVideoUrl) && (
-                    <p className="mt-2 text-xs text-red-500">
-                      That does not look like a valid YouTube URL.
-                    </p>
-                  )}
-              </div>
+              {auth && isEditing && (
+                <button
+                  type="button"
+                  onClick={addPanelPerson}
+                  disabled={saving || Boolean(uploading)}
+                  className="flex cursor-pointer items-center gap-2 rounded-full bg-accent px-4 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <HiPlus />
+                  Add Image
+                </button>
+              )}
             </div>
-          </div>
+
+            {/* Panel video URL input (admin edit mode) */}
+            {auth && isEditing && (
+              <VideoUrlEditor
+                title="Panel YouTube Video"
+                value={content.panelVideoUrl}
+                onChange={updatePanelVideoUrl}
+              />
+            )}
+
+            {/* Panel video */}
+            <SectionVideo
+              videoUrl={content.panelVideoUrl}
+              label="Panel Video"
+            />
+
+            {/* Panel pictures */}
+            {visiblePanel.length > 0 ? (
+              <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 xl:grid-cols-4">
+                {visiblePanel.map(({ person, index }) => (
+                  <SolidImageCard
+                    key={person.id}
+                    person={person}
+                    isAdmin={auth}
+                    isEditing={isEditing}
+                    onRemove={() => removePanelPerson(index)}
+                    onUpload={(file) => uploadPanelImage(index, file)}
+                  />
+                ))}
+              </div>
+            ) : (
+              showAll && (
+                <div className="rounded-3xl border-2 border-dashed border-accent/30 bg-accent/5 px-6 py-16 text-center">
+                  <p className="text-text-muted">No panel images available.</p>
+                </div>
+              )
+            )}
+          </section>
         )}
 
-        <FeaturedVideo videoUrl={content.featuredVideoUrl} />
+        {/* =====================================================
+            2) EXECUTIVE BODY  ->  YouTube video first, then pictures
+            ===================================================== */}
+        {showExecutiveSection && (
+          <section>
+            <div className="mb-8">
+              <h2 className="font-bebasNeue text-6xl tracking-wider text-text-secondary md:text-7xl">
+                Executive Body
+              </h2>
+            </div>
 
-        <section className="mb-24">
-          <div className="mb-7 flex items-center justify-between">
-            <h2 className="font-bebasNeue text-6xl tracking-wider text-text-secondary md:text-7xl">
-              Panel
-            </h2>
-
+            {/* Executive video URL input (admin edit mode) */}
             {auth && isEditing && (
-              <button
-                type="button"
-                onClick={addPanelPerson}
-                disabled={saving || Boolean(uploading)}
-                className="flex cursor-pointer items-center gap-2 rounded-full bg-accent px-4 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <HiPlus />
-                Add Image
-              </button>
+              <VideoUrlEditor
+                title="Executive Body YouTube Video"
+                value={content.executiveVideoUrl}
+                onChange={updateExecutiveVideoUrl}
+              />
             )}
-          </div>
 
-          {content.panel.length > 0 ? (
-            <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 xl:grid-cols-4">
-              {content.panel.map((person, index) => (
-                <SolidImageCard
-                  key={person.id}
-                  person={person}
-                  isAdmin={auth}
-                  isEditing={isEditing}
-                  onRemove={() => removePanelPerson(index)}
-                  onUpload={(file) => uploadPanelImage(index, file)}
-                />
-              ))}
+            {/* Executive video */}
+            <SectionVideo
+              videoUrl={content.executiveVideoUrl}
+              label="Executive Body Video"
+            />
+
+            {/* Executive pictures grouped by department */}
+            <div className="space-y-20">
+              {visibleDepartments.map(
+                ({ department, departmentIndex, images }) => (
+                  <section key={department.id}>
+                    <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <h3 className="font-bebasNeue text-5xl tracking-wider text-accent md:text-6xl">
+                        {department.name}
+                      </h3>
+
+                      {auth && isEditing && (
+                        <button
+                          type="button"
+                          onClick={() => addExecutivePerson(departmentIndex)}
+                          disabled={saving || Boolean(uploading)}
+                          className="flex cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-4 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <HiPlus />
+                          Add Image
+                        </button>
+                      )}
+                    </div>
+
+                    {images.length > 0 ? (
+                      <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                        {images.map(({ person, imageIndex }) => (
+                          <SolidImageCard
+                            key={person.id}
+                            person={person}
+                            isAdmin={auth}
+                            isEditing={isEditing}
+                            onRemove={() =>
+                              removeExecutivePerson(departmentIndex, imageIndex)
+                            }
+                            onUpload={(file) =>
+                              uploadExecutiveImage(
+                                departmentIndex,
+                                imageIndex,
+                                file,
+                              )
+                            }
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      showAll && (
+                        <div className="rounded-3xl border-2 border-dashed border-accent/30 bg-accent/5 px-6 py-14 text-center">
+                          <p className="text-text-muted">
+                            No images available for this department.
+                          </p>
+                        </div>
+                      )
+                    )}
+                  </section>
+                ),
+              )}
             </div>
-          ) : (
-            <div className="rounded-3xl border-2 border-dashed border-accent/30 bg-accent/5 px-6 py-16 text-center">
-              <p className="text-text-muted">No panel images available.</p>
-            </div>
-          )}
-        </section>
+          </section>
+        )}
 
-        <section>
-          <div className="mb-8">
-            <h2 className="font-bebasNeue text-6xl tracking-wider text-text-secondary md:text-7xl">
-              Executive Body
-            </h2>
+        {/* Nothing added anywhere yet (public view) */}
+        {nothingToShow && (
+          <div className="rounded-3xl border-2 border-dashed border-accent/30 bg-accent/5 px-6 py-20 text-center">
+            <p className="font-bebasNeue text-3xl tracking-wide text-text-secondary">
+              Coming Soon
+            </p>
+            <p className="mt-2 text-sm text-text-muted">
+              Panel and Executive Body content will appear here soon.
+            </p>
           </div>
-
-          <div className="space-y-20">
-            {content.executiveBody.map((department, departmentIndex) => (
-              <section key={department.id}>
-                <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <h3 className="font-bebasNeue text-5xl tracking-wider text-accent md:text-6xl">
-                    {department.name}
-                  </h3>
-
-                  {auth && isEditing && (
-                    <button
-                      type="button"
-                      onClick={() => addExecutivePerson(departmentIndex)}
-                      disabled={saving || Boolean(uploading)}
-                      className="flex cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-4 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <HiPlus />
-                      Add Image
-                    </button>
-                  )}
-                </div>
-
-                {department.images.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-                    {department.images.map((person, imageIndex) => (
-                      <SolidImageCard
-                        key={person.id}
-                        person={person}
-                        isAdmin={auth}
-                        isEditing={isEditing}
-                        onRemove={() =>
-                          removeExecutivePerson(departmentIndex, imageIndex)
-                        }
-                        onUpload={(file) =>
-                          uploadExecutiveImage(
-                            departmentIndex,
-                            imageIndex,
-                            file,
-                          )
-                        }
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="rounded-3xl border-2 border-dashed border-accent/30 bg-accent/5 px-6 py-14 text-center">
-                    <p className="text-text-muted">
-                      No images available for this department.
-                    </p>
-                  </div>
-                )}
-              </section>
-            ))}
-          </div>
-        </section>
+        )}
       </div>
     </main>
   );

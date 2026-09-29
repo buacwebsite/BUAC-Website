@@ -20,12 +20,32 @@ interface ExecutiveDepartment {
 interface PanelEbContent {
   panel: PersonImage[];
   executiveBody: ExecutiveDepartment[];
-  featuredVideoUrl: string;
+
+  /*
+   New separate YouTube video fields:
+   - Panel video appears before Panel pictures.
+   - Executive video appears before Executive Body pictures.
+   */
+  panelVideoUrl: string;
+  executiveVideoUrl: string;
+}
+
+/*
+ Supports old data already stored in Redis.
+ The previous version used featuredVideoUrl.
+ That old video automatically becomes the Panel video.
+ */
+interface OldPanelEbContent extends Partial<PanelEbContent> {
+  featuredVideoUrl?: string;
+}
+
+function cleanString(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
 }
 
 function createEmptyPerson(
   id: string,
-  title: string,
+  title = "",
   subtitle = "",
 ): PersonImage {
   return {
@@ -37,18 +57,21 @@ function createEmptyPerson(
 }
 
 const defaultContent: PanelEbContent = {
-  featuredVideoUrl: "",
+  panelVideoUrl: "",
+  executiveVideoUrl: "",
+
   panel: [
     createEmptyPerson("panel-1", "Panel Member 1", "President"),
     createEmptyPerson("panel-2", "Panel Member 2", "Vice President"),
     createEmptyPerson("panel-3", "Panel Member 3", "General Secretary"),
     createEmptyPerson("panel-4", "Panel Member 4", "Treasurer"),
   ],
+
   executiveBody: [
     {
       id: "creative",
       name: "Creative",
-      images: Array.from({ length: 5 }).map((_, index) =>
+      images: Array.from({ length: 5 }, (_, index) =>
         createEmptyPerson(
           `creative-${index + 1}`,
           `Creative Member ${index + 1}`,
@@ -59,7 +82,7 @@ const defaultContent: PanelEbContent = {
     {
       id: "event",
       name: "Event Management",
-      images: Array.from({ length: 5 }).map((_, index) =>
+      images: Array.from({ length: 5 }, (_, index) =>
         createEmptyPerson(
           `event-${index + 1}`,
           `Event Member ${index + 1}`,
@@ -70,7 +93,7 @@ const defaultContent: PanelEbContent = {
     {
       id: "hr",
       name: "Human Resources Management",
-      images: Array.from({ length: 5 }).map((_, index) =>
+      images: Array.from({ length: 5 }, (_, index) =>
         createEmptyPerson(
           `hr-${index + 1}`,
           `HR Member ${index + 1}`,
@@ -81,7 +104,7 @@ const defaultContent: PanelEbContent = {
     {
       id: "itphoto",
       name: "IT & Photography",
-      images: Array.from({ length: 5 }).map((_, index) =>
+      images: Array.from({ length: 5 }, (_, index) =>
         createEmptyPerson(
           `itphoto-${index + 1}`,
           `IT & Photography Member ${index + 1}`,
@@ -92,7 +115,7 @@ const defaultContent: PanelEbContent = {
     {
       id: "pubandmarket",
       name: "Publication & Marketing",
-      images: Array.from({ length: 5 }).map((_, index) =>
+      images: Array.from({ length: 5 }, (_, index) =>
         createEmptyPerson(
           `pubandmarket-${index + 1}`,
           `Publication Member ${index + 1}`,
@@ -104,68 +127,108 @@ const defaultContent: PanelEbContent = {
 };
 
 function normalizePerson(
-  input: Partial<PersonImage>,
-  fallbackId: string,
+  input: unknown,
+  fallback: PersonImage,
 ): PersonImage {
+  const data =
+    input && typeof input === "object"
+      ? (input as Partial<PersonImage>)
+      : {};
+
   return {
-    id: String(input.id || fallbackId),
-    title: String(input.title || "Name"),
-    subtitle: String(input.subtitle || ""),
-    image: String(input.image || ""),
+    id: cleanString(data.id) || fallback.id,
+    title: cleanString(data.title) || fallback.title,
+    subtitle: cleanString(data.subtitle) || fallback.subtitle,
+    image: cleanString(data.image),
+  };
+}
+
+function normalizeDepartment(
+  input: unknown,
+  fallback: ExecutiveDepartment,
+): ExecutiveDepartment {
+  const data =
+    input && typeof input === "object"
+      ? (input as Partial<ExecutiveDepartment>)
+      : {};
+
+  const images = Array.isArray(data.images)
+    ? data.images.map((person, index) => {
+        const fallbackPerson =
+          fallback.images[index] ||
+          createEmptyPerson(
+            `${fallback.id}-${index + 1}`,
+            `${fallback.name} Member ${index + 1}`,
+            fallback.name,
+          );
+
+        return normalizePerson(person, fallbackPerson);
+      })
+    : fallback.images;
+
+  return {
+    id: cleanString(data.id) || fallback.id,
+    name: cleanString(data.name) || fallback.name,
+    images,
   };
 }
 
 function normalizeContent(input: unknown): PanelEbContent {
-  if (!input || typeof input !== "object") return defaultContent;
+  if (!input || typeof input !== "object") {
+    return defaultContent;
+  }
 
-  const data = input as Partial<PanelEbContent>;
+  const data = input as OldPanelEbContent;
 
   const panel = Array.isArray(data.panel)
-    ? data.panel.map((item, index) =>
-        normalizePerson(item, `panel-${index + 1}`),
-      )
+    ? data.panel.map((person, index) => {
+        const fallback =
+          defaultContent.panel[index] ||
+          createEmptyPerson(
+            `panel-${index + 1}`,
+            `Panel Member ${index + 1}`,
+          );
+
+        return normalizePerson(person, fallback);
+      })
     : defaultContent.panel;
 
   const executiveBody = Array.isArray(data.executiveBody)
-    ? data.executiveBody.map((department, departmentIndex) => {
-        const fallbackDepartment =
-          defaultContent.executiveBody[departmentIndex] ||
+    ? data.executiveBody.map((department, index) => {
+        const fallback =
+          defaultContent.executiveBody[index] ||
           defaultContent.executiveBody[0];
 
-        return {
-          id: String(department.id || fallbackDepartment.id),
-          name: String(department.name || fallbackDepartment.name),
-          images: Array.isArray(department.images)
-            ? department.images.map((item, imageIndex) =>
-                normalizePerson(
-                  item,
-                  `${department.id || fallbackDepartment.id}-${imageIndex + 1}`,
-                ),
-              )
-            : fallbackDepartment.images,
-        };
+        return normalizeDepartment(department, fallback);
       })
     : defaultContent.executiveBody;
 
-  const featuredVideoUrl =
-    typeof data.featuredVideoUrl === "string"
-      ? data.featuredVideoUrl.trim()
-      : "";
+  /*
+   Old featuredVideoUrl is used as Panel video,
+   if panelVideoUrl does not already exist.
+   */
+  const panelVideoUrl = cleanString(
+    data.panelVideoUrl || data.featuredVideoUrl,
+  );
+
+  const executiveVideoUrl = cleanString(data.executiveVideoUrl);
 
   return {
     panel,
     executiveBody,
-    featuredVideoUrl,
+    panelVideoUrl,
+    executiveVideoUrl,
   };
 }
 
+/* Public: Load Panel & EB content */
 export async function GET() {
   try {
-    const content = await kv.get<PanelEbContent>("panel-eb");
+    const savedContent = await kv.get<unknown>("panel-eb");
 
     return NextResponse.json(
       {
-        content: content ? normalizeContent(content) : defaultContent,
+        content: normalizeContent(savedContent),
       },
       { status: 200 },
     );
@@ -175,22 +238,33 @@ export async function GET() {
     return NextResponse.json(
       {
         content: defaultContent,
-        warning: "Using default content because database fetch failed.",
+        warning: "Could not load saved Panel & EB content.",
       },
       { status: 200 },
     );
   }
 }
 
+/* Admin only: Save Panel & EB content */
 export async function PUT(request: Request) {
   const isAdmin = await authenticateAdmin();
 
   if (!isAdmin) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { error: "unauthorized" },
+      { status: 401 },
+    );
   }
 
   try {
     const body = await request.json();
+
+    /*
+     Supports both:
+     { content: {...} }
+     and:
+     {...}
+    */
     const content = normalizeContent(body?.content || body);
 
     await kv.set("panel-eb", content);
@@ -206,7 +280,9 @@ export async function PUT(request: Request) {
     console.error("Panel & EB PUT error:", error);
 
     return NextResponse.json(
-      { error: "Failed to update Panel & EB content" },
+      {
+        error: "Failed to update Panel & EB content.",
+      },
       { status: 500 },
     );
   }
