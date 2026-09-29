@@ -27,13 +27,7 @@ interface ActivitiesResponse {
   error?: string;
 }
 
-function ActivityImage({
-  src,
-  alt,
-}: {
-  src: string;
-  alt: string;
-}) {
+function ActivityImage({ src, alt }: { src: string; alt: string }) {
   return (
     <div className="relative w-full overflow-hidden bg-surface-secondary">
       <img
@@ -97,13 +91,13 @@ const Activities = () => {
             </p>
           </div>
         ) : activities.length > 0 ? (
-          <StaggerGrid className="mx-auto grid max-w-7xl grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4 lg:gap-6">
+          <StaggerGrid className="mx-auto grid max-w-7xl grid-cols-1 items-start gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4 lg:gap-6">
             {activities.map((activity) => (
               <StaggerItem key={activity.id}>
                 <motion.div
                   whileHover={{ y: -5 }}
                   transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-                  className="group overflow-hidden rounded-2xl border border-border bg-surface transition-all duration-300 hover:border-accent/40 hover:shadow-xl hover:shadow-accent/10"
+                  className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface transition-all duration-300 hover:border-accent/40 hover:shadow-xl hover:shadow-accent/10"
                 >
                   {activity.imageUrl ? (
                     <ActivityImage
@@ -118,19 +112,20 @@ const Activities = () => {
                     </div>
                   )}
 
-                  <div className="p-3 sm:p-4">
+                  <div className="flex flex-1 flex-col p-4">
                     {activity.category && (
-                      <span className="mb-2 inline-block rounded-full bg-accent/90 px-2.5 py-0.5 text-[10px] font-medium text-white sm:text-xs">
+                      <span className="mb-2 inline-block self-start rounded-full bg-accent/90 px-2.5 py-0.5 text-[11px] font-medium text-white sm:text-xs">
                         {activity.category}
                       </span>
                     )}
 
-                    <h3 className="mb-1.5 font-bebasNeue text-lg leading-tight tracking-wide text-text-secondary sm:text-2xl">
+                    <h3 className="mb-2 font-bebasNeue text-2xl leading-tight tracking-wide text-text-secondary">
                       {activity.name}
                     </h3>
 
                     {activity.description && (
-                      <p className="line-clamp-3 text-[11px] leading-relaxed text-text-muted sm:text-sm">
+                      /* Full description: no line clamp, keeps line breaks */
+                      <p className="whitespace-pre-line break-words text-sm leading-relaxed text-text-muted">
                         {activity.description}
                       </p>
                     )}

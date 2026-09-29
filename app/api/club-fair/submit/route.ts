@@ -1,17 +1,18 @@
 import { NextResponse } from "next/server";
 import axios from "axios";
 import { kv } from "@/lib/kv";
+import { buildClubFairThankYouEmail, sendMail } from "@/lib/email";
 import {
-  buildClubFairThankYouEmail,
-  sendMail,
-} from "@/lib/email";
+  CLUB_FAIR_CLOSED_MESSAGE,
+  CLUB_FAIR_WINDOW_KEY,
+  getClubFairWindowStatus,
+  normalizeClubFairWindow,
+  type ClubFairWindow,
+} from "@/lib/clubFairWindow";
 
 export const dynamic = "force-dynamic";
 
-type SemesterName =
-  | "Spring"
-  | "Summer"
-  | "Fall";
+type SemesterName = "Spring" | "Summer" | "Fall";
 
 interface SemesterSettings {
   semester: SemesterName;
@@ -35,37 +36,25 @@ interface ClubFairSubmission {
   Email?: string;
 }
 
-const GOOGLE_SCRIPT_URL =
-  process.env.GOOGLE_SCRIPT_URL || "";
+const GOOGLE_SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL || "";
 
 function clean(value: unknown): string {
-  return typeof value === "string"
-    ? value.trim()
-    : "";
+  return typeof value === "string" ? value.trim() : "";
 }
 
-function normalizeFacebookUrl(
-  value: string,
-): string {
+function normalizeFacebookUrl(value: string): string {
   const input = String(value || "").trim();
 
-  if (!input) {
-    return "";
-  }
+  if (!input) return "";
 
-  const valueWithProtocol =
-    /^https?:\/\//i.test(input)
-      ? input
-      : `https://${input}`;
+  const valueWithProtocol = /^https?:\/\//i.test(input)
+    ? input
+    : `https://${input}`;
 
   try {
-    const parsedUrl = new URL(
-      valueWithProtocol,
-    );
+    const parsedUrl = new URL(valueWithProtocol);
 
-    const hostname = parsedUrl.hostname
-      .toLowerCase()
-      .replace(/^www\./, "");
+    const hostname = parsedUrl.hostname.toLowerCase().replace(/^www\./, "");
 
     const validHostname =
       hostname === "facebook.com" ||
@@ -73,9 +62,7 @@ function normalizeFacebookUrl(
       hostname === "fb.com" ||
       hostname.endsWith(".facebook.com");
 
-    if (!validHostname) {
-      return "";
-    }
+    if (!validHostname) return "";
 
     return parsedUrl.toString();
   } catch {
@@ -105,44 +92,50 @@ function getDefaultSemesterSettings(): SemesterSettings {
 }
 
 async function getActiveSemesterSettings(): Promise<SemesterSettings> {
-  const saved =
-    await kv.get<SemesterSettings>(
-      "semester:settings",
-    );
-
-  return (
-    saved ||
-    getDefaultSemesterSettings()
-  );
+  const saved = await kv.get<SemesterSettings>("semester:settings");
+  return saved || getDefaultSemesterSettings();
 }
 
 export async function POST(request: Request) {
   try {
-    const body =
-      (await request.json()) as ClubFairSubmission;
+    /* ---------- Registration window check (server-side) ---------- */
+    const storedWindow = await kv.get<ClubFairWindow>(CLUB_FAIR_WINDOW_KEY);
+    const window = normalizeClubFairWindow(storedWindow);
+    const windowStatus = getClubFairWindowStatus(window);
 
-    const settings =
-      await getActiveSemesterSettings();
-
-    const name =
-      clean(body.Name) || "Student";
-
-    const email =
-      clean(body.Email).toLowerCase();
-
-    const facebook =
-      normalizeFacebookUrl(
-        clean(body.Facebook),
+    if (windowStatus === "upcoming") {
+      return NextResponse.json(
+        {
+          error: "Club Fair registration has not opened yet.",
+          windowStatus,
+        },
+        { status: 403 },
       );
+    }
+
+    if (windowStatus === "closed") {
+      return NextResponse.json(
+        {
+          error: CLUB_FAIR_CLOSED_MESSAGE,
+          windowStatus,
+        },
+        { status: 403 },
+      );
+    }
+
+    /* ---------- Normal submission ---------- */
+    const body = (await request.json()) as ClubFairSubmission;
+
+    const settings = await getActiveSemesterSettings();
+
+    const name = clean(body.Name) || "Student";
+    const email = clean(body.Email).toLowerCase();
+    const facebook = normalizeFacebookUrl(clean(body.Facebook));
 
     if (!email) {
       return NextResponse.json(
-        {
-          error: "Email is required.",
-        },
-        {
-          status: 400,
-        },
+        { error: "Email is required." },
+        { status: 400 },
       );
     }
 
@@ -152,22 +145,15 @@ export async function POST(request: Request) {
           error:
             "Please enter a valid Facebook profile link, such as facebook.com/username.",
         },
-        {
-          status: 400,
-        },
+        { status: 400 },
       );
     }
 
-    const sequence =
-      await kv.incr(
-        "club-fair:database:sequence",
-      );
+    const sequence = await kv.incr("club-fair:database:sequence");
 
-    const submissionId =
-      `club-fair-${settings.year}-${settings.semester.toLowerCase()}-${sequence}`;
+    const submissionId = `club-fair-${settings.year}-${settings.semester.toLowerCase()}-${sequence}`;
 
-    const timestamp =
-      new Date().toISOString();
+    const timestamp = new Date().toISOString();
 
     const submission = {
       id: submissionId,
@@ -195,23 +181,15 @@ export async function POST(request: Request) {
       submission,
     );
 
-    const indexKey =
-      `club-fair:database:index:${settings.year}:${settings.semester}`;
+    const indexKey = `club-fair:database:index:${settings.year}:${settings.semester}`;
 
-    const previousIndex =
-      (await kv.get<string[]>(indexKey)) ||
-      [];
+    const previousIndex = (await kv.get<string[]>(indexKey)) || [];
 
-    await kv.set(indexKey, [
-      submissionId,
-      ...previousIndex,
-    ]);
+    await kv.set(indexKey, [submissionId, ...previousIndex]);
 
     await kv.incr("club-fair:count");
 
-    await kv.incr(
-      `club-fair:count:${settings.semester}:${settings.year}`,
-    );
+    await kv.incr(`club-fair:count:${settings.semester}:${settings.year}`);
 
     if (GOOGLE_SCRIPT_URL) {
       try {
@@ -238,20 +216,14 @@ export async function POST(request: Request) {
             BloodDonation: submission.bloodDonation,
             Email: submission.email,
           },
-          {
-            timeout: 15000,
-          },
+          { timeout: 15000 },
         );
       } catch (sheetError) {
-        console.error(
-          "Google Sheet submission failed:",
-          sheetError,
-        );
+        console.error("Google Sheet submission failed:", sheetError);
       }
     }
 
-    const emailTemplate =
-      buildClubFairThankYouEmail(name);
+    const emailTemplate = buildClubFairThankYouEmail(name);
 
     const emailResult = await sendMail({
       to: email,
@@ -261,10 +233,7 @@ export async function POST(request: Request) {
     });
 
     if (!emailResult.success) {
-      console.error(
-        "Club Fair email failed:",
-        emailResult.error,
-      );
+      console.error("Club Fair email failed:", emailResult.error);
     }
 
     return NextResponse.json(
@@ -278,24 +247,14 @@ export async function POST(request: Request) {
         semester: settings.semester,
         year: settings.year,
       },
-      {
-        status: 200,
-      },
+      { status: 200 },
     );
   } catch (error) {
-    console.error(
-      "Club Fair submission error:",
-      error,
-    );
+    console.error("Club Fair submission error:", error);
 
     return NextResponse.json(
-      {
-        error:
-          "Failed to save Club Fair application.",
-      },
-      {
-        status: 500,
-      },
+      { error: "Failed to save Club Fair application." },
+      { status: 500 },
     );
   }
 }
