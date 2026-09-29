@@ -124,6 +124,9 @@ function DestinationCard({
   );
 }
 
+/* ============================================================
+   RoadMapTimeline
+   ============================================================ */
 function RoadMapTimeline({
   items,
   active,
@@ -139,11 +142,11 @@ function RoadMapTimeline({
 
   const points = useMemo(() => {
     return items.map((_, index) => {
-      const progress = count === 1 ? 0.5 : index / (count - 1);
+      const progress = count <= 1 ? 0.5 : index / (count - 1);
 
       return {
-        x: 10 + progress * 80,
-        y: 50 + Math.sin(progress * Math.PI * 2.2) * 15,
+        x: 6 + progress * 88,
+        y: 50 + Math.sin(progress * Math.PI * 2.2) * 12,
       };
     });
   }, [items, count]);
@@ -167,7 +170,7 @@ function RoadMapTimeline({
   if (!items.length) return null;
 
   return (
-    <div className="relative h-24 w-full overflow-hidden sm:h-40">
+    <div className="relative h-40 w-full overflow-visible sm:h-48">
       <svg
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
@@ -184,7 +187,7 @@ function RoadMapTimeline({
           d={path}
           fill="none"
           stroke={`url(#${gradientId})`}
-          strokeWidth="0.9"
+          strokeWidth="0.8"
           strokeLinecap="round"
           initial={{ pathLength: 0 }}
           animate={{ pathLength: 1 }}
@@ -203,23 +206,23 @@ function RoadMapTimeline({
                 onChange(index);
               }}
             >
-              <circle cx={point.x} cy={point.y} r={8} fill="transparent" />
+              <circle cx={point.x} cy={point.y} r={7} fill="transparent" />
 
               <motion.circle
                 cx={point.x}
                 cy={point.y}
-                r={isActive ? 3.2 : 2}
+                r={isActive ? 2.8 : 1.8}
                 fill="#ffffff"
                 stroke="#ff622b"
-                strokeWidth="0.55"
-                animate={{ r: isActive ? 3.2 : 2 }}
+                strokeWidth="0.5"
+                animate={{ r: isActive ? 2.8 : 1.8 }}
                 transition={{ duration: 0.3 }}
               />
 
               <circle
                 cx={point.x}
                 cy={point.y}
-                r={isActive ? 1.4 : 0.75}
+                r={isActive ? 1.2 : 0.65}
                 fill="#ff622b"
               />
             </g>
@@ -227,29 +230,41 @@ function RoadMapTimeline({
         })}
       </svg>
 
+      {/* Label Buttons: Alternating above/below with strict whole-word line wrapping */}
       <div className="pointer-events-none absolute inset-0">
         {points.map((point, index) => {
           const isActive = index === active;
-          const placeAbove = point.y >= 50;
+          const placeAbove = index % 2 === 0;
+          const clampedLeft = Math.min(Math.max(point.x, 8), 92);
 
           return (
             <button
               key={index}
               type="button"
-              className={`pointer-events-auto absolute -translate-x-1/2 cursor-pointer px-0.5 text-center ${
-                placeAbove ? "-translate-y-full" : ""
+              className={`pointer-events-auto absolute -translate-x-1/2 cursor-pointer px-0.5 text-center transition-all ${
+                placeAbove ? "-translate-y-full" : "translate-y-0"
               }`}
               style={{
-                left: `${Math.min(Math.max(point.x, 14), 86)}%`,
-                top: placeAbove ? `${point.y - 20}%` : `${point.y + 20}%`,
-                maxWidth: "72px",
+                left: `${clampedLeft}%`,
+                top: placeAbove
+                  ? `calc(${point.y}% - 12px)`
+                  : `calc(${point.y}% + 12px)`,
+                width: "max-content",
+                maxWidth: "60px",
               }}
               onClick={() => onChange(index)}
             >
               <span
-                className={`block truncate text-[7px] font-semibold uppercase tracking-[0.1em] sm:text-[9px] ${
-                  isActive ? "text-accent" : "text-text-muted"
+                className={`block text-[5.5px] font-semibold uppercase leading-[1.15] tracking-[0.02em] transition-all sm:text-[7px] md:text-[8.5px] ${
+                  isActive
+                    ? "text-accent font-bold scale-105 drop-shadow-[0_1px_3px_rgba(255,98,43,0.5)]"
+                    : "text-white/70 hover:text-white"
                 }`}
+                style={{
+                  wordBreak: "keep-all",
+                  overflowWrap: "normal",
+                  whiteSpace: "normal",
+                }}
               >
                 {items[index].name}
               </span>
@@ -441,6 +456,7 @@ export default function HeroComp({
         <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-r from-background via-background/70 to-background/20 sm:block" />
         <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-t from-background via-transparent to-background/40 sm:block" />
 
+        {/* ===================== MOBILE VIEW ===================== */}
         <div className="relative z-20 mx-auto flex min-h-screen w-full flex-col px-4 pt-28 pb-10 sm:hidden">
           {current.country && (
             <motion.div
@@ -502,7 +518,7 @@ export default function HeroComp({
             </motion.div>
           </AnimatePresence>
 
-          <div className="h-7" />
+          <div className="h-6" />
 
           <RoadMapTimeline items={locations} active={active} onChange={goTo} />
 
@@ -562,6 +578,7 @@ export default function HeroComp({
           )}
         </div>
 
+        {/* ===================== DESKTOP VIEW ===================== */}
         <div className="relative z-20 mx-auto hidden min-h-screen max-w-7xl flex-col items-start justify-center gap-8 px-6 pt-32 pb-16 sm:flex md:px-10 lg:px-12">
           <div className="w-full max-w-3xl">
             <AnimatePresence mode="wait">
@@ -592,7 +609,11 @@ export default function HeroComp({
             </AnimatePresence>
 
             <div className="mt-8">
-              <RoadMapTimeline items={locations} active={active} onChange={goTo} />
+              <RoadMapTimeline
+                items={locations}
+                active={active}
+                onChange={goTo}
+              />
             </div>
           </div>
 
