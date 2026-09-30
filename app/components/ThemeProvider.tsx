@@ -12,7 +12,7 @@ export function ThemeProvider({
       attribute="class"
       defaultTheme="dark"
       enableSystem={false}
-      storageKey="buac-theme"
+      storageKey="buac-theme-v2"
       disableTransitionOnChange={false}
     >
       {children}

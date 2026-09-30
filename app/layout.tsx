@@ -33,7 +33,6 @@ export default function RootLayout({
           href="https://lh74bam5behcabag.public.blob.vercel-storage.com"
         />
       </head>
-
       <body suppressHydrationWarning>
         <ThemeProvider>{children}</ThemeProvider>
         <Analytics />

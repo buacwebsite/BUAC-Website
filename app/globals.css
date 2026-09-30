@@ -4,126 +4,41 @@
 
 @theme {
   /* ============================================================
-     LIGHT MODE
+     LIGHT MODE THEME TOKENS
   ============================================================ */
-
   --color-background: #f5f0eb;
   --color-surface: #ffffff;
   --color-surface-secondary: #f8f5f1;
   --color-foreground: #1a1a2e;
-
   --color-accent: #ff622b;
   --color-accent-hover: #e5571f;
-
   --color-text: #1a1a2e;
   --color-text-secondary: #2d2d3f;
   --color-text-muted: #6b6b80;
-
   --color-border: rgba(0, 0, 0, 0.1);
   --color-border-accent: rgba(255, 98, 43, 0.3);
-
   --color-card-bg: #ffffff;
   --color-card-border: rgba(0, 0, 0, 0.08);
-
   --color-overlay: rgba(0, 0, 0, 0.5);
-
   --color-nav-bg: rgba(255, 255, 255, 0.85);
   --color-nav-border: rgba(0, 0, 0, 0.1);
-
   --color-input-bg: #ffffff;
   --color-input-border: rgba(0, 0, 0, 0.15);
-
   --color-hero-overlay: rgba(0, 0, 0, 0.6);
   --color-footer-bg: #1a1a2e;
   --color-badge-bg: rgba(255, 98, 43, 0.1);
-
   --font-poppins: var(--font-poppins);
   --font-bebasNeue: var(--font-bebasNeue);
-
   --mouse-x: 0;
   --mouse-y: 0;
 }
 
 /* ============================================================
-   DEFAULT / LIGHT THEME VARIABLES
+   DEFAULT / ROOT VARIABLES (DEFAULT DARK)
 ============================================================ */
-
 :root {
-  color-scheme: light;
-
-  --page-gradient:
-    radial-gradient(
-      circle at 8% 8%,
-      rgba(255, 98, 43, 0.18) 0%,
-      transparent 30%
-    ),
-    radial-gradient(
-      circle at 92% 12%,
-      rgba(255, 172, 124, 0.2) 0%,
-      transparent 28%
-    ),
-    radial-gradient(
-      circle at 50% 100%,
-      rgba(255, 98, 43, 0.1) 0%,
-      transparent 36%
-    ),
-    linear-gradient(
-      135deg,
-      #fffaf6 0%,
-      #f5f0eb 48%,
-      #eee7df 100%
-    );
-
-  --page-gradient-soft:
-    radial-gradient(
-      circle at 10% 10%,
-      rgba(255, 98, 43, 0.12) 0%,
-      transparent 32%
-    ),
-    linear-gradient(
-      135deg,
-      #fffdfb 0%,
-      #f5f0eb 100%
-    );
-}
-
-/* ============================================================
-   DARK THEME
-============================================================ */
-
-.dark {
-  --color-background: #0a0a0f;
-  --color-surface: #141420;
-  --color-surface-secondary: #1a1a2e;
-  --color-foreground: #e8e8f0;
-
-  --color-accent: #ff622b;
-  --color-accent-hover: #ff7a4a;
-
-  --color-text: #e8e8f0;
-  --color-text-secondary: #d4d4e0;
-  --color-text-muted: #8888a0;
-
-  --color-border: rgba(255, 255, 255, 0.1);
-  --color-border-accent: rgba(255, 98, 43, 0.3);
-
-  --color-card-bg: #141420;
-  --color-card-border: rgba(255, 255, 255, 0.08);
-
-  --color-overlay: rgba(0, 0, 0, 0.7);
-
-  --color-nav-bg: rgba(10, 10, 15, 0.85);
-  --color-nav-border: rgba(255, 255, 255, 0.1);
-
-  --color-input-bg: #1a1a2e;
-  --color-input-border: rgba(255, 255, 255, 0.12);
-
-  --color-hero-overlay: rgba(0, 0, 0, 0.7);
-  --color-footer-bg: #050508;
-  --color-badge-bg: rgba(255, 98, 43, 0.15);
-
-  --page-gradient:
-    radial-gradient(
+  color-scheme: dark;
+  --page-gradient: radial-gradient(
       circle at 8% 8%,
       rgba(255, 98, 43, 0.21) 0%,
       transparent 32%
@@ -138,34 +53,100 @@
       rgba(113, 46, 25, 0.3) 0%,
       transparent 40%
     ),
-    linear-gradient(
-      135deg,
-      #08090d 0%,
-      #0d1017 46%,
-      #151019 100%
-    );
-
-  --page-gradient-soft:
-    radial-gradient(
+    linear-gradient(135deg, #08090d 0%, #0d1017 46%, #151019 100%);
+  --page-gradient-soft: radial-gradient(
       circle at 10% 10%,
       rgba(255, 98, 43, 0.15) 0%,
       transparent 34%
     ),
-    linear-gradient(
-      135deg,
-      #08090d 0%,
-      #11131a 100%
-    );
+    linear-gradient(135deg, #08090d 0%, #11131a 100%);
+}
+
+/* ============================================================
+   LIGHT THEME OVERRIDES (when user switches to light)
+============================================================ */
+html:not(.dark) {
+  color-scheme: light;
+  --page-gradient: radial-gradient(
+      circle at 8% 8%,
+      rgba(255, 98, 43, 0.18) 0%,
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 92% 12%,
+      rgba(255, 172, 124, 0.2) 0%,
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 50% 100%,
+      rgba(255, 98, 43, 0.1) 0%,
+      transparent 36%
+    ),
+    linear-gradient(135deg, #fffaf6 0%, #f5f0eb 48%, #eee7df 100%);
+  --page-gradient-soft: radial-gradient(
+      circle at 10% 10%,
+      rgba(255, 98, 43, 0.12) 0%,
+      transparent 32%
+    ),
+    linear-gradient(135deg, #fffdfb 0%, #f5f0eb 100%);
+}
+
+/* ============================================================
+   DARK THEME
+============================================================ */
+.dark {
+  --color-background: #0a0a0f;
+  --color-surface: #141420;
+  --color-surface-secondary: #1a1a2e;
+  --color-foreground: #e8e8f0;
+  --color-accent: #ff622b;
+  --color-accent-hover: #ff7a4a;
+  --color-text: #e8e8f0;
+  --color-text-secondary: #d4d4e0;
+  --color-text-muted: #8888a0;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-border-accent: rgba(255, 98, 43, 0.3);
+  --color-card-bg: #141420;
+  --color-card-border: rgba(255, 255, 255, 0.08);
+  --color-overlay: rgba(0, 0, 0, 0.7);
+  --color-nav-bg: rgba(10, 10, 15, 0.85);
+  --color-nav-border: rgba(255, 255, 255, 0.1);
+  --color-input-bg: #1a1a2e;
+  --color-input-border: rgba(255, 255, 255, 0.12);
+  --color-hero-overlay: rgba(0, 0, 0, 0.7);
+  --color-footer-bg: #050508;
+  --color-badge-bg: rgba(255, 98, 43, 0.15);
+  --page-gradient: radial-gradient(
+      circle at 8% 8%,
+      rgba(255, 98, 43, 0.21) 0%,
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 92% 12%,
+      rgba(255, 98, 43, 0.1) 0%,
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 48% 100%,
+      rgba(113, 46, 25, 0.3) 0%,
+      transparent 40%
+    ),
+    linear-gradient(135deg, #08090d 0%, #0d1017 46%, #151019 100%);
+  --page-gradient-soft: radial-gradient(
+      circle at 10% 10%,
+      rgba(255, 98, 43, 0.15) 0%,
+      transparent 34%
+    ),
+    linear-gradient(135deg, #08090d 0%, #11131a 100%);
 }
 
 /* ============================================================
    BASE STYLES
 ============================================================ */
-
 html {
   min-height: 100%;
-  background-color: var(--color-background);
-  color-scheme: light;
+  background-color: #0a0a0f;
+  color-scheme: dark;
   transition:
     background-color 0.3s ease,
     color 0.3s ease;
@@ -179,7 +160,7 @@ html.dark {
 body {
   min-height: 100vh;
   margin: 0;
-  background-color: var(--color-background);
+  background-color: var(--color-background, #0a0a0f);
   color: var(--color-text-secondary);
   transition:
     background-color 0.3s ease,
@@ -207,30 +188,12 @@ select {
 /* ============================================================
    REUSABLE PAGE BACKGROUND
 ============================================================ */
-
-/*
-  Use page-shell on page-level main/div wrappers.
-
-  This is used directly by:
-  - Register page
-  - Recruitment page
-  - Tours page
-
-  It can also be used on any future page:
-  <main className="page-shell min-h-screen ...">
-*/
-
 .page-shell {
   background-color: var(--color-background);
   background-image: var(--page-gradient);
   background-repeat: no-repeat;
   background-size: cover;
 }
-
-/*
-  Existing pages with these Tailwind patterns automatically receive
-  the same day/night gradient without rewriting every page file.
-*/
 
 .min-h-screen.bg-background,
 .min-h-screen[class*="from-background"],
@@ -240,10 +203,6 @@ select {
   background-repeat: no-repeat;
   background-size: cover;
 }
-
-/*
-  Authentication pages can use this class too.
-*/
 
 .auth-shell {
   background-color: var(--color-background);
@@ -255,7 +214,6 @@ select {
 /* ============================================================
    THEME HELPERS
 ============================================================ */
-
 .bg-surface {
   background-color: var(--color-surface);
 }
@@ -279,7 +237,6 @@ select {
 /* ============================================================
    REDUCED MOTION
 ============================================================ */
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -290,10 +247,10 @@ select {
     transition-duration: 0.01ms !important;
   }
 }
+
 /* ============================================================
    GLOBAL MOBILE FIXES
 ============================================================ */
-
 html,
 body {
   overflow-x: hidden;
@@ -319,19 +276,16 @@ body {
   textarea {
     font-size: 16px !important;
   }
-
   button,
   a {
     -webkit-tap-highlight-color: transparent;
   }
-
   h1,
   h2,
   h3 {
     overflow-wrap: break-word;
     word-break: break-word;
   }
-
   .snap-section {
     scroll-snap-align: none !important;
   }
@@ -346,7 +300,6 @@ body {
 /* ============================================================
    MOBILE RESPONSIVE SAFETY FIXES
 ============================================================ */
-
 html,
 body {
   max-width: 100%;
@@ -357,26 +310,21 @@ body {
   body {
     overflow-x: hidden;
   }
-
   input,
   select,
   textarea {
     font-size: 16px !important;
   }
-
   .snap-section {
     scroll-snap-align: none !important;
   }
-
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
-
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-
   button,
   a {
     -webkit-tap-highlight-color: transparent;
