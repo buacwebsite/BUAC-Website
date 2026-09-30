@@ -1,37 +1,74 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEditor } from "../context/EditorContext";
-import ClubFairOrderEditor from "./editors/ClubFairOrderEditor";
-import LandingHeroEditor from "./editors/LandingHeroEditor";
-import DepartmentsEditor from "./editors/DepartmentsEditor";
-import ContactEditor from "./editors/ContactEditor";
-import JoinUsEditor from "./editors/JoinUsEditor";
-import PanelMembersEditor from "./editors/PanelMembersEditor";
-import ToursEditor from "./editors/ToursEditor";
-import AboutSectionEditor from "./editors/AboutSectionEditor";
-import VisionEditor from "./editors/VisionEditor";
-import ActivitiesEditor from "./editors/ActivitiesEditor";
-import GalleryEditor from "./editors/GalleryEditor";
-import HomeOrderEditor from "./editors/HomeOrderEditor";
-import BlogEditor from "./editors/BlogEditor";
+
+const ClubFairOrderEditor = dynamic(
+  () => import("./editors/ClubFairOrderEditor"),
+  { ssr: false },
+);
+
+const LandingHeroEditor = dynamic(
+  () => import("./editors/LandingHeroEditor"),
+  { ssr: false },
+);
+
+const DepartmentsEditor = dynamic(
+  () => import("./editors/DepartmentsEditor"),
+  { ssr: false },
+);
+
+const ContactEditor = dynamic(() => import("./editors/ContactEditor"), {
+  ssr: false,
+});
+
+const JoinUsEditor = dynamic(() => import("./editors/JoinUsEditor"), {
+  ssr: false,
+});
+
+const PanelMembersEditor = dynamic(
+  () => import("./editors/PanelMembersEditor"),
+  { ssr: false },
+);
+
+const ToursEditor = dynamic(() => import("./editors/ToursEditor"), {
+  ssr: false,
+});
+
+const AboutSectionEditor = dynamic(
+  () => import("./editors/AboutSectionEditor"),
+  { ssr: false },
+);
+
+const VisionEditor = dynamic(() => import("./editors/VisionEditor"), {
+  ssr: false,
+});
+
+const ActivitiesEditor = dynamic(() => import("./editors/ActivitiesEditor"), {
+  ssr: false,
+});
+
+const GalleryEditor = dynamic(() => import("./editors/GalleryEditor"), {
+  ssr: false,
+});
+
+const HomeOrderEditor = dynamic(() => import("./editors/HomeOrderEditor"), {
+  ssr: false,
+});
+
+const BlogEditor = dynamic(() => import("./editors/BlogEditor"), {
+  ssr: false,
+});
 
 export default function GlobalEditorModal() {
-  const {
-    editor,
-    closeEditor,
-  } = useEditor();
+  const { editor, closeEditor } = useEditor();
 
   if (!editor.isOpen || !editor.type) {
     return null;
   }
 
-  const homeOrder = Array.isArray(editor.data)
-    ? editor.data
-    : [];
-
-  const clubFairOrder = Array.isArray(editor.data)
-    ? editor.data
-    : [];
+  const homeOrder = Array.isArray(editor.data) ? editor.data : [];
+  const clubFairOrder = Array.isArray(editor.data) ? editor.data : [];
 
   return (
     <div className="fixed inset-0 z-[100] overflow-hidden bg-black/70 p-2 backdrop-blur-sm sm:p-5">
@@ -47,87 +84,51 @@ export default function GlobalEditorModal() {
           }}
         >
           {editor.type === "landing-hero" && (
-            <LandingHeroEditor
-              data={editor.data}
-              onClose={closeEditor}
-            />
+            <LandingHeroEditor data={editor.data} onClose={closeEditor} />
           )}
 
           {editor.type === "departments" && (
-            <DepartmentsEditor
-              data={editor.data}
-              onClose={closeEditor}
-            />
+            <DepartmentsEditor data={editor.data} onClose={closeEditor} />
           )}
 
           {editor.type === "contact" && (
-            <ContactEditor
-              data={editor.data}
-              onClose={closeEditor}
-            />
+            <ContactEditor data={editor.data} onClose={closeEditor} />
           )}
 
           {editor.type === "joinus" && (
-            <JoinUsEditor
-              data={editor.data}
-              onClose={closeEditor}
-            />
+            <JoinUsEditor data={editor.data} onClose={closeEditor} />
           )}
 
           {editor.type === "panelmembers" && (
-            <PanelMembersEditor
-              data={editor.data}
-              onClose={closeEditor}
-            />
+            <PanelMembersEditor data={editor.data} onClose={closeEditor} />
           )}
 
           {editor.type === "tours" && (
-            <ToursEditor
-              data={editor.data}
-              onClose={closeEditor}
-            />
+            <ToursEditor data={editor.data} onClose={closeEditor} />
           )}
 
           {editor.type === "aboutSection" && (
-            <AboutSectionEditor
-              data={editor.data}
-              onClose={closeEditor}
-            />
+            <AboutSectionEditor data={editor.data} onClose={closeEditor} />
           )}
 
           {editor.type === "vision" && (
-            <VisionEditor
-              initialData={editor.data}
-              onClose={closeEditor}
-            />
+            <VisionEditor initialData={editor.data} onClose={closeEditor} />
           )}
 
           {editor.type === "activities" && (
-            <ActivitiesEditor
-              data={editor.data}
-              onClose={closeEditor}
-            />
+            <ActivitiesEditor data={editor.data} onClose={closeEditor} />
           )}
 
           {editor.type === "gallery" && (
-            <GalleryEditor
-              data={editor.data}
-              onClose={closeEditor}
-            />
+            <GalleryEditor data={editor.data} onClose={closeEditor} />
           )}
 
           {editor.type === "home-order" && (
-            <HomeOrderEditor
-              order={homeOrder}
-              onClose={closeEditor}
-            />
+            <HomeOrderEditor order={homeOrder} onClose={closeEditor} />
           )}
 
           {editor.type === "blog" && (
-            <BlogEditor
-              data={editor.data}
-              onClose={closeEditor}
-            />
+            <BlogEditor data={editor.data} onClose={closeEditor} />
           )}
 
           {editor.type === "club-fair-order" && (
