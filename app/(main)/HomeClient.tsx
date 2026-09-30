@@ -4,10 +4,7 @@ import dynamic from "next/dynamic";
 import { useAuth } from "../context/AuthProvider";
 import { useEditor } from "../context/EditorContext";
 import HeroComp from "../components/HeroComp";
-import { gsap } from "gsap";
-import { useGSAP } from "@gsap/react";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { HiOutlinePencilAlt } from "react-icons/hi";
 import { HiOutlineBars3 } from "react-icons/hi2";
 import Image from "next/image";
@@ -26,7 +23,7 @@ import {
 const CampfireComp = dynamic(() => import("../components/CampfireComp"), {
   ssr: false,
   loading: () => (
-    <section className="snap-section flex h-screen items-center justify-center bg-black">
+    <section className="flex min-h-[50vh] items-center justify-center bg-black">
       <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-500">
         Loading campfire...
       </p>
@@ -38,8 +35,6 @@ const HomeOrderEditor = dynamic(
   () => import("../components/editors/HomeOrderEditor"),
   { ssr: false },
 );
-
-gsap.registerPlugin(ScrollTrigger);
 
 interface Quote {
   name: string;
@@ -76,6 +71,9 @@ interface HomeClientProps {
   initialObjectives: Objective[];
   initialSectionOrder: string[];
 }
+
+const belowFoldClass =
+  "[content-visibility:auto] [contain-intrinsic-size:auto_100vh]";
 
 function normalizeQuote(input: unknown): Quote | null {
   if (!input || typeof input !== "object") return null;
@@ -158,18 +156,29 @@ export default function HomeClient({
   const [quotes] = useState<Quote[]>(initialQuotes);
   const [visionText] = useState(initialVisionText);
   const [objectives] = useState<Objective[]>(initialObjectives);
-
   const [sectionOrder, setSectionOrder] =
     useState<string[]>(initialSectionOrder);
-
   const [isOrderEditorOpen, setIsOrderEditorOpen] = useState(false);
 
-  useGSAP(
-    () => {
-      const setup = () => {
-        const sections = gsap.utils.toArray(".snap-section");
+  useEffect(() => {
+    if (window.innerWidth < 768) return;
 
-        sections.forEach((section) => {
+    let cancelled = false;
+    const triggers: Array<{ kill: () => void }> = [];
+
+    const timeoutId = window.setTimeout(async () => {
+      const [{ default: gsap }, scrollTriggerModule] = await Promise.all([
+        import("gsap"),
+        import("gsap/ScrollTrigger"),
+      ]);
+
+      if (cancelled) return;
+
+      const { ScrollTrigger } = scrollTriggerModule;
+      gsap.registerPlugin(ScrollTrigger);
+
+      gsap.utils.toArray(".snap-section").forEach((section) => {
+        triggers.push(
           ScrollTrigger.create({
             trigger: section as Element,
             start: "top top",
@@ -180,21 +189,19 @@ export default function HomeClient({
               delay: 0.1,
               ease: "power2.inOut",
             },
-          });
-        });
+          }),
+        );
+      });
 
-        ScrollTrigger.refresh();
-      };
+      ScrollTrigger.refresh();
+    }, 2000);
 
-      const timeoutId = window.setTimeout(setup, 800);
-
-      return () => {
-        window.clearTimeout(timeoutId);
-        ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
-      };
-    },
-    { dependencies: [sectionOrder] },
-  );
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+      triggers.forEach((trigger) => trigger.kill());
+    };
+  }, [sectionOrder]);
 
   const safeQuotes = useMemo(() => normalizeQuotes(quotes), [quotes]);
 
@@ -211,26 +218,18 @@ export default function HomeClient({
   const renderAboutSection = () => (
     <MotionSection
       key="about"
-      className="snap-section relative min-h-screen overflow-hidden bg-background px-6 py-16 font-poppins lg:px-12"
+      className={`snap-section relative min-h-screen overflow-hidden bg-background px-6 py-16 font-poppins lg:px-12 ${belowFoldClass}`}
     >
       {auth && (
-        <motion.button
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5, duration: 0.3 }}
+        <button
+          type="button"
           onClick={openAboutEditor}
-          className="absolute top-8 right-8 z-20 flex cursor-pointer items-center justify-center gap-2 rounded-full border-2 border-accent bg-accent px-4 py-2 text-sm font-medium text-white transition-all duration-300 hover:bg-transparent hover:text-accent md:text-base"
-          title="Edit Section"
+          className="absolute top-8 right-8 z-20 flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full border-2 border-accent bg-accent px-4 py-2 text-sm font-medium text-white"
         >
           <HiOutlinePencilAlt size={20} />
           Edit
-        </motion.button>
+        </button>
       )}
-
-      <div className="pointer-events-none absolute inset-0 opacity-5">
-        <div className="absolute top-1/4 left-1/4 h-96 w-96 rounded-full bg-accent blur-3xl" />
-        <div className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-text-secondary blur-3xl" />
-      </div>
 
       <div className="relative mx-auto max-w-6xl">
         <RevealHeading className="mb-6 text-center font-bebasNeue text-5xl leading-none text-accent md:text-6xl lg:text-7xl">
@@ -245,7 +244,7 @@ export default function HomeClient({
             variants={fadeInUp}
             className="mx-auto mb-14 max-w-3xl"
           >
-            <p className="text-center font-poppins text-base leading-relaxed text-text-muted">
+            <p className="text-center text-base leading-relaxed text-text-muted">
               {aboutText}
             </p>
           </motion.div>
@@ -262,58 +261,42 @@ export default function HomeClient({
         </RevealHeading>
 
         {safeQuotes.length > 0 ? (
-          <StaggerGrid className="relative z-10 mb-14 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 lg:gap-10">
+          <StaggerGrid className="mb-14 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 lg:gap-10">
             {safeQuotes.map((quote, index) => (
               <StaggerItem key={`${quote.name}-${index}`}>
-                <motion.div
-                  whileHover={{ y: -8, scale: 1.02 }}
-                  transition={{ duration: 0.25 }}
-                  className="group relative h-full overflow-hidden rounded-3xl border border-border bg-surface/80 p-6 shadow-xl backdrop-blur-md transition-all duration-300 hover:border-accent/50 hover:shadow-accent/10"
-                >
-                  <div className="absolute top-5 left-5 font-serif text-6xl text-accent opacity-20">
-                    &ldquo;
+                <div className="relative h-full overflow-hidden rounded-3xl border border-border bg-surface/80 p-6 text-center shadow-xl">
+                  <div className="relative mx-auto mb-6 h-32 w-32 overflow-hidden rounded-full border-4 border-accent/30 bg-surface-secondary">
+                    {quote.image ? (
+                      <Image
+                        src={quote.image}
+                        alt={quote.name || "Quote image"}
+                        fill
+                        sizes="128px"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-accent/10">
+                        <span className="font-bebasNeue text-4xl text-accent">
+                          {(quote.name || "?").charAt(0)}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="relative z-10 flex h-full flex-col items-center text-center">
-                    <div className="relative mb-6 h-32 w-32 overflow-hidden rounded-full border-4 border-accent/30 bg-surface-secondary transition-colors duration-300 group-hover:border-accent">
-                      {quote.image ? (
-                        <Image
-                          src={quote.image}
-                          alt={quote.name || "Quote image"}
-                          fill
-                          sizes="128px"
-                          className="object-cover grayscale transition-all duration-500 group-hover:grayscale-0"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-accent/10">
-                          <span className="font-bebasNeue text-4xl text-accent">
-                            {(quote.name || "?").charAt(0)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
+                  <p className="mb-6 text-sm leading-relaxed text-text-secondary italic">
+                    {quote.quote}
+                  </p>
 
-                    <p className="mb-6 text-sm leading-relaxed text-text-secondary italic">
-                      {quote.quote}
+                  <h3 className="text-xl font-bold text-text-secondary">
+                    {quote.name}
+                  </h3>
+
+                  {quote.designation && (
+                    <p className="mt-1 text-sm text-accent">
+                      {quote.designation}
                     </p>
-
-                    <div className="mt-auto">
-                      <h3 className="text-xl font-bold text-text-secondary">
-                        {quote.name}
-                      </h3>
-
-                      {quote.designation && (
-                        <p className="mt-1 text-sm text-accent">
-                          {quote.designation}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="absolute right-5 bottom-5 font-serif text-6xl text-accent opacity-20">
-                    &rdquo;
-                  </div>
-                </motion.div>
+                  )}
+                </div>
               </StaggerItem>
             ))}
           </StaggerGrid>
@@ -321,11 +304,6 @@ export default function HomeClient({
           <div className="mb-14 rounded-3xl border-2 border-dashed border-accent/30 bg-accent/5 p-10 text-center">
             <p className="font-bebasNeue text-3xl tracking-wide text-text-secondary">
               No Words of Wisdom Added Yet
-            </p>
-            <p className="mt-2 text-sm text-text-muted">
-              {auth
-                ? "Click Edit and add quotes to display them here."
-                : "Quotes will appear here soon."}
             </p>
           </div>
         )}
@@ -337,57 +315,41 @@ export default function HomeClient({
           variants={staggerContainer}
           className="grid grid-cols-2 gap-8 border-t border-border pt-12 lg:grid-cols-4"
         >
-          {stats.length > 0 ? (
-            stats.map((stat, index) => (
-              <motion.div
-                key={`${stat.label}-${index}`}
-                variants={scaleIn}
-                className="text-center"
-              >
-                <AnimatedCounter
-                  value={stat.value}
-                  className="mb-2 font-bebasNeue text-5xl text-accent lg:text-6xl"
-                />
-                <div className="text-sm tracking-wider text-text-secondary uppercase">
-                  {stat.label}
-                </div>
-              </motion.div>
-            ))
-          ) : (
-            <p className="col-span-full text-center text-sm text-text-muted">
-              {auth ? "No stats added yet." : "Stats coming soon."}
-            </p>
-          )}
+          {stats.map((stat, index) => (
+            <motion.div
+              key={`${stat.label}-${index}`}
+              variants={scaleIn}
+              className="text-center"
+            >
+              <AnimatedCounter
+                value={stat.value}
+                className="mb-2 font-bebasNeue text-5xl text-accent lg:text-6xl"
+              />
+              <div className="text-sm tracking-wider text-text-secondary uppercase">
+                {stat.label}
+              </div>
+            </motion.div>
+          ))}
         </motion.div>
       </div>
     </MotionSection>
   );
 
-  const renderCampfireSection = () => <CampfireComp key="campfire" />;
-
   const renderVisionSection = () => (
     <MotionSection
       key="vision"
-      className="snap-section relative min-h-screen overflow-hidden bg-background px-6 py-16 font-poppins lg:px-12"
+      className={`snap-section relative min-h-screen overflow-hidden bg-background px-6 py-16 font-poppins lg:px-12 ${belowFoldClass}`}
     >
       {auth && (
-        <motion.button
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5, duration: 0.3 }}
+        <button
+          type="button"
           onClick={openVisionEditor}
-          className="absolute top-8 right-8 z-20 flex cursor-pointer items-center justify-center gap-2 rounded-full border-2 border-accent bg-accent px-4 py-2 text-sm font-medium text-white transition-all duration-300 hover:bg-transparent hover:text-accent md:text-base"
-          title="Edit Vision"
+          className="absolute top-8 right-8 z-20 flex min-h-11 cursor-pointer items-center gap-2 rounded-full border-2 border-accent bg-accent px-4 py-2 text-sm font-medium text-white"
         >
           <HiOutlinePencilAlt size={20} />
           Edit
-        </motion.button>
+        </button>
       )}
-
-      <div className="pointer-events-none absolute inset-0 opacity-5">
-        <div className="absolute top-1/3 left-1/3 h-96 w-96 rounded-full bg-accent blur-3xl" />
-        <div className="absolute right-1/3 bottom-1/3 h-96 w-96 rounded-full bg-text-secondary blur-3xl" />
-      </div>
 
       <div className="relative mx-auto max-w-6xl">
         <div className="mb-16 text-center">
@@ -396,73 +358,48 @@ export default function HomeClient({
           </RevealHeading>
 
           {visionText ? (
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              variants={fadeInUp}
-              className="mx-auto max-w-6xl"
-            >
-              <p className="text-justify text-lg leading-relaxed text-text-secondary md:text-center md:text-balance">
-                {visionText}
-              </p>
-            </motion.div>
-          ) : (
-            <p className="text-text-muted">
-              {auth
-                ? "No vision statement added yet."
-                : "Vision statement coming soon."}
+            <p className="mx-auto max-w-6xl text-lg leading-relaxed text-text-secondary">
+              {visionText}
             </p>
-          )}
-        </div>
-
-        <div className="mt-16">
-          <RevealHeading className="mb-12 text-center font-bebasNeue text-4xl text-text-secondary md:text-5xl">
-            Our Objectives
-          </RevealHeading>
-
-          {objectives.length > 0 ? (
-            <StaggerGrid className="grid grid-cols-1 gap-8 md:grid-cols-2">
-              {objectives.map((objective, index) => (
-                <StaggerItem key={`${objective.title}-${index}`}>
-                  <motion.div
-                    whileHover={{ scale: 1.03 }}
-                    transition={{ duration: 0.25 }}
-                    className="group relative h-full overflow-hidden rounded-2xl border border-accent/30 bg-surface/80 p-8 shadow-xl backdrop-blur-md transition-all duration-500 hover:border-accent"
-                  >
-                    <div className="absolute top-4 left-4 font-bebasNeue text-5xl text-accent/20">
-                      {String(index + 1).padStart(2, "0")}
-                    </div>
-
-                    <div className="mt-8">
-                      <h4 className="mb-4 text-2xl font-bold text-text-secondary transition-colors duration-300 group-hover:text-accent">
-                        {objective.title}
-                      </h4>
-                      <p className="leading-relaxed text-text-muted">
-                        {objective.description}
-                      </p>
-                    </div>
-                  </motion.div>
-                </StaggerItem>
-              ))}
-            </StaggerGrid>
           ) : (
-            <div className="py-12 text-center text-text-muted">
-              <p className="text-lg">
-                {auth
-                  ? "No objectives added yet. Click Edit to add some."
-                  : "Objectives coming soon..."}
-              </p>
-            </div>
+            <p className="text-text-muted">Vision statement coming soon.</p>
           )}
         </div>
+
+        <RevealHeading className="mb-12 text-center font-bebasNeue text-4xl text-text-secondary md:text-5xl">
+          Our Objectives
+        </RevealHeading>
+
+        {objectives.length > 0 ? (
+          <StaggerGrid className="grid grid-cols-1 gap-8 md:grid-cols-2">
+            {objectives.map((objective, index) => (
+              <StaggerItem key={`${objective.title}-${index}`}>
+                <div className="h-full rounded-2xl border border-accent/30 bg-surface/80 p-8 shadow-xl">
+                  <div className="font-bebasNeue text-5xl text-accent/20">
+                    {String(index + 1).padStart(2, "0")}
+                  </div>
+                  <h3 className="mt-4 mb-4 text-2xl font-bold text-text-secondary">
+                    {objective.title}
+                  </h3>
+                  <p className="leading-relaxed text-text-muted">
+                    {objective.description}
+                  </p>
+                </div>
+              </StaggerItem>
+            ))}
+          </StaggerGrid>
+        ) : (
+          <p className="py-12 text-center text-text-muted">
+            Objectives coming soon.
+          </p>
+        )}
       </div>
     </MotionSection>
   );
 
   const sectionRenderers: Record<string, () => React.ReactNode> = {
     about: renderAboutSection,
-    campfire: renderCampfireSection,
+    campfire: () => <CampfireComp key="campfire" />,
     vision: renderVisionSection,
   };
 
@@ -471,19 +408,14 @@ export default function HomeClient({
       <HeroComp images={heroImages} loading={false} />
 
       {auth && (
-        <div className="relative z-20">
-          <motion.button
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.3 }}
-            onClick={() => setIsOrderEditorOpen(true)}
-            className="fixed top-24 left-6 z-40 flex cursor-pointer items-center gap-2 rounded-full border-2 border-accent bg-black/80 px-4 py-2 text-sm font-medium text-white shadow-lg transition-all duration-300 hover:bg-accent"
-            title="Reorder Home Sections"
-          >
-            <HiOutlineBars3 size={18} />
-            Reorder Sections
-          </motion.button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setIsOrderEditorOpen(true)}
+          className="fixed top-24 left-6 z-40 flex min-h-11 cursor-pointer items-center gap-2 rounded-full border-2 border-accent bg-black/80 px-4 py-2 text-sm font-medium text-white"
+        >
+          <HiOutlineBars3 size={18} />
+          Reorder Sections
+        </button>
       )}
 
       {isOrderEditorOpen && (
