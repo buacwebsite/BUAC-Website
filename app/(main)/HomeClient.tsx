@@ -186,18 +186,10 @@ export default function HomeClient({
         ScrollTrigger.refresh();
       };
 
-      const idleId =
-        "requestIdleCallback" in window
-          ? window.requestIdleCallback(setup, { timeout: 2000 })
-          : window.setTimeout(setup, 800);
+      const timeoutId = window.setTimeout(setup, 800);
 
       return () => {
-        if ("cancelIdleCallback" in window && typeof idleId === "number") {
-          window.cancelIdleCallback(idleId);
-        } else {
-          window.clearTimeout(idleId as number);
-        }
-
+        window.clearTimeout(timeoutId);
         ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
       };
     },
