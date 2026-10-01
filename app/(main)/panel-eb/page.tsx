@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import axios, { AxiosError } from "axios";
 import { motion } from "framer-motion";
 import {
@@ -12,7 +12,9 @@ import {
   HiX,
 } from "react-icons/hi";
 import { FaYoutube } from "react-icons/fa6";
+
 import PageLoader from "@/app/components/ui/PageLoader";
+import PreviousPanels from "@/app/components/PreviousPanels";
 import { useAuth } from "@/app/context/AuthProvider";
 
 interface PersonImage {
@@ -44,89 +46,106 @@ function createEmptyPerson(id: string): PersonImage {
   };
 }
 
-/* A person counts only if an image is actually uploaded */
 function hasImage(person: PersonImage) {
-  return Boolean(person?.image && person.image.trim());
+  return Boolean(person?.image?.trim());
 }
 
 const defaultContent: PanelEbContent = {
   panelVideoUrl: "",
   executiveVideoUrl: "",
+
   panel: [
     createEmptyPerson("panel-1"),
     createEmptyPerson("panel-2"),
     createEmptyPerson("panel-3"),
     createEmptyPerson("panel-4"),
   ],
+
   executiveBody: [
     {
       id: "creative",
       name: "Creative",
-      images: Array.from({ length: 5 }).map((_, index) =>
+      images: Array.from({ length: 5 }, (_, index) =>
         createEmptyPerson(`creative-${index + 1}`),
       ),
     },
     {
       id: "event",
       name: "Event Management",
-      images: Array.from({ length: 5 }).map((_, index) =>
+      images: Array.from({ length: 5 }, (_, index) =>
         createEmptyPerson(`event-${index + 1}`),
       ),
     },
     {
       id: "hr",
       name: "Human Resources Management",
-      images: Array.from({ length: 5 }).map((_, index) =>
+      images: Array.from({ length: 5 }, (_, index) =>
         createEmptyPerson(`hr-${index + 1}`),
       ),
     },
     {
       id: "itphoto",
       name: "IT & Photography",
-      images: Array.from({ length: 5 }).map((_, index) =>
+      images: Array.from({ length: 5 }, (_, index) =>
         createEmptyPerson(`itphoto-${index + 1}`),
       ),
     },
     {
       id: "pubandmarket",
       name: "Publication & Marketing",
-      images: Array.from({ length: 5 }).map((_, index) =>
+      images: Array.from({ length: 5 }, (_, index) =>
         createEmptyPerson(`pubandmarket-${index + 1}`),
       ),
     },
   ],
 };
 
-/* Makes sure old saved data (featuredVideoUrl) still works */
+/**
+ * Keep older saved content compatible with the current page.
+ * Older data may use featuredVideoUrl instead of panelVideoUrl.
+ */
 function normalizeContent(input: unknown): PanelEbContent {
-  if (!input || typeof input !== "object") return defaultContent;
+  if (!input || typeof input !== "object") {
+    return defaultContent;
+  }
 
   const data = input as Partial<PanelEbContent> & {
     featuredVideoUrl?: string;
   };
 
   return {
-    panel: Array.isArray(data.panel) ? data.panel : defaultContent.panel,
+    panel: Array.isArray(data.panel)
+      ? data.panel
+      : defaultContent.panel,
+
     executiveBody: Array.isArray(data.executiveBody)
       ? data.executiveBody
       : defaultContent.executiveBody,
+
     panelVideoUrl:
       typeof data.panelVideoUrl === "string"
         ? data.panelVideoUrl
         : typeof data.featuredVideoUrl === "string"
           ? data.featuredVideoUrl
           : "",
+
     executiveVideoUrl:
-      typeof data.executiveVideoUrl === "string" ? data.executiveVideoUrl : "",
+      typeof data.executiveVideoUrl === "string"
+        ? data.executiveVideoUrl
+        : "",
   };
 }
 
 function getYouTubeId(value: string) {
   const input = (value || "").trim();
+
   if (!input) return "";
 
   const directId = input.match(/^[a-zA-Z0-9_-]{11}$/);
-  if (directId) return directId[0];
+
+  if (directId) {
+    return directId[0];
+  }
 
   const match = input.match(
     /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
@@ -135,9 +154,10 @@ function getYouTubeId(value: string) {
   return match?.[1] || "";
 }
 
-/* ------------------------------------------------------------
-   VIDEO PLAYER (shown to everyone if a valid URL exists)
-   ------------------------------------------------------------ */
+/* ============================================================
+   VIDEO PLAYER
+============================================================ */
+
 function SectionVideo({
   videoUrl,
   label,
@@ -177,9 +197,10 @@ function SectionVideo({
   );
 }
 
-/* ------------------------------------------------------------
-   VIDEO URL INPUT (admin edit mode only)
-   ------------------------------------------------------------ */
+/* ============================================================
+   ADMIN VIDEO URL INPUT
+============================================================ */
+
 function VideoUrlEditor({
   title,
   value,
@@ -200,14 +221,16 @@ function VideoUrlEditor({
           <h3 className="font-bebasNeue text-2xl tracking-wide text-text-secondary">
             {title}
           </h3>
-          <p className="mt-1 mb-4 text-xs text-text-muted">
-            Paste any YouTube video URL. Leave empty to hide this video.
+
+          <p className="mb-4 mt-1 text-xs text-text-muted">
+            Paste a YouTube video URL. Leave it empty to hide
+            the video.
           </p>
 
           <input
             type="url"
             value={value}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(event) => onChange(event.target.value)}
             placeholder="https://www.youtube.com/watch?v=..."
             className="w-full rounded-xl border border-input-border bg-input-bg px-4 py-3 text-text-secondary outline-none placeholder:text-text-muted focus:border-accent"
           />
@@ -223,10 +246,15 @@ function VideoUrlEditor({
   );
 }
 
+/* ============================================================
+   IMAGE CARDS
+============================================================ */
+
 function EmptyImageBox() {
   return (
     <div className="flex aspect-square w-full flex-col items-center justify-center rounded-3xl border-2 border-dashed border-accent/30 bg-accent/10 text-center">
       <HiUpload className="mb-2 h-10 w-10 text-accent" />
+
       <p className="text-sm font-semibold text-text-secondary">
         No image uploaded
       </p>
@@ -257,6 +285,7 @@ function SolidImageCard({
       <div className="relative">
         {person.image ? (
           <div className="relative aspect-square w-full overflow-hidden rounded-3xl border border-border bg-surface-secondary">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={person.image}
               alt={person.title || "Panel and Executive Body Image"}
@@ -273,14 +302,19 @@ function SolidImageCard({
             <label className="flex cursor-pointer items-center gap-1 rounded-full bg-accent px-3 py-2 text-xs font-bold text-white shadow-lg">
               <HiUpload />
               Upload
+
               <input
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) onUpload(file);
-                  e.currentTarget.value = "";
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+
+                  if (file) {
+                    onUpload(file);
+                  }
+
+                  event.currentTarget.value = "";
                 }}
               />
             </label>
@@ -300,10 +334,16 @@ function SolidImageCard({
   );
 }
 
+/* ============================================================
+   PANEL & EB PAGE
+============================================================ */
+
 export default function PanelEbPage() {
   const { auth } = useAuth();
 
-  const [content, setContent] = useState<PanelEbContent>(defaultContent);
+  const [content, setContent] =
+    useState<PanelEbContent>(defaultContent);
+
   const [originalContent, setOriginalContent] =
     useState<PanelEbContent>(defaultContent);
 
@@ -313,96 +353,149 @@ export default function PanelEbPage() {
   const [uploading, setUploading] = useState("");
   const [error, setError] = useState("");
 
+  /* ---------------- Fetch existing page content ---------------- */
+
   useEffect(() => {
     const fetchContent = async () => {
       try {
-        const res = await axios.get("/api/content/panel-eb");
-        if (res.data?.content) {
-          const normalized = normalizeContent(res.data.content);
+        const response = await axios.get("/api/content/panel-eb");
+
+        if (response.data?.content) {
+          const normalized = normalizeContent(
+            response.data.content,
+          );
+
           setContent(normalized);
           setOriginalContent(normalized);
         }
-      } catch (err) {
-        console.error("Failed to fetch Panel & EB content:", err);
+      } catch (requestError) {
+        console.error(
+          "Failed to fetch Panel & EB content:",
+          requestError,
+        );
       } finally {
         setLoading(false);
       }
     };
 
-    fetchContent();
+    void fetchContent();
   }, []);
 
   const uploadImage = async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
 
-    const res = await axios.post("/api/content/upload", formData, {
-      withCredentials: true,
-    });
+    const response = await axios.post(
+      "/api/content/upload",
+      formData,
+      { withCredentials: true },
+    );
 
-    if (!res.data?.url) throw new Error("Upload failed");
-    return res.data.url as string;
+    if (!response.data?.url) {
+      throw new Error("Upload failed");
+    }
+
+    return response.data.url as string;
   };
 
-  /* ---------------- Videos ---------------- */
+  /* ---------------- Video settings ---------------- */
+
   const updatePanelVideoUrl = (value: string) => {
-    setContent({ ...content, panelVideoUrl: value });
+    setContent({
+      ...content,
+      panelVideoUrl: value,
+    });
   };
 
   const updateExecutiveVideoUrl = (value: string) => {
-    setContent({ ...content, executiveVideoUrl: value });
+    setContent({
+      ...content,
+      executiveVideoUrl: value,
+    });
   };
 
-  /* ---------------- Panel ---------------- */
-  const updatePanelPersonImage = (index: number, image: string) => {
+  /* ---------------- Panel images ---------------- */
+
+  const updatePanelPersonImage = (
+    index: number,
+    image: string,
+  ) => {
     const panel = [...content.panel];
-    panel[index] = { ...panel[index], image };
-    setContent({ ...content, panel });
+
+    panel[index] = {
+      ...panel[index],
+      image,
+    };
+
+    setContent({
+      ...content,
+      panel,
+    });
   };
 
   const removePanelPerson = (index: number) => {
     setContent({
       ...content,
-      panel: content.panel.filter((_, i) => i !== index),
+      panel: content.panel.filter(
+        (_, personIndex) => personIndex !== index,
+      ),
     });
   };
 
   const addPanelPerson = () => {
     setContent({
       ...content,
-      panel: [...content.panel, createEmptyPerson(`panel-${Date.now()}`)],
+      panel: [
+        ...content.panel,
+        createEmptyPerson(`panel-${Date.now()}`),
+      ],
     });
   };
 
-  const uploadPanelImage = async (index: number, file: File) => {
+  const uploadPanelImage = async (
+    index: number,
+    file: File,
+  ) => {
     setUploading(`panel-${index}`);
     setError("");
 
     try {
       const url = await uploadImage(file);
       updatePanelPersonImage(index, url);
-    } catch (err) {
-      console.error(err);
+    } catch (uploadError) {
+      console.error(uploadError);
       setError("Panel image upload failed.");
     } finally {
       setUploading("");
     }
   };
 
-  /* ---------------- Executive Body ---------------- */
+  /* ---------------- Executive Body images ---------------- */
+
   const updateExecutivePersonImage = (
     departmentIndex: number,
     imageIndex: number,
     image: string,
   ) => {
     const executiveBody = [...content.executiveBody];
-    const images = [...executiveBody[departmentIndex].images];
-    images[imageIndex] = { ...images[imageIndex], image };
+    const images = [
+      ...executiveBody[departmentIndex].images,
+    ];
+
+    images[imageIndex] = {
+      ...images[imageIndex],
+      image,
+    };
+
     executiveBody[departmentIndex] = {
       ...executiveBody[departmentIndex],
       images,
     };
-    setContent({ ...content, executiveBody });
+
+    setContent({
+      ...content,
+      executiveBody,
+    });
   };
 
   const removeExecutivePerson = (
@@ -410,26 +503,45 @@ export default function PanelEbPage() {
     imageIndex: number,
   ) => {
     const executiveBody = [...content.executiveBody];
+
     executiveBody[departmentIndex] = {
       ...executiveBody[departmentIndex],
-      images: executiveBody[departmentIndex].images.filter(
-        (_, i) => i !== imageIndex,
+
+      images: executiveBody[
+        departmentIndex
+      ].images.filter(
+        (_, personIndex) =>
+          personIndex !== imageIndex,
       ),
     };
-    setContent({ ...content, executiveBody });
+
+    setContent({
+      ...content,
+      executiveBody,
+    });
   };
 
-  const addExecutivePerson = (departmentIndex: number) => {
+  const addExecutivePerson = (
+    departmentIndex: number,
+  ) => {
     const executiveBody = [...content.executiveBody];
     const department = executiveBody[departmentIndex];
+
     executiveBody[departmentIndex] = {
       ...department,
+
       images: [
         ...department.images,
-        createEmptyPerson(`${department.id}-${Date.now()}`),
+        createEmptyPerson(
+          `${department.id}-${Date.now()}`,
+        ),
       ],
     };
-    setContent({ ...content, executiveBody });
+
+    setContent({
+      ...content,
+      executiveBody,
+    });
   };
 
   const uploadExecutiveImage = async (
@@ -437,30 +549,49 @@ export default function PanelEbPage() {
     imageIndex: number,
     file: File,
   ) => {
-    setUploading(`eb-${departmentIndex}-${imageIndex}`);
+    setUploading(
+      `eb-${departmentIndex}-${imageIndex}`,
+    );
+
     setError("");
 
     try {
       const url = await uploadImage(file);
-      updateExecutivePersonImage(departmentIndex, imageIndex, url);
-    } catch (err) {
-      console.error(err);
-      setError("Executive body image upload failed.");
+
+      updateExecutivePersonImage(
+        departmentIndex,
+        imageIndex,
+        url,
+      );
+    } catch (uploadError) {
+      console.error(uploadError);
+
+      setError(
+        "Executive body image upload failed.",
+      );
     } finally {
       setUploading("");
     }
   };
 
-  /* ---------------- Edit controls ---------------- */
+  /* ---------------- Existing page edit controls ---------------- */
+
   const startEditing = () => {
-    setOriginalContent(JSON.parse(JSON.stringify(content)));
+    setOriginalContent(
+      JSON.parse(JSON.stringify(content)),
+    );
+
     setIsEditing(true);
     setError("");
   };
 
   const cancelEditing = () => {
     if (saving || uploading) return;
-    setContent(JSON.parse(JSON.stringify(originalContent)));
+
+    setContent(
+      JSON.parse(JSON.stringify(originalContent)),
+    );
+
     setIsEditing(false);
     setError("");
   };
@@ -476,15 +607,21 @@ export default function PanelEbPage() {
         { withCredentials: true },
       );
 
-      setOriginalContent(JSON.parse(JSON.stringify(content)));
-      setIsEditing(false);
-    } catch (err) {
-      console.error("Failed to save Panel & EB:", err);
+      setOriginalContent(
+        JSON.parse(JSON.stringify(content)),
+      );
 
-      if (err instanceof AxiosError) {
+      setIsEditing(false);
+    } catch (saveError) {
+      console.error(
+        "Failed to save Panel & EB:",
+        saveError,
+      );
+
+      if (saveError instanceof AxiosError) {
         setError(
-          err.response?.data?.error ||
-            err.response?.data?.message ||
+          saveError.response?.data?.error ||
+            saveError.response?.data?.message ||
             "Failed to save content",
         );
       } else {
@@ -496,45 +633,70 @@ export default function PanelEbPage() {
   };
 
   if (loading) {
-    return <PageLoader label="Loading panel and executive body" />;
+    return (
+      <PageLoader label="Loading panel and executive body" />
+    );
   }
 
-  /* ------------------------------------------------------------
-     VISIBILITY LOGIC
-     - Admin in edit mode: show everything (so content can be added)
-     - Everyone else: only show what actually exists
-     ------------------------------------------------------------ */
+  /* ---------------- Public visibility ---------------- */
+
   const showAll = auth && isEditing;
 
-  const hasPanelVideo = Boolean(getYouTubeId(content.panelVideoUrl));
-  const hasExecutiveVideo = Boolean(getYouTubeId(content.executiveVideoUrl));
+  const hasPanelVideo = Boolean(
+    getYouTubeId(content.panelVideoUrl),
+  );
+
+  const hasExecutiveVideo = Boolean(
+    getYouTubeId(content.executiveVideoUrl),
+  );
 
   const visiblePanel = content.panel
-    .map((person, index) => ({ person, index }))
-    .filter(({ person }) => showAll || hasImage(person));
+    .map((person, index) => ({
+      person,
+      index,
+    }))
+    .filter(
+      ({ person }) => showAll || hasImage(person),
+    );
 
   const visibleDepartments = content.executiveBody
     .map((department, departmentIndex) => ({
       department,
       departmentIndex,
+
       images: department.images
-        .map((person, imageIndex) => ({ person, imageIndex }))
-        .filter(({ person }) => showAll || hasImage(person)),
+        .map((person, imageIndex) => ({
+          person,
+          imageIndex,
+        }))
+        .filter(
+          ({ person }) => showAll || hasImage(person),
+        ),
     }))
-    .filter((item) => showAll || item.images.length > 0);
+    .filter(
+      (item) =>
+        showAll || item.images.length > 0,
+    );
 
   const showPanelSection =
-    showAll || hasPanelVideo || visiblePanel.length > 0;
+    showAll ||
+    hasPanelVideo ||
+    visiblePanel.length > 0;
 
   const showExecutiveSection =
-    showAll || hasExecutiveVideo || visibleDepartments.length > 0;
+    showAll ||
+    hasExecutiveVideo ||
+    visibleDepartments.length > 0;
 
-  const nothingToShow = !showPanelSection && !showExecutiveSection;
+  const nothingToShow =
+    !showPanelSection &&
+    !showExecutiveSection;
 
   return (
     <main className="min-h-screen bg-background px-4 py-24 font-poppins text-text-secondary md:px-8">
       <div className="mx-auto max-w-7xl">
-        {/* ===================== PAGE HEADER ===================== */}
+        {/* Page heading and existing admin controls */}
+
         <div className="mb-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>
             <motion.p
@@ -561,7 +723,9 @@ export default function PanelEbPage() {
                   <button
                     type="button"
                     onClick={cancelEditing}
-                    disabled={saving || Boolean(uploading)}
+                    disabled={
+                      saving || Boolean(uploading)
+                    }
                     className="flex cursor-pointer items-center gap-2 rounded-full border border-border px-5 py-3 text-sm font-bold text-text-muted transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <HiX />
@@ -571,11 +735,15 @@ export default function PanelEbPage() {
                   <button
                     type="button"
                     onClick={saveContent}
-                    disabled={saving || Boolean(uploading)}
+                    disabled={
+                      saving || Boolean(uploading)
+                    }
                     className="flex cursor-pointer items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-bold text-white transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <HiSave />
-                    {saving ? "Saving..." : "Save Changes"}
+                    {saving
+                      ? "Saving..."
+                      : "Save Changes"}
                   </button>
                 </>
               ) : (
@@ -599,14 +767,15 @@ export default function PanelEbPage() {
         )}
 
         {uploading && (
-          <div className="fixed right-6 bottom-6 z-50 rounded-full bg-accent px-5 py-3 text-sm font-bold text-white shadow-xl">
+          <div className="fixed bottom-6 right-6 z-50 rounded-full bg-accent px-5 py-3 text-sm font-bold text-white shadow-xl">
             Uploading image...
           </div>
         )}
 
-        {/* =====================================================
-            1) PANEL  ->  YouTube video first, then pictures
-            ===================================================== */}
+        {/* ==================================================
+            PANEL: video, then pictures
+        ================================================== */}
+
         {showPanelSection && (
           <section className="mb-24">
             <div className="mb-7 flex items-center justify-between">
@@ -618,7 +787,9 @@ export default function PanelEbPage() {
                 <button
                   type="button"
                   onClick={addPanelPerson}
-                  disabled={saving || Boolean(uploading)}
+                  disabled={
+                    saving || Boolean(uploading)
+                  }
                   className="flex cursor-pointer items-center gap-2 rounded-full bg-accent px-4 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <HiPlus />
@@ -627,7 +798,6 @@ export default function PanelEbPage() {
               )}
             </div>
 
-            {/* Panel video URL input (admin edit mode) */}
             {auth && isEditing && (
               <VideoUrlEditor
                 title="Panel YouTube Video"
@@ -636,39 +806,46 @@ export default function PanelEbPage() {
               />
             )}
 
-            {/* Panel video */}
             <SectionVideo
               videoUrl={content.panelVideoUrl}
               label="Panel Video"
             />
 
-            {/* Panel pictures */}
             {visiblePanel.length > 0 ? (
               <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 xl:grid-cols-4">
-                {visiblePanel.map(({ person, index }) => (
-                  <SolidImageCard
-                    key={person.id}
-                    person={person}
-                    isAdmin={auth}
-                    isEditing={isEditing}
-                    onRemove={() => removePanelPerson(index)}
-                    onUpload={(file) => uploadPanelImage(index, file)}
-                  />
-                ))}
+                {visiblePanel.map(
+                  ({ person, index }) => (
+                    <SolidImageCard
+                      key={person.id}
+                      person={person}
+                      isAdmin={auth}
+                      isEditing={isEditing}
+                      onRemove={() =>
+                        removePanelPerson(index)
+                      }
+                      onUpload={(file) =>
+                        uploadPanelImage(index, file)
+                      }
+                    />
+                  ),
+                )}
               </div>
             ) : (
               showAll && (
                 <div className="rounded-3xl border-2 border-dashed border-accent/30 bg-accent/5 px-6 py-16 text-center">
-                  <p className="text-text-muted">No panel images available.</p>
+                  <p className="text-text-muted">
+                    No panel images available.
+                  </p>
                 </div>
               )
             )}
           </section>
         )}
 
-        {/* =====================================================
-            2) EXECUTIVE BODY  ->  YouTube video first, then pictures
-            ===================================================== */}
+        {/* ==================================================
+            EXECUTIVE BODY: video, then department pictures
+        ================================================== */}
+
         {showExecutiveSection && (
           <section>
             <div className="mb-8">
@@ -677,7 +854,6 @@ export default function PanelEbPage() {
               </h2>
             </div>
 
-            {/* Executive video URL input (admin edit mode) */}
             {auth && isEditing && (
               <VideoUrlEditor
                 title="Executive Body YouTube Video"
@@ -686,16 +862,18 @@ export default function PanelEbPage() {
               />
             )}
 
-            {/* Executive video */}
             <SectionVideo
               videoUrl={content.executiveVideoUrl}
               label="Executive Body Video"
             />
 
-            {/* Executive pictures grouped by department */}
             <div className="space-y-20">
               {visibleDepartments.map(
-                ({ department, departmentIndex, images }) => (
+                ({
+                  department,
+                  departmentIndex,
+                  images,
+                }) => (
                   <section key={department.id}>
                     <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <h3 className="font-bebasNeue text-5xl tracking-wider text-accent md:text-6xl">
@@ -705,8 +883,15 @@ export default function PanelEbPage() {
                       {auth && isEditing && (
                         <button
                           type="button"
-                          onClick={() => addExecutivePerson(departmentIndex)}
-                          disabled={saving || Boolean(uploading)}
+                          onClick={() =>
+                            addExecutivePerson(
+                              departmentIndex,
+                            )
+                          }
+                          disabled={
+                            saving ||
+                            Boolean(uploading)
+                          }
                           className="flex cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-4 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <HiPlus />
@@ -717,30 +902,39 @@ export default function PanelEbPage() {
 
                     {images.length > 0 ? (
                       <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-                        {images.map(({ person, imageIndex }) => (
-                          <SolidImageCard
-                            key={person.id}
-                            person={person}
-                            isAdmin={auth}
-                            isEditing={isEditing}
-                            onRemove={() =>
-                              removeExecutivePerson(departmentIndex, imageIndex)
-                            }
-                            onUpload={(file) =>
-                              uploadExecutiveImage(
-                                departmentIndex,
-                                imageIndex,
-                                file,
-                              )
-                            }
-                          />
-                        ))}
+                        {images.map(
+                          ({
+                            person,
+                            imageIndex,
+                          }) => (
+                            <SolidImageCard
+                              key={person.id}
+                              person={person}
+                              isAdmin={auth}
+                              isEditing={isEditing}
+                              onRemove={() =>
+                                removeExecutivePerson(
+                                  departmentIndex,
+                                  imageIndex,
+                                )
+                              }
+                              onUpload={(file) =>
+                                uploadExecutiveImage(
+                                  departmentIndex,
+                                  imageIndex,
+                                  file,
+                                )
+                              }
+                            />
+                          ),
+                        )}
                       </div>
                     ) : (
                       showAll && (
                         <div className="rounded-3xl border-2 border-dashed border-accent/30 bg-accent/5 px-6 py-14 text-center">
                           <p className="text-text-muted">
-                            No images available for this department.
+                            No images available for
+                            this department.
                           </p>
                         </div>
                       )
@@ -752,17 +946,24 @@ export default function PanelEbPage() {
           </section>
         )}
 
-        {/* Nothing added anywhere yet (public view) */}
+        {/* No current Panel & EB images or videos yet */}
+
         {nothingToShow && (
           <div className="rounded-3xl border-2 border-dashed border-accent/30 bg-accent/5 px-6 py-20 text-center">
             <p className="font-bebasNeue text-3xl tracking-wide text-text-secondary">
               Coming Soon
             </p>
+
             <p className="mt-2 text-sm text-text-muted">
-              Panel and Executive Body content will appear here soon.
+              Panel and Executive Body content will
+              appear here soon.
             </p>
           </div>
         )}
+
+        {/* Previous panels and their separate admin editor */}
+
+        <PreviousPanels />
       </div>
     </main>
   );
