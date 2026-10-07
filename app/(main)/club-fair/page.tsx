@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type ReactNode,
 } from "react";
 import Link from "next/link";
 import axios, { AxiosError } from "axios";
@@ -14,6 +15,7 @@ import {
   FaCalendarAlt,
   FaCampground,
   FaChartBar,
+  FaCheckCircle,
   FaCompass,
   FaFire,
   FaHiking,
@@ -27,6 +29,7 @@ import {
   FaUsers,
 } from "react-icons/fa";
 import { HiOutlinePencilAlt } from "react-icons/hi";
+
 import { useAuth } from "@/app/context/AuthProvider";
 import CustomSelect from "@/app/components/ui/CustomSelect";
 import ClubFairOrderEditor from "@/app/components/editors/ClubFairOrderEditor";
@@ -39,8 +42,45 @@ import {
   type ClubFairWindowStatus,
 } from "@/lib/clubFairWindow";
 
-type ClubFairSectionId = "counter" | "application" | "whyJoin" | "cta";
-type SemesterName = "Spring" | "Summer" | "Fall";
+type ClubFairSectionId =
+  | "counter"
+  | "application"
+  | "whyJoin"
+  | "cta";
+
+type SemesterName =
+  | "Spring"
+  | "Summer"
+  | "Fall";
+
+interface SubmissionReceipt {
+  submissionId: string;
+  email: string;
+  semester: SemesterName;
+  year: string;
+  confirmationEmailSent: true;
+}
+
+interface CountResponse {
+  count: number;
+  totalCount: number;
+  databaseRecords: number;
+  semester: SemesterName;
+  year: string;
+  label: string;
+}
+
+interface SubmissionResponse {
+  result?: string;
+  message?: string;
+  submissionId?: string;
+  semester?: SemesterName;
+  year?: string;
+  email?: string;
+  confirmationEmailSent?: boolean;
+  alreadySubmitted?: boolean;
+  error?: string;
+}
 
 const defaultSectionOrder: ClubFairSectionId[] = [
   "counter",
@@ -83,15 +123,37 @@ const benefits = [
 ];
 
 const benefitIcons = [
-  <FaMountain key="mountain" className="text-4xl text-accent" />,
-  <FaHiking key="hiking" className="text-4xl text-accent" />,
-  <FaCompass key="compass" className="text-4xl text-accent" />,
-  <FaCampground key="camp" className="text-4xl text-accent" />,
-  <FaUsers key="users" className="text-4xl text-accent" />,
-  <FaFire key="fire" className="text-4xl text-accent" />,
+  <FaMountain
+    key="mountain"
+    className="text-4xl text-accent"
+  />,
+  <FaHiking
+    key="hiking"
+    className="text-4xl text-accent"
+  />,
+  <FaCompass
+    key="compass"
+    className="text-4xl text-accent"
+  />,
+  <FaCampground
+    key="camp"
+    className="text-4xl text-accent"
+  />,
+  <FaUsers
+    key="users"
+    className="text-4xl text-accent"
+  />,
+  <FaFire
+    key="fire"
+    className="text-4xl text-accent"
+  />,
 ];
 
-const genderOptions = ["Male", "Female", "Other"];
+const genderOptions = [
+  "Male",
+  "Female",
+  "Other",
+];
 
 const religionOptions = [
   "Islam",
@@ -144,9 +206,17 @@ const bloodGroupOptions = [
   "AB- ve",
 ];
 
-const bloodDonationOptions = ["Yes", "Maybe", "No"];
+const bloodDonationOptions = [
+  "Yes",
+  "Maybe",
+  "No",
+];
 
-const activeSemesterOptions: SemesterName[] = ["Spring", "Summer", "Fall"];
+const activeSemesterOptions: SemesterName[] = [
+  "Spring",
+  "Summer",
+  "Fall",
+];
 
 const initialForm = {
   name: "",
@@ -157,26 +227,27 @@ const initialForm = {
   contact: "",
   facebook: "",
   department: "",
+  otherDepartment: "",
   semester: "",
   bloodGroup: "",
   bloodDonation: "",
   email: "",
 };
 
-interface CountResponse {
-  count: number;
-  totalCount: number;
-  databaseRecords: number;
-  semester: SemesterName;
-  year: string;
-  label: string;
-}
-
 const inputClass =
   "h-12 w-full rounded-xl border border-input-border bg-input-bg px-4 text-[15px] text-text-secondary outline-none transition focus:border-accent placeholder:text-text-muted sm:h-13 sm:text-sm";
 
 function RequiredMark() {
-  return <span className="text-accent">*</span>;
+  return (
+    <span className="text-accent">*</span>
+  );
+}
+
+function receiptStorageKey(
+  semester: SemesterName,
+  year: string,
+) {
+  return `buac:club-fair:submitted:${year}:${semester}`;
 }
 
 function normalizeFacebookUrl(value: string) {
@@ -184,20 +255,27 @@ function normalizeFacebookUrl(value: string) {
 
   if (!input) return "";
 
-  const withProtocol = /^https?:\/\//i.test(input)
-    ? input
-    : `https://${input}`;
+  const withProtocol =
+    /^https?:\/\//i.test(input)
+      ? input
+      : `https://${input}`;
 
   try {
-    const parsed = new URL(withProtocol);
+    const parsed =
+      new URL(withProtocol);
 
-    const hostname = parsed.hostname.toLowerCase().replace(/^www\./, "");
+    const hostname =
+      parsed.hostname
+        .toLowerCase()
+        .replace(/^www\./, "");
 
     const validHostname =
       hostname === "facebook.com" ||
       hostname === "m.facebook.com" ||
       hostname === "fb.com" ||
-      hostname.endsWith(".facebook.com");
+      hostname.endsWith(
+        ".facebook.com",
+      );
 
     if (!validHostname) return "";
 
@@ -211,27 +289,41 @@ function toLocalInputValue(iso: string) {
   if (!iso) return "";
 
   const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
 
-  const pad = (n: number) => String(n).padStart(2, "0");
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
 
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-    date.getDate(),
-  )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  const pad = (number: number) =>
+    String(number).padStart(2, "0");
+
+  return `${date.getFullYear()}-${pad(
+    date.getMonth() + 1,
+  )}-${pad(date.getDate())}T${pad(
+    date.getHours(),
+  )}:${pad(date.getMinutes())}`;
 }
 
-function fromLocalInputValue(value: string) {
+function fromLocalInputValue(
+  value: string,
+) {
   if (!value) return "";
 
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+
+  return Number.isNaN(date.getTime())
+    ? ""
+    : date.toISOString();
 }
 
 function formatDateTime(iso: string) {
   if (!iso) return "";
 
   const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
 
   return date.toLocaleString("en-US", {
     weekday: "short",
@@ -243,9 +335,15 @@ function formatDateTime(iso: string) {
   });
 }
 
-function getErrorMessage(error: unknown, fallback: string) {
+function getErrorMessage(
+  error: unknown,
+  fallback: string,
+) {
   if (error instanceof AxiosError) {
-    return error.response?.data?.error || fallback;
+    return (
+      error.response?.data?.error ||
+      fallback
+    );
   }
 
   return fallback;
@@ -254,10 +352,26 @@ function getErrorMessage(error: unknown, fallback: string) {
 export default function ClubFairPage() {
   const { auth } = useAuth();
 
-  /* ---------------- Form ---------------- */
-  const [form, setForm] = useState(initialForm);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<{
+  const [form, setForm] =
+    useState(initialForm);
+
+  const [
+    isSubmitting,
+    setIsSubmitting,
+  ] = useState(false);
+
+  const [
+    submissionReceipt,
+    setSubmissionReceipt,
+  ] =
+    useState<SubmissionReceipt | null>(
+      null,
+    );
+
+  const [
+    submitStatus,
+    setSubmitStatus,
+  ] = useState<{
     type: "success" | "error" | null;
     message: string;
   }>({
@@ -265,237 +379,526 @@ export default function ClubFairPage() {
     message: "",
   });
 
-  /* ---------------- Live counter ---------------- */
-  const [liveCount, setLiveCount] = useState<number | null>(null);
-  const [liveTotal, setLiveTotal] = useState<number | null>(null);
-  const [activeSemester, setActiveSemester] =
+  const [liveCount, setLiveCount] =
+    useState<number | null>(null);
+
+  const [liveTotal, setLiveTotal] =
+    useState<number | null>(null);
+
+  const [
+    activeSemester,
+    setActiveSemester,
+  ] =
     useState<SemesterName>("Spring");
-  const [activeYear, setActiveYear] = useState(
+
+  const [
+    activeYear,
+    setActiveYear,
+  ] = useState(
     String(new Date().getFullYear()),
   );
-  const [activeLabel, setActiveLabel] = useState("");
 
-  /* ---------------- Admin semester and count ---------------- */
-  const [adminSemester, setAdminSemester] =
+  const [
+    activeLabel,
+    setActiveLabel,
+  ] = useState("");
+
+  const [
+    adminSemester,
+    setAdminSemester,
+  ] =
     useState<SemesterName>("Spring");
-  const [adminYear, setAdminYear] = useState(
+
+  const [
+    adminYear,
+    setAdminYear,
+  ] = useState(
     String(new Date().getFullYear()),
   );
-  const [countInput, setCountInput] = useState("0");
-  const [totalCountInput, setTotalCountInput] = useState("0");
-  const [resetAllTime, setResetAllTime] = useState(false);
-  const [settingsSaving, setSettingsSaving] = useState(false);
-  const [countSaving, setCountSaving] = useState(false);
-  const [countResetting, setCountResetting] = useState(false);
-  const [adminMessage, setAdminMessage] = useState("");
-  const [adminError, setAdminError] = useState("");
 
-  const adminInputsLoaded = useRef(false);
+  const [
+    countInput,
+    setCountInput,
+  ] = useState("0");
 
-  const adminBusy = settingsSaving || countSaving || countResetting;
+  const [
+    totalCountInput,
+    setTotalCountInput,
+  ] = useState("0");
 
-  const yearOptions = Array.from({ length: 8 }, (_, index) =>
-    String(new Date().getFullYear() - 2 + index),
+  const [
+    resetAllTime,
+    setResetAllTime,
+  ] = useState(false);
+
+  const [
+    settingsSaving,
+    setSettingsSaving,
+  ] = useState(false);
+
+  const [
+    countSaving,
+    setCountSaving,
+  ] = useState(false);
+
+  const [
+    countResetting,
+    setCountResetting,
+  ] = useState(false);
+
+  const [
+    adminMessage,
+    setAdminMessage,
+  ] = useState("");
+
+  const [
+    adminError,
+    setAdminError,
+  ] = useState("");
+
+  const adminInputsLoaded =
+    useRef(false);
+
+  const adminBusy =
+    settingsSaving ||
+    countSaving ||
+    countResetting;
+
+  const yearOptions = Array.from(
+    { length: 8 },
+    (_, index) =>
+      String(
+        new Date().getFullYear() -
+          2 +
+          index,
+      ),
   );
 
-  /* ---------------- Section order ---------------- */
-  const [sectionOrder, setSectionOrder] =
-    useState<ClubFairSectionId[]>(defaultSectionOrder);
-  const [orderEditorOpen, setOrderEditorOpen] = useState(false);
-
-  /* ---------------- Registration window ---------------- */
-  const [windowSettings, setWindowSettings] = useState<ClubFairWindow>(
-    defaultClubFairWindow,
+  const [
+    sectionOrder,
+    setSectionOrder,
+  ] = useState<ClubFairSectionId[]>(
+    defaultSectionOrder,
   );
-  const [windowLoaded, setWindowLoaded] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
 
-  const [draftEnabled, setDraftEnabled] = useState(false);
-  const [draftStart, setDraftStart] = useState("");
-  const [draftEnd, setDraftEnd] = useState("");
-  const [windowSaving, setWindowSaving] = useState(false);
-  const [windowMessage, setWindowMessage] = useState("");
-  const [windowError, setWindowError] = useState("");
+  const [
+    orderEditorOpen,
+    setOrderEditorOpen,
+  ] = useState(false);
 
-  const windowStatus: ClubFairWindowStatus = getClubFairWindowStatus(
+  const [
     windowSettings,
-    now,
+    setWindowSettings,
+  ] =
+    useState<ClubFairWindow>(
+      defaultClubFairWindow,
+    );
+
+  const [
+    windowLoaded,
+    setWindowLoaded,
+  ] = useState(false);
+
+  const [now, setNow] = useState(
+    () => Date.now(),
   );
 
-  const updateForm = (field: keyof typeof initialForm, value: string) => {
+  const [
+    draftEnabled,
+    setDraftEnabled,
+  ] = useState(false);
+
+  const [
+    draftStart,
+    setDraftStart,
+  ] = useState("");
+
+  const [
+    draftEnd,
+    setDraftEnd,
+  ] = useState("");
+
+  const [
+    windowSaving,
+    setWindowSaving,
+  ] = useState(false);
+
+  const [
+    windowMessage,
+    setWindowMessage,
+  ] = useState("");
+
+  const [
+    windowError,
+    setWindowError,
+  ] = useState("");
+
+  const windowStatus: ClubFairWindowStatus =
+    getClubFairWindowStatus(
+      windowSettings,
+      now,
+    );
+
+  const updateForm = (
+    field: keyof typeof initialForm,
+    value: string,
+  ) => {
     setForm((previous) => ({
       ...previous,
       [field]: value,
     }));
   };
 
-  const applyWindow = (window: ClubFairWindow) => {
-    setWindowSettings(window);
-    setDraftEnabled(window.enabled);
-    setDraftStart(toLocalInputValue(window.startAt));
-    setDraftEnd(toLocalInputValue(window.endAt));
+  const applyWindow = (
+    settings: ClubFairWindow,
+  ) => {
+    setWindowSettings(settings);
+    setDraftEnabled(settings.enabled);
+
+    setDraftStart(
+      toLocalInputValue(
+        settings.startAt,
+      ),
+    );
+
+    setDraftEnd(
+      toLocalInputValue(
+        settings.endAt,
+      ),
+    );
   };
 
-  const fetchSectionOrder = useCallback(async () => {
-    try {
-      const response = await axios.get("/api/content/club-fair-order");
+  const fetchSectionOrder =
+    useCallback(async () => {
+      try {
+        const response =
+          await axios.get(
+            "/api/content/club-fair-order",
+          );
 
-      if (Array.isArray(response.data?.order)) {
-        setSectionOrder(response.data.order);
+        if (
+          Array.isArray(
+            response.data?.order,
+          )
+        ) {
+          setSectionOrder(
+            response.data.order,
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Failed to fetch Club Fair section order:",
+          error,
+        );
       }
-    } catch (error) {
-      console.error("Failed to fetch Club Fair section order:", error);
-    }
-  }, []);
+    }, []);
 
-  const fetchCount = useCallback(async (syncAdminInputs = false) => {
-    try {
-      const response = await axios.get<CountResponse>(
-        "/api/club-fair/count",
-        {
-          withCredentials: true,
-        },
-      );
+  const fetchCount = useCallback(
+    async (
+      syncAdminInputs = false,
+    ) => {
+      try {
+        const response =
+          await axios.get<CountResponse>(
+            "/api/club-fair/count",
+            {
+              withCredentials: true,
+            },
+          );
 
-      const result = response.data;
+        const result =
+          response.data;
 
-      setLiveCount(result.count || 0);
-      setLiveTotal(result.totalCount || 0);
-      setActiveSemester(result.semester);
-      setActiveYear(result.year);
-      setActiveLabel(result.label);
+        setLiveCount(
+          result.count || 0,
+        );
 
-      if (syncAdminInputs || !adminInputsLoaded.current) {
-        setAdminSemester(result.semester);
-        setAdminYear(result.year);
-        setCountInput(String(result.count || 0));
-        setTotalCountInput(String(result.totalCount || 0));
-        adminInputsLoaded.current = true;
+        setLiveTotal(
+          result.totalCount || 0,
+        );
+
+        setActiveSemester(
+          result.semester,
+        );
+
+        setActiveYear(result.year);
+        setActiveLabel(result.label);
+
+        if (
+          syncAdminInputs ||
+          !adminInputsLoaded.current
+        ) {
+          setAdminSemester(
+            result.semester,
+          );
+
+          setAdminYear(result.year);
+
+          setCountInput(
+            String(
+              result.count || 0,
+            ),
+          );
+
+          setTotalCountInput(
+            String(
+              result.totalCount || 0,
+            ),
+          );
+
+          adminInputsLoaded.current =
+            true;
+        }
+      } catch (error) {
+        console.error(
+          "Failed to fetch Club Fair count:",
+          error,
+        );
       }
-    } catch (error) {
-      console.error("Failed to fetch Club Fair count:", error);
-    }
-  }, []);
+    },
+    [],
+  );
 
-  const fetchWindow = useCallback(async () => {
-    try {
-      const response = await axios.get("/api/content/club-fair-window");
+  const fetchWindow =
+    useCallback(async () => {
+      try {
+        const response =
+          await axios.get(
+            "/api/content/club-fair-window",
+          );
 
-      applyWindow(normalizeClubFairWindow(response.data?.window));
-    } catch (error) {
-      console.error("Failed to fetch Club Fair registration window:", error);
-    } finally {
-      setWindowLoaded(true);
-    }
-  }, []);
+        applyWindow(
+          normalizeClubFairWindow(
+            response.data?.window,
+          ),
+        );
+      } catch (error) {
+        console.error(
+          "Failed to fetch Club Fair registration window:",
+          error,
+        );
+      } finally {
+        setWindowLoaded(true);
+      }
+    }, []);
 
   useEffect(() => {
-    fetchSectionOrder();
-    fetchCount();
-    fetchWindow();
+    void fetchSectionOrder();
+    void fetchCount();
+    void fetchWindow();
 
-    const countInterval = window.setInterval(() => fetchCount(), 15000);
+    const countInterval =
+      window.setInterval(
+        () => void fetchCount(),
+        15000,
+      );
 
-    const clockInterval = window.setInterval(() => {
-      setNow(Date.now());
-    }, 30000);
+    const clockInterval =
+      window.setInterval(() => {
+        setNow(Date.now());
+      }, 30000);
 
     return () => {
-      window.clearInterval(countInterval);
-      window.clearInterval(clockInterval);
+      window.clearInterval(
+        countInterval,
+      );
+
+      window.clearInterval(
+        clockInterval,
+      );
     };
-  }, [fetchSectionOrder, fetchCount, fetchWindow]);
+  }, [
+    fetchSectionOrder,
+    fetchCount,
+    fetchWindow,
+  ]);
+
+  /*
+   * Restore the success screen after a page refresh
+   * on the same browser.
+   */
+  useEffect(() => {
+    if (!activeLabel) return;
+
+    setSubmissionReceipt(null);
+
+    try {
+      const key = receiptStorageKey(
+        activeSemester,
+        activeYear,
+      );
+
+      const stored =
+        window.localStorage.getItem(
+          key,
+        );
+
+      if (!stored) return;
+
+      const parsed =
+        JSON.parse(
+          stored,
+        ) as SubmissionReceipt;
+
+      if (
+        parsed?.confirmationEmailSent ===
+          true &&
+        parsed.semester ===
+          activeSemester &&
+        parsed.year === activeYear &&
+        parsed.email
+      ) {
+        setSubmissionReceipt(parsed);
+      }
+    } catch (error) {
+      console.error(
+        "Failed to restore Club Fair receipt:",
+        error,
+      );
+    }
+  }, [
+    activeSemester,
+    activeYear,
+    activeLabel,
+  ]);
 
   const clearAdminMessages = () => {
     setAdminMessage("");
     setAdminError("");
   };
 
-  const saveActiveSemester = async () => {
-    setSettingsSaving(true);
-    clearAdminMessages();
+  const saveActiveSemester =
+    async () => {
+      setSettingsSaving(true);
+      clearAdminMessages();
 
-    try {
-      const response = await axios.put(
-        "/api/content/semester-settings",
-        {
-          semester: adminSemester,
-          year: adminYear,
-        },
-        {
-          withCredentials: true,
-        },
-      );
+      try {
+        const response =
+          await axios.put(
+            "/api/content/semester-settings",
+            {
+              semester:
+                adminSemester,
+              year: adminYear,
+            },
+            {
+              withCredentials: true,
+            },
+          );
 
-      const label =
-        response.data?.settings?.label || `${adminSemester} ${adminYear}`;
+        const label =
+          response.data?.settings
+            ?.label ||
+          `${adminSemester} ${adminYear}`;
 
-      setActiveLabel(label);
-      setAdminMessage(`Active semester changed to ${label}.`);
+        setActiveLabel(label);
 
-      await fetchCount(true);
-    } catch (error) {
-      console.error("Failed to save semester settings:", error);
-      setAdminError(
-        getErrorMessage(error, "Failed to update semester and year."),
-      );
-    } finally {
-      setSettingsSaving(false);
-    }
-  };
+        setAdminMessage(
+          `Active semester changed to ${label}.`,
+        );
+
+        await fetchCount(true);
+      } catch (error) {
+        setAdminError(
+          getErrorMessage(
+            error,
+            "Failed to update semester and year.",
+          ),
+        );
+      } finally {
+        setSettingsSaving(false);
+      }
+    };
 
   const saveCount = async () => {
     clearAdminMessages();
 
-    const semesterCount = Number(countInput);
-    const allTimeCount = Number(totalCountInput);
+    const semesterCount =
+      Number(countInput);
 
-    if (!Number.isInteger(semesterCount) || semesterCount < 0) {
-      setAdminError("Semester count must be a non-negative whole number.");
+    const allTimeCount =
+      Number(totalCountInput);
+
+    if (
+      !Number.isInteger(
+        semesterCount,
+      ) ||
+      semesterCount < 0
+    ) {
+      setAdminError(
+        "Semester count must be a non-negative whole number.",
+      );
       return;
     }
 
-    if (!Number.isInteger(allTimeCount) || allTimeCount < 0) {
-      setAdminError("All-time count must be a non-negative whole number.");
+    if (
+      !Number.isInteger(
+        allTimeCount,
+      ) ||
+      allTimeCount < 0
+    ) {
+      setAdminError(
+        "All-time count must be a non-negative whole number.",
+      );
       return;
     }
 
     setCountSaving(true);
 
     try {
-      const response = await axios.put(
-        "/api/club-fair/count",
-        {
-          action: "set",
-          count: semesterCount,
-          totalCount: allTimeCount,
-          semester: adminSemester,
-          year: adminYear,
-        },
-        {
-          withCredentials: true,
-        },
+      const response =
+        await axios.put(
+          "/api/club-fair/count",
+          {
+            action: "set",
+            count: semesterCount,
+            totalCount:
+              allTimeCount,
+            semester:
+              adminSemester,
+            year: adminYear,
+          },
+          {
+            withCredentials: true,
+          },
+        );
+
+      setCountInput(
+        String(
+          response.data.count,
+        ),
       );
 
-      setCountInput(String(response.data.count));
-      setTotalCountInput(String(response.data.totalCount));
-      setAdminMessage(`Count saved for ${response.data.label}.`);
+      setTotalCountInput(
+        String(
+          response.data.totalCount,
+        ),
+      );
+
+      setAdminMessage(
+        `Count saved for ${response.data.label}.`,
+      );
 
       await fetchCount();
     } catch (error) {
-      console.error("Failed to save Club Fair count:", error);
-      setAdminError(getErrorMessage(error, "Failed to save Club Fair count."));
+      setAdminError(
+        getErrorMessage(
+          error,
+          "Failed to save Club Fair count.",
+        ),
+      );
     } finally {
       setCountSaving(false);
     }
   };
 
   const resetCount = async () => {
-    const confirmed = window.confirm(
-      resetAllTime
-        ? `Reset the ${adminSemester} ${adminYear} count AND the all-time count to zero?`
-        : `Reset the ${adminSemester} ${adminYear} count to zero?`,
-    );
+    const confirmed =
+      window.confirm(
+        resetAllTime
+          ? `Reset the ${adminSemester} ${adminYear} count AND the all-time count to zero?`
+          : `Reset the ${adminSemester} ${adminYear} count to zero?`,
+      );
 
     if (!confirmed) return;
 
@@ -503,21 +906,33 @@ export default function ClubFairPage() {
     clearAdminMessages();
 
     try {
-      const response = await axios.put(
-        "/api/club-fair/count",
-        {
-          action: "reset",
-          semester: adminSemester,
-          year: adminYear,
-          resetTotal: resetAllTime,
-        },
-        {
-          withCredentials: true,
-        },
+      const response =
+        await axios.put(
+          "/api/club-fair/count",
+          {
+            action: "reset",
+            semester:
+              adminSemester,
+            year: adminYear,
+            resetTotal:
+              resetAllTime,
+          },
+          {
+            withCredentials: true,
+          },
+        );
+
+      setCountInput(
+        String(
+          response.data.count,
+        ),
       );
 
-      setCountInput(String(response.data.count));
-      setTotalCountInput(String(response.data.totalCount));
+      setTotalCountInput(
+        String(
+          response.data.totalCount,
+        ),
+      );
 
       setAdminMessage(
         resetAllTime
@@ -529,8 +944,12 @@ export default function ClubFairPage() {
 
       await fetchCount();
     } catch (error) {
-      console.error("Failed to reset Club Fair count:", error);
-      setAdminError(getErrorMessage(error, "Failed to reset Club Fair count."));
+      setAdminError(
+        getErrorMessage(
+          error,
+          "Failed to reset Club Fair count.",
+        ),
+      );
     } finally {
       setCountResetting(false);
     }
@@ -541,37 +960,58 @@ export default function ClubFairPage() {
     setWindowMessage("");
     setWindowError("");
 
-    const startAt = fromLocalInputValue(draftStart);
-    const endAt = fromLocalInputValue(draftEnd);
+    const startAt =
+      fromLocalInputValue(
+        draftStart,
+      );
+
+    const endAt =
+      fromLocalInputValue(
+        draftEnd,
+      );
 
     if (draftEnabled) {
       if (!startAt || !endAt) {
-        setWindowError("Please set both a start date and an end date.");
+        setWindowError(
+          "Please set both a start date and an end date.",
+        );
         setWindowSaving(false);
         return;
       }
 
-      if (Date.parse(endAt) <= Date.parse(startAt)) {
-        setWindowError("The end date must be after the start date.");
+      if (
+        Date.parse(endAt) <=
+        Date.parse(startAt)
+      ) {
+        setWindowError(
+          "The end date must be after the start date.",
+        );
         setWindowSaving(false);
         return;
       }
     }
 
     try {
-      const response = await axios.put(
-        "/api/content/club-fair-window",
-        {
-          enabled: draftEnabled,
-          startAt,
-          endAt,
-        },
-        {
-          withCredentials: true,
-        },
+      const response =
+        await axios.put(
+          "/api/content/club-fair-window",
+          {
+            enabled:
+              draftEnabled,
+            startAt,
+            endAt,
+          },
+          {
+            withCredentials: true,
+          },
+        );
+
+      applyWindow(
+        normalizeClubFairWindow(
+          response.data?.window,
+        ),
       );
 
-      applyWindow(normalizeClubFairWindow(response.data?.window));
       setNow(Date.now());
 
       setWindowMessage(
@@ -580,47 +1020,104 @@ export default function ClubFairPage() {
           : "Schedule turned off. The form is now always open.",
       );
     } catch (error) {
-      console.error("Failed to save registration window:", error);
-      setWindowError(getErrorMessage(error, "Failed to save the window."));
+      setWindowError(
+        getErrorMessage(
+          error,
+          "Failed to save the window.",
+        ),
+      );
     } finally {
       setWindowSaving(false);
     }
   };
 
   const validateForm = () => {
-    const requiredFields: [keyof typeof initialForm, string][] = [
+    const requiredFields: [
+      keyof typeof initialForm,
+      string,
+    ][] = [
       ["name", "Name"],
-      ["studentId", "Student ID"],
+      [
+        "studentId",
+        "Student ID",
+      ],
       ["address", "Address"],
       ["gender", "Gender"],
       ["religion", "Religion"],
-      ["contact", "Contact Number"],
-      ["facebook", "Facebook Profile Link"],
-      ["department", "University Department"],
+      [
+        "contact",
+        "Contact Number",
+      ],
+      [
+        "facebook",
+        "Facebook Profile Link",
+      ],
+      [
+        "department",
+        "University Department",
+      ],
       ["semester", "Semester"],
-      ["bloodGroup", "Blood Group"],
-      ["bloodDonation", "Blood donation interest"],
+      [
+        "bloodGroup",
+        "Blood Group",
+      ],
+      [
+        "bloodDonation",
+        "Blood donation interest",
+      ],
       ["email", "G-Suite Email"],
     ];
 
-    for (const [field, label] of requiredFields) {
+    for (
+      const [field, label] of
+      requiredFields
+    ) {
       if (!form[field].trim()) {
         return `${label} is required.`;
       }
     }
 
-    if (!normalizeFacebookUrl(form.facebook)) {
+    if (
+      form.department ===
+        "Other" &&
+      !form.otherDepartment.trim()
+    ) {
+      return "Please write your university department.";
+    }
+
+    if (
+      form.otherDepartment
+        .trim()
+        .length > 100
+    ) {
+      return "Department name must be 100 characters or fewer.";
+    }
+
+    if (
+      !normalizeFacebookUrl(
+        form.facebook,
+      )
+    ) {
       return "Enter a valid Facebook link, such as facebook.com/username.";
     }
 
-    if (!form.email.trim().toLowerCase().endsWith("@g.bracu.ac.bd")) {
+    if (
+      !form.email
+        .trim()
+        .toLowerCase()
+        .endsWith(
+          "@g.bracu.ac.bd",
+        )
+    ) {
       return "Please use a valid BRACU G-Suite email.";
     }
 
     return "";
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
 
     setSubmitStatus({
@@ -628,58 +1125,146 @@ export default function ClubFairPage() {
       message: "",
     });
 
-    if (getClubFairWindowStatus(windowSettings, Date.now()) !== "open") {
+    if (
+      getClubFairWindowStatus(
+        windowSettings,
+        Date.now(),
+      ) !== "open"
+    ) {
       setNow(Date.now());
       return;
     }
 
-    const validationError = validateForm();
+    const validationError =
+      validateForm();
 
     if (validationError) {
       setSubmitStatus({
         type: "error",
-        message: validationError,
+        message:
+          validationError,
       });
       return;
     }
 
+    const submittedDepartment =
+      form.department === "Other"
+        ? form.otherDepartment.trim()
+        : form.department.trim();
+
+    const submittedEmail =
+      form.email
+        .trim()
+        .toLowerCase();
+
     setIsSubmitting(true);
 
     try {
-      const response = await axios.post(
-        "/api/club-fair/submit",
-        {
-          Name: form.name,
-          StudentID: form.studentId,
-          Address: form.address,
-          Gender: form.gender,
-          Religion: form.religion,
-          Contact: form.contact,
-          Facebook: normalizeFacebookUrl(form.facebook),
-          Department: form.department,
-          Semester: form.semester,
-          BloodGroup: form.bloodGroup,
-          BloodDonation: form.bloodDonation,
-          Email: form.email.trim().toLowerCase(),
-        },
-        {
-          withCredentials: true,
-        },
+      const response =
+        await axios.post<SubmissionResponse>(
+          "/api/club-fair/submit",
+          {
+            Name:
+              form.name.trim(),
+            StudentID:
+              form.studentId.trim(),
+            Address:
+              form.address.trim(),
+            Gender:
+              form.gender,
+            Religion:
+              form.religion,
+            Contact:
+              form.contact.trim(),
+            Facebook:
+              normalizeFacebookUrl(
+                form.facebook,
+              ),
+            Department:
+              submittedDepartment,
+            Semester:
+              form.semester,
+            BloodGroup:
+              form.bloodGroup,
+            BloodDonation:
+              form.bloodDonation,
+            Email:
+              submittedEmail,
+          },
+          {
+            withCredentials: true,
+          },
+        );
+
+      if (
+        response.data
+          .confirmationEmailSent !==
+        true
+      ) {
+        setSubmitStatus({
+          type: "error",
+          message:
+            "The application was processed, but confirmation email delivery was not confirmed. Please submit again to retry the email.",
+        });
+        return;
+      }
+
+      const receipt: SubmissionReceipt = {
+        submissionId:
+          response.data
+            .submissionId || "",
+        email:
+          response.data.email ||
+          submittedEmail,
+        semester:
+          response.data.semester ||
+          activeSemester,
+        year:
+          response.data.year ||
+          activeYear,
+        confirmationEmailSent:
+          true,
+      };
+
+      try {
+        window.localStorage.setItem(
+          receiptStorageKey(
+            receipt.semester,
+            receipt.year,
+          ),
+          JSON.stringify(receipt),
+        );
+      } catch (storageError) {
+        console.error(
+          "Failed to save submission receipt:",
+          storageError,
+        );
+      }
+
+      setSubmissionReceipt(
+        receipt,
       );
 
       setSubmitStatus({
         type: "success",
         message:
-          response.data?.message || "Registration submitted successfully.",
+          "Application submitted, and a confirmation email has been sent.",
       });
 
       setForm(initialForm);
 
       await fetchCount();
     } catch (error) {
-      console.error("Club Fair submit error:", error);
+      console.error(
+        "Club Fair submit error:",
+        error,
+      );
 
-      if (error instanceof AxiosError && error.response?.status === 403) {
+      if (
+        error instanceof AxiosError &&
+        error.response?.status ===
+          403
+      ) {
         await fetchWindow();
         setNow(Date.now());
         return;
@@ -701,7 +1286,8 @@ export default function ClubFairPage() {
     const statusBadge =
       windowStatus === "open"
         ? "border-green-500/30 bg-green-500/10 text-green-500"
-        : windowStatus === "upcoming"
+        : windowStatus ===
+            "upcoming"
           ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-500"
           : "border-red-500/30 bg-red-500/10 text-red-500";
 
@@ -710,7 +1296,8 @@ export default function ClubFairPage() {
         ? windowSettings.enabled
           ? "Open now"
           : "Always open (schedule off)"
-        : windowStatus === "upcoming"
+        : windowStatus ===
+            "upcoming"
           ? "Not open yet"
           : "Closed";
 
@@ -728,8 +1315,11 @@ export default function ClubFairPage() {
             </h2>
 
             <p className="mt-1 text-xs text-text-muted">
-              Set when students can submit the Club Fair form. Times use your
-              device&apos;s local time zone.
+              Set when students can
+              submit the Club Fair
+              form. Times use your
+              device&apos;s local time
+              zone.
             </p>
           </div>
 
@@ -744,16 +1334,28 @@ export default function ClubFairPage() {
           <button
             type="button"
             role="switch"
-            aria-checked={draftEnabled}
-            onClick={() => setDraftEnabled((value) => !value)}
-            disabled={windowSaving}
+            aria-checked={
+              draftEnabled
+            }
+            onClick={() =>
+              setDraftEnabled(
+                (value) => !value,
+              )
+            }
+            disabled={
+              windowSaving
+            }
             className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full transition-colors disabled:opacity-50 ${
-              draftEnabled ? "bg-accent" : "bg-border"
+              draftEnabled
+                ? "bg-accent"
+                : "bg-border"
             }`}
           >
             <span
               className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                draftEnabled ? "translate-x-6" : "translate-x-1"
+                draftEnabled
+                  ? "translate-x-6"
+                  : "translate-x-1"
               }`}
             />
           </button>
@@ -767,34 +1369,56 @@ export default function ClubFairPage() {
 
         <div
           className={`grid gap-4 md:grid-cols-2 ${
-            draftEnabled ? "" : "pointer-events-none opacity-40"
+            draftEnabled
+              ? ""
+              : "pointer-events-none opacity-40"
           }`}
         >
           <div>
             <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-text-muted">
-              Opens (start date & time)
+              Opens (start date &
+              time)
             </label>
 
             <input
               type="datetime-local"
               value={draftStart}
-              onChange={(event) => setDraftStart(event.target.value)}
-              disabled={windowSaving || !draftEnabled}
-              className={inputClass}
+              onChange={(event) =>
+                setDraftStart(
+                  event.target.value,
+                )
+              }
+              disabled={
+                windowSaving ||
+                !draftEnabled
+              }
+              className={
+                inputClass
+              }
             />
           </div>
 
           <div>
             <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-text-muted">
-              Closes (end date & time)
+              Closes (end date &
+              time)
             </label>
 
             <input
               type="datetime-local"
               value={draftEnd}
-              onChange={(event) => setDraftEnd(event.target.value)}
-              disabled={windowSaving || !draftEnabled}
-              className={inputClass}
+              onChange={(event) =>
+                setDraftEnd(
+                  event.target.value,
+                )
+              }
+              disabled={
+                windowSaving ||
+                !draftEnabled
+              }
+              className={
+                inputClass
+              }
             />
           </div>
         </div>
@@ -803,11 +1427,15 @@ export default function ClubFairPage() {
           <p className="mt-4 text-xs text-text-muted">
             Currently saved:{" "}
             <span className="font-semibold text-text-secondary">
-              {formatDateTime(windowSettings.startAt)}
+              {formatDateTime(
+                windowSettings.startAt,
+              )}
             </span>{" "}
             to{" "}
             <span className="font-semibold text-text-secondary">
-              {formatDateTime(windowSettings.endAt)}
+              {formatDateTime(
+                windowSettings.endAt,
+              )}
             </span>
           </p>
         )}
@@ -828,11 +1456,16 @@ export default function ClubFairPage() {
           <button
             type="button"
             onClick={saveWindow}
-            disabled={windowSaving}
+            disabled={
+              windowSaving
+            }
             className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-bold text-white transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <FaSave />
-            {windowSaving ? "Saving..." : "Save Window"}
+
+            {windowSaving
+              ? "Saving..."
+              : "Save Window"}
           </button>
         </div>
       </section>
@@ -853,17 +1486,24 @@ export default function ClubFairPage() {
           </h2>
 
           <p className="mt-1 text-xs text-text-muted">
-            Choose the active semester, edit the counts, or reset them.
+            Choose the active
+            semester, edit the counts,
+            or reset them.
           </p>
         </div>
 
         <div className="flex shrink-0 flex-wrap gap-2 self-start">
           <span className="rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-bold text-accent">
-            Active: {activeLabel || `${activeSemester} ${activeYear}`}
+            Active:{" "}
+            {activeLabel ||
+              `${activeSemester} ${activeYear}`}
           </span>
 
           <span className="rounded-full border border-border bg-surface-secondary px-3 py-1 text-xs font-bold text-text-secondary">
-            All-time: {liveTotal !== null ? liveTotal.toLocaleString() : "?"}
+            All-time:{" "}
+            {liveTotal !== null
+              ? liveTotal.toLocaleString()
+              : "?"}
           </span>
         </div>
       </div>
@@ -880,9 +1520,17 @@ export default function ClubFairPage() {
             </label>
 
             <CustomSelect
-              value={adminSemester}
-              onChange={(value) => setAdminSemester(value as SemesterName)}
-              options={activeSemesterOptions}
+              value={
+                adminSemester
+              }
+              onChange={(value) =>
+                setAdminSemester(
+                  value as SemesterName,
+                )
+              }
+              options={
+                activeSemesterOptions
+              }
               placeholder="Select Semester"
               variant="surface"
               disabled={adminBusy}
@@ -896,8 +1544,12 @@ export default function ClubFairPage() {
 
             <CustomSelect
               value={adminYear}
-              onChange={setAdminYear}
-              options={yearOptions}
+              onChange={
+                setAdminYear
+              }
+              options={
+                yearOptions
+              }
               placeholder="Select Year"
               variant="surface"
               disabled={adminBusy}
@@ -906,23 +1558,31 @@ export default function ClubFairPage() {
 
           <button
             type="button"
-            onClick={saveActiveSemester}
+            onClick={
+              saveActiveSemester
+            }
             disabled={adminBusy}
             className="inline-flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl bg-accent px-5 text-sm font-bold text-white transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <FaSave />
-            {settingsSaving ? "Saving..." : "Save Active Semester"}
+
+            {settingsSaving
+              ? "Saving..."
+              : "Save Active Semester"}
           </button>
         </div>
 
         <p className="mt-3 text-[11px] text-text-muted">
-          New submissions and the public counter use the active semester.
+          New submissions and the
+          public counter use the active
+          semester.
         </p>
       </div>
 
       <div className="mt-4 rounded-2xl border border-border bg-background/40 p-4">
         <p className="mb-3 text-xs font-bold uppercase tracking-widest text-text-secondary">
-          2. Counts for {adminSemester} {adminYear}
+          2. Counts for{" "}
+          {adminSemester} {adminYear}
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -936,9 +1596,15 @@ export default function ClubFairPage() {
               min="0"
               step="1"
               value={countInput}
-              onChange={(event) => setCountInput(event.target.value)}
+              onChange={(event) =>
+                setCountInput(
+                  event.target.value,
+                )
+              }
               disabled={adminBusy}
-              className={inputClass}
+              className={
+                inputClass
+              }
             />
           </div>
 
@@ -951,10 +1617,18 @@ export default function ClubFairPage() {
               type="number"
               min="0"
               step="1"
-              value={totalCountInput}
-              onChange={(event) => setTotalCountInput(event.target.value)}
+              value={
+                totalCountInput
+              }
+              onChange={(event) =>
+                setTotalCountInput(
+                  event.target.value,
+                )
+              }
               disabled={adminBusy}
-              className={inputClass}
+              className={
+                inputClass
+              }
             />
           </div>
         </div>
@@ -962,12 +1636,20 @@ export default function ClubFairPage() {
         <label className="mt-4 flex cursor-pointer items-center gap-2 text-sm text-text-muted">
           <input
             type="checkbox"
-            checked={resetAllTime}
-            onChange={(event) => setResetAllTime(event.target.checked)}
+            checked={
+              resetAllTime
+            }
+            onChange={(event) =>
+              setResetAllTime(
+                event.target.checked,
+              )
+            }
             disabled={adminBusy}
             className="h-4 w-4 cursor-pointer accent-[#ff622b]"
           />
-          Also reset the all-time total count when resetting
+
+          Also reset the all-time total
+          count when resetting
         </label>
 
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">
@@ -978,6 +1660,7 @@ export default function ClubFairPage() {
             className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-500/40 px-5 py-3 text-sm font-bold text-red-500 transition hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             <FaUndo />
+
             {countResetting
               ? "Resetting..."
               : resetAllTime
@@ -992,7 +1675,10 @@ export default function ClubFairPage() {
             className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-bold text-white transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <FaSave />
-            {countSaving ? "Saving..." : "Save Count"}
+
+            {countSaving
+              ? "Saving..."
+              : "Save Count"}
           </button>
         </div>
       </div>
@@ -1034,6 +1720,7 @@ export default function ClubFairPage() {
       <div className="absolute right-6 top-6 flex items-center gap-2">
         <span className="relative flex h-3 w-3">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75" />
+
           <span className="relative inline-flex h-3 w-3 rounded-full bg-green-500" />
         </span>
 
@@ -1047,11 +1734,14 @@ export default function ClubFairPage() {
       </p>
 
       <p className="relative mt-2 text-sm font-semibold text-accent">
-        {activeLabel || `${activeSemester} ${activeYear}`}
+        {activeLabel ||
+          `${activeSemester} ${activeYear}`}
       </p>
 
       <motion.div
-        key={liveCount ?? "loading"}
+        key={
+          liveCount ?? "loading"
+        }
         initial={{
           opacity: 0,
           scale: 0.85,
@@ -1062,328 +1752,567 @@ export default function ClubFairPage() {
         }}
         className="relative font-bebasNeue text-8xl leading-none tracking-wider text-accent sm:text-[10rem] md:text-[12rem]"
       >
-        {liveCount !== null ? liveCount.toLocaleString() : "?"}
+        {liveCount !== null
+          ? liveCount.toLocaleString()
+          : "?"}
       </motion.div>
     </motion.section>
   );
 
-  const renderFormUnavailable = () => {
-    const isUpcoming = windowStatus === "upcoming";
+  const renderFormUnavailable =
+    () => {
+      const isUpcoming =
+        windowStatus === "upcoming";
 
-    return (
-      <motion.div
+      return (
+        <motion.div
+          initial={{
+            opacity: 0,
+            y: 20,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          className="rounded-2xl border-2 border-accent/30 bg-surface/70 p-8 text-center shadow-xl backdrop-blur-md sm:p-12"
+        >
+          <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-accent/10">
+            {isUpcoming ? (
+              <FaHourglassHalf className="text-4xl text-accent" />
+            ) : (
+              <FaLock className="text-4xl text-accent" />
+            )}
+          </div>
+
+          <h3 className="font-bebasNeue text-3xl tracking-wider text-text-secondary sm:text-4xl">
+            {isUpcoming
+              ? "Registration Opens Soon"
+              : "Club Fair Registration Is Closed"}
+          </h3>
+
+          {isUpcoming ? (
+            <>
+              <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-text-muted">
+                The Club Fair
+                registration form is
+                not open yet. Please
+                come back when
+                registration starts.
+              </p>
+
+              {windowSettings.startAt && (
+                <p className="mx-auto mt-5 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-2 text-sm font-semibold text-accent">
+                  <FaCalendarAlt />
+                  Opens{" "}
+                  {formatDateTime(
+                    windowSettings.startAt,
+                  )}
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-text-muted sm:text-lg">
+              {
+                CLUB_FAIR_CLOSED_MESSAGE
+              }
+            </p>
+          )}
+        </motion.div>
+      );
+    };
+
+  const renderSubmissionComplete =
+    () => {
+      if (!submissionReceipt) {
+        return null;
+      }
+
+      return (
+        <motion.div
+          initial={{
+            opacity: 0,
+            y: 20,
+            scale: 0.97,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+            scale: 1,
+          }}
+          className="rounded-3xl border border-green-500/30 bg-green-500/10 p-8 text-center shadow-xl sm:p-12"
+        >
+          <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-green-500 text-white shadow-lg shadow-green-500/25">
+            <FaCheckCircle className="h-10 w-10" />
+          </div>
+
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-green-500">
+            Registration Complete
+          </p>
+
+          <h3 className="mt-3 font-bebasNeue text-4xl tracking-wider text-text-secondary sm:text-5xl">
+            Application Submitted
+          </h3>
+
+          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-text-muted">
+            Application submitted, and
+            a confirmation email has
+            been sent to:
+          </p>
+
+          <p className="mt-3 break-all font-semibold text-green-500">
+            {
+              submissionReceipt.email
+            }
+          </p>
+
+          <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-text-muted">
+            Please check your Inbox,
+            Spam folder, and Promotions
+            folder. Interview time and
+            room details will be sent
+            later.
+          </p>
+
+          {submissionReceipt.submissionId && (
+            <p className="mt-5 text-xs text-text-muted">
+              Reference:{" "}
+              <span className="font-mono text-text-secondary">
+                {
+                  submissionReceipt.submissionId
+                }
+              </span>
+            </p>
+          )}
+        </motion.div>
+      );
+    };
+
+  const renderApplicationForm =
+    () => (
+      <motion.form
         initial={{
           opacity: 0,
-          y: 20,
+          y: 30,
         }}
-        animate={{
+        whileInView={{
           opacity: 1,
           y: 0,
         }}
-        transition={{
-          duration: 0.5,
+        viewport={{
+          once: true,
         }}
-        className="rounded-2xl border-2 border-accent/30 bg-surface/70 p-8 text-center shadow-xl backdrop-blur-md sm:p-12"
+        onSubmit={handleSubmit}
+        className="space-y-6 rounded-2xl border border-border bg-surface/70 p-5 shadow-xl backdrop-blur-md sm:p-8"
       >
-        <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-accent/10">
-          {isUpcoming ? (
-            <FaHourglassHalf className="text-4xl text-accent" />
-          ) : (
-            <FaLock className="text-4xl text-accent" />
-          )}
-        </div>
+        {submitStatus.type && (
+          <div
+            className={`rounded-xl p-4 ${
+              submitStatus.type ===
+              "success"
+                ? "border border-green-500/30 bg-green-500/10 text-green-500"
+                : "border border-red-500/30 bg-red-500/10 text-red-500"
+            }`}
+          >
+            {submitStatus.message}
+          </div>
+        )}
 
-        <h3 className="font-bebasNeue text-3xl tracking-wider text-text-secondary sm:text-4xl">
-          {isUpcoming
-            ? "Registration Opens Soon"
-            : "Club Fair Registration Is Closed"}
-        </h3>
+        <div className="mb-6 text-center">
+          <p className="text-base leading-relaxed text-text-muted sm:text-lg">
+            Fill out the form below to
+            register for the BUAC Club
+            Fair.
+          </p>
 
-        {isUpcoming ? (
-          <>
-            <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-text-muted">
-              The Club Fair registration form is not open yet. Please come back
-              when registration starts.
-            </p>
-
-            {windowSettings.startAt && (
-              <p className="mx-auto mt-5 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-2 text-sm font-semibold text-accent">
+          {windowSettings.enabled &&
+            windowSettings.endAt && (
+              <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-1.5 text-xs font-semibold text-accent">
                 <FaCalendarAlt />
-                Opens {formatDateTime(windowSettings.startAt)}
+                Open until{" "}
+                {formatDateTime(
+                  windowSettings.endAt,
+                )}
               </p>
             )}
-          </>
-        ) : (
-          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-text-muted sm:text-lg">
-            {CLUB_FAIR_CLOSED_MESSAGE}
-          </p>
-        )}
-      </motion.div>
-    );
-  };
-
-  const renderApplicationForm = () => (
-    <motion.form
-      initial={{
-        opacity: 0,
-        y: 30,
-      }}
-      whileInView={{
-        opacity: 1,
-        y: 0,
-      }}
-      viewport={{
-        once: true,
-      }}
-      transition={{
-        duration: 0.5,
-      }}
-      onSubmit={handleSubmit}
-      className="space-y-6 rounded-2xl border border-border bg-surface/70 p-5 shadow-xl backdrop-blur-md sm:p-8"
-    >
-      {submitStatus.type && (
-        <div
-          className={`rounded-xl p-4 ${
-            submitStatus.type === "success"
-              ? "border border-green-500/30 bg-green-500/10 text-green-500"
-              : "border border-red-500/30 bg-red-500/10 text-red-500"
-          }`}
-        >
-          {submitStatus.message}
-        </div>
-      )}
-
-      <div className="mb-6 text-center">
-        <p className="text-base leading-relaxed text-text-muted sm:text-lg">
-          Fill out the form below to register for the BUAC Club Fair.
-        </p>
-
-        {windowSettings.enabled && windowSettings.endAt && (
-          <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-4 py-1.5 text-xs font-semibold text-accent">
-            <FaCalendarAlt />
-            Open until {formatDateTime(windowSettings.endAt)}
-          </p>
-        )}
-      </div>
-
-      <div className="grid gap-5 md:grid-cols-2">
-        <div>
-          <label className="mb-2 block text-sm font-medium text-text-muted">
-            Name <RequiredMark />
-          </label>
-
-          <input
-            type="text"
-            value={form.name}
-            onChange={(event) => updateForm("name", event.target.value)}
-            placeholder="Your full name"
-            className={inputClass}
-          />
         </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-text-muted">
-            Student ID <RequiredMark />
-          </label>
+        <div className="grid gap-5 md:grid-cols-2">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-text-muted">
+              Name <RequiredMark />
+            </label>
 
-          <input
-            type="text"
-            value={form.studentId}
-            onChange={(event) => updateForm("studentId", event.target.value)}
-            placeholder="24101XXX"
-            className={inputClass}
-          />
-        </div>
+            <input
+              type="text"
+              value={form.name}
+              onChange={(event) =>
+                updateForm(
+                  "name",
+                  event.target.value,
+                )
+              }
+              placeholder="Your full name"
+              className={inputClass}
+            />
+          </div>
 
-        <div className="md:col-span-2">
-          <label className="mb-2 block text-sm font-medium text-text-muted">
-            Address <RequiredMark />
-          </label>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-text-muted">
+              Student ID{" "}
+              <RequiredMark />
+            </label>
 
-          <input
-            type="text"
-            value={form.address}
-            onChange={(event) => updateForm("address", event.target.value)}
-            placeholder="Your current address"
-            className={inputClass}
-          />
-        </div>
+            <input
+              type="text"
+              value={
+                form.studentId
+              }
+              onChange={(event) =>
+                updateForm(
+                  "studentId",
+                  event.target.value,
+                )
+              }
+              placeholder="24101XXX"
+              className={inputClass}
+            />
+          </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-text-muted">
-            Gender <RequiredMark />
-          </label>
+          <div className="md:col-span-2">
+            <label className="mb-2 block text-sm font-medium text-text-muted">
+              Address{" "}
+              <RequiredMark />
+            </label>
 
-          <CustomSelect
-            value={form.gender}
-            onChange={(value) => updateForm("gender", value)}
-            options={genderOptions}
-            placeholder="Select Gender"
-            variant="surface"
-          />
-        </div>
+            <input
+              type="text"
+              value={form.address}
+              onChange={(event) =>
+                updateForm(
+                  "address",
+                  event.target.value,
+                )
+              }
+              placeholder="Your current address"
+              className={inputClass}
+            />
+          </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-text-muted">
-            Religion <RequiredMark />
-          </label>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-text-muted">
+              Gender{" "}
+              <RequiredMark />
+            </label>
 
-          <CustomSelect
-            value={form.religion}
-            onChange={(value) => updateForm("religion", value)}
-            options={religionOptions}
-            placeholder="Select Religion"
-            variant="surface"
-          />
-        </div>
+            <CustomSelect
+              value={form.gender}
+              onChange={(value) =>
+                updateForm(
+                  "gender",
+                  value,
+                )
+              }
+              options={
+                genderOptions
+              }
+              placeholder="Select Gender"
+              variant="surface"
+            />
+          </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-text-muted">
-            Contact Number <RequiredMark />
-          </label>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-text-muted">
+              Religion{" "}
+              <RequiredMark />
+            </label>
 
-          <input
-            type="text"
-            value={form.contact}
-            onChange={(event) => updateForm("contact", event.target.value)}
-            placeholder="01XXXXXXXXX"
-            className={inputClass}
-          />
-        </div>
+            <CustomSelect
+              value={form.religion}
+              onChange={(value) =>
+                updateForm(
+                  "religion",
+                  value,
+                )
+              }
+              options={
+                religionOptions
+              }
+              placeholder="Select Religion"
+              variant="surface"
+            />
+          </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-text-muted">
-            Facebook Profile Link <RequiredMark />
-          </label>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-text-muted">
+              Contact Number{" "}
+              <RequiredMark />
+            </label>
 
-          <input
-            type="text"
-            inputMode="url"
-            value={form.facebook}
-            onChange={(event) => updateForm("facebook", event.target.value)}
-            placeholder="facebook.com/your.profile"
-            className={inputClass}
-          />
+            <input
+              type="text"
+              value={form.contact}
+              onChange={(event) =>
+                updateForm(
+                  "contact",
+                  event.target.value,
+                )
+              }
+              placeholder="01XXXXXXXXX"
+              className={inputClass}
+            />
+          </div>
 
-          <p className="mt-1 text-xs text-text-muted">
-            You may enter facebook.com directly or include https://.
-          </p>
-        </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-text-muted">
+              Facebook Profile Link{" "}
+              <RequiredMark />
+            </label>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-text-muted">
-            University Department <RequiredMark />
-          </label>
+            <input
+              type="text"
+              inputMode="url"
+              value={
+                form.facebook
+              }
+              onChange={(event) =>
+                updateForm(
+                  "facebook",
+                  event.target.value,
+                )
+              }
+              placeholder="facebook.com/your.profile"
+              className={inputClass}
+            />
 
-          <CustomSelect
-            value={form.department}
-            onChange={(value) => updateForm("department", value)}
-            options={departmentOptions}
-            placeholder="Select Department"
-            variant="surface"
-          />
-        </div>
+            <p className="mt-1 text-xs text-text-muted">
+              You may enter
+              facebook.com directly
+              or include https://.
+            </p>
+          </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-text-muted">
-            Semester in BRACU <RequiredMark />
-          </label>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-text-muted">
+              University Department{" "}
+              <RequiredMark />
+            </label>
 
-          <CustomSelect
-            value={form.semester}
-            onChange={(value) => updateForm("semester", value)}
-            options={universitySemesterOptions}
-            placeholder="Select Semester"
-            variant="surface"
-          />
-        </div>
+            <CustomSelect
+              value={
+                form.department
+              }
+              onChange={(value) => {
+                updateForm(
+                  "department",
+                  value,
+                );
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-text-muted">
-            Blood Group <RequiredMark />
-          </label>
+                if (
+                  value !== "Other"
+                ) {
+                  updateForm(
+                    "otherDepartment",
+                    "",
+                  );
+                }
+              }}
+              options={
+                departmentOptions
+              }
+              placeholder="Select Department"
+              variant="surface"
+            />
 
-          <CustomSelect
-            value={form.bloodGroup}
-            onChange={(value) => updateForm("bloodGroup", value)}
-            options={bloodGroupOptions}
-            placeholder="Select Blood Group"
-            variant="surface"
-          />
-        </div>
-
-        <div>
-          <label className="mb-2 flex items-center gap-2 text-sm font-medium text-text-muted">
-            <FaTint className="text-red-500" />
-            Are you interested in donating blood? <RequiredMark />
-          </label>
-
-          <div className="flex min-h-12 items-center gap-2 rounded-xl border border-input-border bg-input-bg p-2 sm:min-h-13">
-            {bloodDonationOptions.map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => updateForm("bloodDonation", option)}
-                className={`flex-1 cursor-pointer rounded-lg px-2 py-2 text-xs font-semibold transition ${
-                  form.bloodDonation === option
-                    ? option === "Yes"
-                      ? "bg-green-500 text-white"
-                      : option === "Maybe"
-                        ? "bg-yellow-500 text-white"
-                        : "bg-red-500 text-white"
-                    : "text-text-muted hover:bg-accent/10 hover:text-accent"
-                }`}
+            {form.department ===
+              "Other" && (
+              <motion.div
+                initial={{
+                  opacity: 0,
+                  height: 0,
+                  y: -6,
+                }}
+                animate={{
+                  opacity: 1,
+                  height: "auto",
+                  y: 0,
+                }}
+                className="mt-3 overflow-hidden"
               >
-                {option}
-              </button>
-            ))}
+                <label
+                  htmlFor="otherDepartment"
+                  className="mb-2 block text-sm font-medium text-text-muted"
+                >
+                  Write Your
+                  Department{" "}
+                  <RequiredMark />
+                </label>
+
+                <input
+                  id="otherDepartment"
+                  type="text"
+                  maxLength={100}
+                  value={
+                    form.otherDepartment
+                  }
+                  onChange={(event) =>
+                    updateForm(
+                      "otherDepartment",
+                      event.target.value,
+                    )
+                  }
+                  placeholder="Enter your university department"
+                  className={
+                    inputClass
+                  }
+                />
+              </motion.div>
+            )}
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-text-muted">
+              Semester in BRACU{" "}
+              <RequiredMark />
+            </label>
+
+            <CustomSelect
+              value={
+                form.semester
+              }
+              onChange={(value) =>
+                updateForm(
+                  "semester",
+                  value,
+                )
+              }
+              options={
+                universitySemesterOptions
+              }
+              placeholder="Select Semester"
+              variant="surface"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-text-muted">
+              Blood Group{" "}
+              <RequiredMark />
+            </label>
+
+            <CustomSelect
+              value={
+                form.bloodGroup
+              }
+              onChange={(value) =>
+                updateForm(
+                  "bloodGroup",
+                  value,
+                )
+              }
+              options={
+                bloodGroupOptions
+              }
+              placeholder="Select Blood Group"
+              variant="surface"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 flex items-center gap-2 text-sm font-medium text-text-muted">
+              <FaTint className="text-red-500" />
+              Are you interested in
+              donating blood?{" "}
+              <RequiredMark />
+            </label>
+
+            <div className="flex min-h-12 items-center gap-2 rounded-xl border border-input-border bg-input-bg p-2 sm:min-h-13">
+              {bloodDonationOptions.map(
+                (option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() =>
+                      updateForm(
+                        "bloodDonation",
+                        option,
+                      )
+                    }
+                    className={`flex-1 cursor-pointer rounded-lg px-2 py-2 text-xs font-semibold transition ${
+                      form.bloodDonation ===
+                      option
+                        ? option ===
+                          "Yes"
+                          ? "bg-green-500 text-white"
+                          : option ===
+                              "Maybe"
+                            ? "bg-yellow-500 text-white"
+                            : "bg-red-500 text-white"
+                        : "text-text-muted hover:bg-accent/10 hover:text-accent"
+                    }`}
+                  >
+                    {option}
+                  </button>
+                ),
+              )}
+            </div>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="mb-2 block text-sm font-medium text-text-muted">
+              G-Suite Email{" "}
+              <RequiredMark />
+            </label>
+
+            <input
+              type="email"
+              value={form.email}
+              onChange={(event) =>
+                updateForm(
+                  "email",
+                  event.target.value,
+                )
+              }
+              placeholder="yourname@g.bracu.ac.bd"
+              className={inputClass}
+            />
           </div>
         </div>
 
-        <div className="md:col-span-2">
-          <label className="mb-2 block text-sm font-medium text-text-muted">
-            G-Suite Email <RequiredMark />
-          </label>
-
-          <input
-            type="email"
-            value={form.email}
-            onChange={(event) => updateForm("email", event.target.value)}
-            placeholder="yourname@g.bracu.ac.bd"
-            className={inputClass}
-          />
-        </div>
-      </div>
-
-      <motion.button
-        type="submit"
-        disabled={isSubmitting}
-        whileTap={{
-          scale: 0.97,
-        }}
-        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-accent py-4 font-bebasNeue text-xl tracking-wider text-white shadow-lg transition hover:bg-accent/90 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {isSubmitting ? (
-          "Submitting..."
-        ) : (
-          <>
-            Submit Application
-            <FaPaperPlane />
-          </>
-        )}
-      </motion.button>
-    </motion.form>
-  );
+        <motion.button
+          type="submit"
+          disabled={isSubmitting}
+          whileTap={{
+            scale: 0.97,
+          }}
+          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-accent py-4 font-bebasNeue text-xl tracking-wider text-white shadow-lg transition hover:bg-accent/90 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isSubmitting ? (
+            "Submitting..."
+          ) : (
+            <>
+              Submit Application
+              <FaPaperPlane />
+            </>
+          )}
+        </motion.button>
+      </motion.form>
+    );
 
   const renderApplication = () => (
-    <section key="application" className="mb-16">
+    <section
+      key="application"
+      className="mb-16"
+    >
       <div className="mx-auto max-w-3xl">
         {!windowLoaded ? (
           <div className="rounded-2xl border border-border bg-surface/70 p-10 text-center">
             <p className="animate-pulse text-sm text-text-muted">
-              Checking registration status...
+              Checking registration
+              status...
             </p>
           </div>
+        ) : submissionReceipt ? (
+          renderSubmissionComplete()
         ) : windowStatus === "open" ? (
           renderApplicationForm()
         ) : (
@@ -1394,45 +2323,57 @@ export default function ClubFairPage() {
   );
 
   const renderWhyJoin = () => (
-    <section key="whyJoin" className="mb-20">
+    <section
+      key="whyJoin"
+      className="mb-20"
+    >
       <h2 className="mb-12 text-center font-bebasNeue text-4xl tracking-wider text-text-secondary sm:text-5xl">
         Why Join BUAC?
       </h2>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {benefits.map((benefit, index) => (
-          <motion.div
-            key={benefit.title}
-            initial={{
-              opacity: 0,
-              y: 20,
-            }}
-            whileInView={{
-              opacity: 1,
-              y: 0,
-            }}
-            viewport={{
-              once: true,
-            }}
-            transition={{
-              delay: index * 0.05,
-              duration: 0.4,
-            }}
-            className="rounded-2xl border border-border bg-surface/70 p-6 shadow-xl backdrop-blur-md transition hover:border-accent/30 hover:shadow-accent/10"
-          >
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-xl bg-accent/10">
-              {benefitIcons[index]}
-            </div>
+        {benefits.map(
+          (benefit, index) => (
+            <motion.div
+              key={benefit.title}
+              initial={{
+                opacity: 0,
+                y: 20,
+              }}
+              whileInView={{
+                opacity: 1,
+                y: 0,
+              }}
+              viewport={{
+                once: true,
+              }}
+              transition={{
+                delay:
+                  index * 0.05,
+                duration: 0.4,
+              }}
+              className="rounded-2xl border border-border bg-surface/70 p-6 shadow-xl backdrop-blur-md transition hover:border-accent/30 hover:shadow-accent/10"
+            >
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-xl bg-accent/10">
+                {
+                  benefitIcons[
+                    index
+                  ]
+                }
+              </div>
 
-            <h3 className="mb-2 font-bebasNeue text-2xl tracking-wide text-text-secondary">
-              {benefit.title}
-            </h3>
+              <h3 className="mb-2 font-bebasNeue text-2xl tracking-wide text-text-secondary">
+                {benefit.title}
+              </h3>
 
-            <p className="leading-relaxed text-text-muted">
-              {benefit.description}
-            </p>
-          </motion.div>
-        ))}
+              <p className="leading-relaxed text-text-muted">
+                {
+                  benefit.description
+                }
+              </p>
+            </motion.div>
+          ),
+        )}
       </div>
     </section>
   );
@@ -1447,8 +2388,10 @@ export default function ClubFairPage() {
       </h2>
 
       <p className="mx-auto mb-8 mt-4 max-w-2xl text-base text-text-muted sm:text-lg">
-        Feel free to reach out to us if you have any questions about BUAC Club
-        Fair registration.
+        Feel free to reach out to us
+        if you have any questions
+        about BUAC Club Fair
+        registration.
       </p>
 
       <Link
@@ -1460,9 +2403,13 @@ export default function ClubFairPage() {
     </section>
   );
 
-  const sectionRenderers: Record<ClubFairSectionId, () => React.ReactNode> = {
+  const sectionRenderers: Record<
+    ClubFairSectionId,
+    () => ReactNode
+  > = {
     counter: renderCounter,
-    application: renderApplication,
+    application:
+      renderApplication,
     whyJoin: renderWhyJoin,
     cta: renderCta,
   };
@@ -1481,7 +2428,11 @@ export default function ClubFairPage() {
             <div className="mb-8 flex justify-end">
               <button
                 type="button"
-                onClick={() => setOrderEditorOpen(true)}
+                onClick={() =>
+                  setOrderEditorOpen(
+                    true,
+                  )
+                }
                 className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-bold text-white transition hover:bg-accent/90"
               >
                 <HiOutlinePencilAlt />
@@ -1494,21 +2445,39 @@ export default function ClubFairPage() {
           </>
         )}
 
-        {sectionOrder.map((sectionId) => (
-          <div key={sectionId}>{sectionRenderers[sectionId]?.()}</div>
-        ))}
+        {sectionOrder.map(
+          (sectionId) => (
+            <div key={sectionId}>
+              {sectionRenderers[
+                sectionId
+              ]?.()}
+            </div>
+          ),
+        )}
       </div>
 
-      {auth && orderEditorOpen && (
-        <ClubFairOrderEditor
-          order={sectionOrder}
-          onClose={() => setOrderEditorOpen(false)}
-          onSaved={(newOrder) => {
-            setSectionOrder(newOrder);
-            setOrderEditorOpen(false);
-          }}
-        />
-      )}
+      {auth &&
+        orderEditorOpen && (
+          <ClubFairOrderEditor
+            order={sectionOrder}
+            onClose={() =>
+              setOrderEditorOpen(
+                false,
+              )
+            }
+            onSaved={(
+              newOrder,
+            ) => {
+              setSectionOrder(
+                newOrder,
+              );
+
+              setOrderEditorOpen(
+                false,
+              );
+            }}
+          />
+        )}
     </main>
   );
 }

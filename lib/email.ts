@@ -24,6 +24,14 @@ export interface EmailSendResult {
   method?: "gmail-app-password";
   messageId?: string;
   error?: string;
+  attempts?: number;
+}
+
+interface EmailError extends Error {
+  code?: string;
+  responseCode?: number;
+  command?: string;
+  response?: string;
 }
 
 function getEmailConfig() {
@@ -32,15 +40,11 @@ function getEmailConfig() {
       process.env.EMAIL_SERVICE?.trim() || "gmail",
 
     user:
-      process.env.EMAIL_USER?.trim() || "",
+      process.env.EMAIL_USER?.trim().toLowerCase() || "",
 
-    /*
-     * Gmail app passwords may contain spaces when copied.
-     * Remove all whitespace before using the password.
-     */
     password: (
-      process.env.EMAIL_PASS ||
       process.env.GMAIL_APP_PASSWORD ||
+      process.env.EMAIL_PASS ||
       ""
     ).replace(/\s+/g, ""),
   };
@@ -49,14 +53,56 @@ function getEmailConfig() {
 function createTransporter() {
   const config = getEmailConfig();
 
+  /*
+   * Explicit Gmail SMTP settings are used instead of relying
+   * only on the service shortcut.
+   */
   return nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
+
     auth: {
       user: config.user,
       pass: config.password,
     },
+
+    connectionTimeout: 15000,
+    greetingTimeout: 10000,
+    socketTimeout: 25000,
+
+    tls: {
+      minVersion: "TLSv1.2",
+      servername: "smtp.gmail.com",
+    },
+  });
+}
+
+function getEmailErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Email delivery failed.";
+}
+
+function isAuthenticationError(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const mailError = error as EmailError;
+
+  return (
+    mailError.code === "EAUTH" ||
+    mailError.responseCode === 535 ||
+    mailError.responseCode === 534
+  );
+}
+
+function wait(milliseconds: number) {
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, milliseconds);
   });
 }
 
@@ -71,66 +117,112 @@ export async function sendMail(
     return {
       success: false,
       error: "EMAIL_USER is missing.",
+      attempts: 0,
     };
   }
 
   if (!config.password) {
     console.error(
-      "[EMAIL] EMAIL_PASS or GMAIL_APP_PASSWORD is missing.",
+      "[EMAIL] GMAIL_APP_PASSWORD or EMAIL_PASS is missing.",
     );
 
     return {
       success: false,
       error:
-        "EMAIL_PASS or GMAIL_APP_PASSWORD is missing.",
+        "GMAIL_APP_PASSWORD or EMAIL_PASS is missing.",
+      attempts: 0,
     };
   }
 
-  if (!payload.to?.trim()) {
-    console.error("[EMAIL] Recipient is missing.");
+  const recipient = payload.to?.trim().toLowerCase();
+
+  if (!recipient) {
+    console.error("[EMAIL] Recipient email is missing.");
 
     return {
       success: false,
       error: "Recipient email is missing.",
+      attempts: 0,
     };
   }
 
   const mailOptions = {
     from: `"BRAC University Adventure Club" <${config.user}>`,
-    to: payload.to.trim().toLowerCase(),
+    to: recipient,
     subject: payload.subject,
     html: payload.html,
     text: payload.text,
-    replyTo: payload.replyTo?.trim() || config.user,
+
+    replyTo:
+      payload.replyTo?.trim().toLowerCase() ||
+      config.user,
   };
 
-  try {
+  /*
+   * Retry delays:
+   * - First attempt: immediately
+   * - Second attempt: after 1.5 seconds
+   * - Third attempt: after 4 seconds
+   */
+  const retryDelays = [0, 1500, 4000];
+
+  let lastError = "Email delivery failed.";
+
+  for (
+    let attemptIndex = 0;
+    attemptIndex < retryDelays.length;
+    attemptIndex += 1
+  ) {
+    const delay = retryDelays[attemptIndex];
+
+    if (delay > 0) {
+      await wait(delay);
+    }
+
     const transporter = createTransporter();
 
-    await transporter.verify();
+    try {
+      const result =
+        await transporter.sendMail(mailOptions);
 
-    const result = await transporter.sendMail(mailOptions);
+      console.log(
+        `[EMAIL] Sent successfully to ${recipient}. ` +
+          `Message ID: ${result.messageId}. ` +
+          `Attempt: ${attemptIndex + 1}`,
+      );
 
-    console.log(
-      `[EMAIL] Sent successfully to ${payload.to}. Message ID: ${result.messageId}`,
-    );
+      transporter.close();
 
-    return {
-      success: true,
-      method: "gmail-app-password",
-      messageId: result.messageId,
-    };
-  } catch (error) {
-    console.error("[EMAIL] Gmail SMTP failed:", error);
+      return {
+        success: true,
+        method: "gmail-app-password",
+        messageId: result.messageId,
+        attempts: attemptIndex + 1,
+      };
+    } catch (error) {
+      lastError = getEmailErrorMessage(error);
 
-    return {
-      success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Gmail SMTP failed.",
-    };
+      console.error(
+        `[EMAIL] Attempt ${attemptIndex + 1} failed for ${recipient}:`,
+        error,
+      );
+
+      transporter.close();
+
+      /*
+       * Retrying cannot fix invalid credentials.
+       */
+      if (isAuthenticationError(error)) {
+        break;
+      }
+    }
   }
+
+  return {
+    success: false,
+    error: lastError,
+    attempts: retryDelays.length,
+  };
 }
 
 function escapeHtml(value: string) {
@@ -153,10 +245,12 @@ export function buildEmailHtml({
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0"
     />
+
     <title>${safeTitle}</title>
   </head>
 
@@ -263,34 +357,63 @@ export function buildEmailHtml({
 export function buildClubFairThankYouEmail(
   name: string,
 ): EmailTemplate {
-  const safeName = escapeHtml(name || "Student");
+  const displayName =
+    String(name || "").trim() || "Student";
+
+  const safeName = escapeHtml(displayName);
 
   const bodyHtml = `
     <p style="margin:0 0 18px;">
-      Dear Student,
+      Dear ${safeName},
     </p>
 
     <p style="margin:0 0 18px;">
-      We are pleased to inform you that we have
-      successfully received your registration for the
-      BRAC University Adventure Club (BUAC).
+      We are pleased to inform you that we have successfully
+      received your registration for the
+      <strong style="color:#ffffff;">
+        BRAC University Adventure Club (BUAC)
+      </strong>.
+    </p>
+
+    <div
+      style="
+        margin:20px 0;
+        padding:16px;
+        border-left:4px solid #ff622b;
+        border-radius:8px;
+        background:rgba(255,98,43,.12);
+      "
+    >
+      <p
+        style="
+          margin:0;
+          color:#ffffff;
+          font-weight:700;
+        "
+      >
+        Your Club Fair application has been submitted successfully.
+      </p>
+    </div>
+
+    <p style="margin:0 0 18px;">
+      Please wait for our next instruction email. We will
+      provide the next steps, important information, and
+      further guidance regarding your registration.
     </p>
 
     <p style="margin:0 0 18px;">
-      Please wait for our next instruction email, where
-      we will provide you with the next steps, important
-      information and further guidance regarding your
-      registration. For the interview, time and room
-      details will be emailed to you soon!
+      Interview time and room details will be emailed to
+      you soon.
     </p>
 
     <p style="margin:0 0 18px;">
-      Until then, please keep an eye on your email for
-      updates from BUAC.
+      Until then, please keep an eye on your inbox,
+      Spam folder, and Promotions folder for updates from BUAC.
     </p>
 
     <p style="margin:28px 0 0;">
       Warm regards,<br />
+
       <strong style="color:#ffffff;">
         BUAC Executive Team
       </strong>
@@ -298,20 +421,25 @@ export function buildClubFairThankYouEmail(
   `;
 
   return {
-    subject: "BUAC Club Fair Registration Received",
+    subject:
+      "BUAC Club Fair Registration Received",
 
     html: buildEmailHtml({
-      title: `Thank You, ${safeName}!`,
+      title: `Thank You, ${displayName}!`,
       bodyHtml,
     }),
 
-    text: `Dear Student,
+    text: `Dear ${displayName},
 
 We are pleased to inform you that we have successfully received your registration for the BRAC University Adventure Club (BUAC).
 
-Please wait for our next instruction email, where we will provide you with the next steps, important information and further guidance regarding your registration. For the interview, time and room details will be emailed to you soon!
+Your Club Fair application has been submitted successfully.
 
-Until then, please keep an eye on your email for updates from BUAC.
+Please wait for our next instruction email. We will provide the next steps, important information, and further guidance regarding your registration.
+
+Interview time and room details will be emailed to you soon.
+
+Until then, please keep an eye on your inbox, Spam folder, and Promotions folder for updates from BUAC.
 
 Warm regards,
 BUAC Executive Team`,
