@@ -2,11 +2,21 @@
   "name": "buac",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "npm@10.9.2",
+  "engines": {
+    "node": "22.x",
+    "npm": "10.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
+  },
+  "allowScripts": {
+    "bcrypt": true,
+    "sharp": true,
+    "unrs-resolver": true
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
@@ -51,10 +61,5 @@
     "eslint-config-next": "16.1.1",
     "tailwindcss": "^4.1.18",
     "typescript": "^5"
-  },
-  "allowScripts": {
-    "bcrypt@6.0.0": true,
-    "sharp@0.34.5": true,
-    "unrs-resolver@1.11.1": true
   }
 }
